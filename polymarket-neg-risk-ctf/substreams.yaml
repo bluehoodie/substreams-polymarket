@@ -1,0 +1,79 @@
+specVersion: v0.1.0
+package:
+  name: polymarket-neg-risk-ctf
+  version: v0.1.0
+  url: https://github.com/bluehoodie/substreams-polymarket
+  image: ./polymarket.png  
+
+network: polygon
+
+imports:
+  ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
+
+protobuf:
+  files:
+    - polymarket/neg_risk_ctf/v1/events.proto
+  importPaths:
+    - ./proto
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ./target/wasm32-unknown-unknown/release/polymarket_neg_risk_ctf.wasm
+
+modules:
+  - name: map_fee_events
+    kind: map
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.neg_risk_ctf.v1.FeeEvents
+
+  - name: map_admin_events
+    kind: map
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.neg_risk_ctf.v1.AdminEvents
+
+  - name: map_trading_events
+    kind: map
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.neg_risk_ctf.v1.TradingEvents
+
+  - name: map_registry_events
+    kind: map
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.neg_risk_ctf.v1.RegistryEvents
+
+  - name: map_pause_events
+    kind: map
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.neg_risk_ctf.v1.PauseEvents
+
+  - name: map_config_events
+    kind: map
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.neg_risk_ctf.v1.ConfigEvents
+
+  - name: map_all_events
+    kind: map
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.neg_risk_ctf.v1.AllEvents

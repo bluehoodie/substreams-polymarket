@@ -1,0 +1,47 @@
+specVersion: v0.1.0
+package:
+  name: polymarket-ctf
+  version: v0.1.0
+  url: https://github.com/bluehoodie/substreams-polymarket
+  image: ./polymarket.png  
+
+network: polygon
+
+imports:
+  ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
+
+protobuf:
+  files:
+    - polymarket/ctf/v1/events.proto
+  importPaths:
+    - ./proto
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ./target/wasm32-unknown-unknown/release/polymarket_ctf.wasm
+
+modules:
+  - name: map_ctf_events
+    kind: map
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.ctf.v1.CtfEvents
+
+  - name: map_erc1155_events
+    kind: map
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.ctf.v1.Erc1155Events
+
+  - name: map_all_events
+    kind: map
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.ctf.v1.AllEvents

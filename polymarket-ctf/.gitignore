@@ -1,0 +1,10 @@
+# Build artifacts
+target/
+
+# Substreams packages
+*.spkg
+
+# OS files
+.DS_Store
+
+replay.log

@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package polymarket.ctf.v1;
+
+// TransactionContext contains metadata about the transaction and log entry
+message TransactionContext {
+  string tx_hash = 1;
+  uint64 log_index = 2;
+  uint64 block_number = 3;
+  uint64 timestamp = 4;
+}
+
+// ConditionPreparation - emitted when a new condition is prepared
+message ConditionPreparation {
+  bytes condition_id = 1;
+  string oracle = 2;
+  bytes question_id = 3;
+  uint32 outcome_slot_count = 4;
+  TransactionContext tx = 5;
+}
+
+// ConditionResolution - emitted when a condition is resolved
+message ConditionResolution {
+  bytes condition_id = 1;
+  string oracle = 2;
+  bytes question_id = 3;
+  uint32 outcome_slot_count = 4;
+  repeated string payout_numerators = 5;
+  TransactionContext tx = 6;
+}
+
+// PositionSplit - emitted when a position is split
+message PositionSplit {
+  string stakeholder = 1;
+  string collateral_token = 2;
+  bytes parent_collection_id = 3;
+  bytes condition_id = 4;
+  repeated string partition = 5;
+  string amount = 6;
+  TransactionContext tx = 7;
+}
+
+// PositionsMerge - emitted when positions are merged
+message PositionsMerge {
+  string stakeholder = 1;
+  string collateral_token = 2;
+  bytes parent_collection_id = 3;
+  bytes condition_id = 4;
+  repeated string partition = 5;
+  string amount = 6;
+  TransactionContext tx = 7;
+}
+
+// PayoutRedemption - emitted when a payout is redeemed
+message PayoutRedemption {
+  string redeemer = 1;
+  string collateral_token = 2;
+  bytes parent_collection_id = 3;
+  bytes condition_id = 4;
+  repeated string index_sets = 5;
+  string payout = 6;
+  TransactionContext tx = 7;
+}
+
+// TransferSingle - emitted when a single ERC1155 token is transferred
+message TransferSingle {
+  string operator = 1;
+  string from = 2;
+  string to = 3;
+  string id = 4;
+  string value = 5;
+  TransactionContext tx = 6;
+}
+
+// TransferBatch - emitted when a batch of ERC1155 tokens is transferred
+message TransferBatch {
+  string operator = 1;
+  string from = 2;
+  string to = 3;
+  repeated string ids = 4;
+  repeated string values = 5;
+  TransactionContext tx = 6;
+}
+
+// ApprovalForAll - emitted when operator approval for all tokens is set or unset
+message ApprovalForAll {
+  string account = 1;
+  string operator = 2;
+  bool approved = 3;
+  TransactionContext tx = 4;
+}
+
+// CtfEvents is a collection of all CTF-specific events
+message CtfEvents {
+  repeated ConditionPreparation condition_preparation = 1;
+  repeated ConditionResolution condition_resolution = 2;
+  repeated PositionSplit position_split = 3;
+  repeated PositionsMerge positions_merge = 4;
+  repeated PayoutRedemption payout_redemption = 5;
+}
+
+// Erc1155Events is a collection of all ERC1155 events
+message Erc1155Events {
+  repeated TransferSingle transfer_single = 1;
+  repeated TransferBatch transfer_batch = 2;
+  repeated ApprovalForAll approval_for_all = 3;
+}
+
+// AllEvents combines both CTF and ERC1155 events
+message AllEvents {
+  optional CtfEvents ctf_events = 1;
+  optional Erc1155Events erc1155_events = 2;
+}

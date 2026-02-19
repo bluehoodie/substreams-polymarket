@@ -1,0 +1,142 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "orderHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "OrderCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "orderHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "name": "maker",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "taker",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "makerAssetId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "takerAssetId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "makerAmountFilled",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "takerAmountFilled",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "fee",
+        "type": "uint256"
+      }
+    ],
+    "name": "OrderFilled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "takerOrderHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "name": "takerOrderMaker",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "makerAssetId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "takerAssetId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "makerAmountFilled",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "takerAmountFilled",
+        "type": "uint256"
+      }
+    ],
+    "name": "OrdersMatched",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "token0",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "name": "token1",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "name": "conditionId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "TokenRegistered",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "FeeCharged",
+    "type": "event"
+  }
+]

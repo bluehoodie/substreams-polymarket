@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package polymarket.exchange.v1;
+
+// TransactionContext contains metadata about the transaction and log entry
+message TransactionContext {
+  string tx_hash = 1;
+  uint64 log_index = 2;
+  uint64 block_number = 3;
+  uint64 timestamp = 4;
+}
+
+// OrderFilled - emitted when an order is filled (main trading event)
+message OrderFilled {
+  bytes order_hash = 1;
+  string maker = 2;
+  string taker = 3;
+  string maker_asset_id = 4;
+  string taker_asset_id = 5;
+  string maker_amount_filled = 6;
+  string taker_amount_filled = 7;
+  string fee = 8;
+  TransactionContext tx = 9;
+}
+
+// OrderCancelled - emitted when an order is cancelled
+message OrderCancelled {
+  bytes order_hash = 1;
+  TransactionContext tx = 2;
+}
+
+// OrdersMatched - emitted when a taker order is matched against maker orders
+message OrdersMatched {
+  bytes taker_order_hash = 1;
+  string taker_order_maker = 2;
+  string maker_asset_id = 3;
+  string taker_asset_id = 4;
+  string maker_amount_filled = 5;
+  string taker_amount_filled = 6;
+  TransactionContext tx = 7;
+}
+
+// TokenRegistered - emitted when a token pair is registered for trading
+message TokenRegistered {
+  string token0 = 1;
+  string token1 = 2;
+  bytes condition_id = 3;
+  TransactionContext tx = 4;
+}
+
+// FeeCharged - emitted when protocol fees are collected
+message FeeCharged {
+  string recipient = 1;
+  string token_id = 2;
+  string amount = 3;
+  TransactionContext tx = 4;
+}
+
+// ExchangeEvents is a collection of all exchange trading events
+message ExchangeEvents {
+  repeated OrderFilled order_filled = 1;
+  repeated OrderCancelled order_cancelled = 2;
+  repeated OrdersMatched orders_matched = 3;
+}
+
+// RegistryEvents is a collection of all token registry events
+message RegistryEvents {
+  repeated TokenRegistered token_registered = 1;
+}
+
+// FeeEvents is a collection of all fee collection events
+message FeeEvents {
+  repeated FeeCharged fee_charged = 1;
+}
+
+// AllEvents combines all event types
+message AllEvents {
+  optional ExchangeEvents exchange_events = 1;
+  optional RegistryEvents registry_events = 2;
+  optional FeeEvents fee_events = 3;
+}

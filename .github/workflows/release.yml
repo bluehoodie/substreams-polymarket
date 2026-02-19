@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          - polymarket-ctf
+          - polymarket-exchange
+          - polymarket-neg-risk-ctf
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            ${{ matrix.package }}/target
+          key: ${{ runner.os }}-cargo-${{ matrix.package }}-${{ hashFiles(format('{0}/Cargo.lock', matrix.package)) }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.package }}-
+
+      - name: Install buf
+        uses: bufbuild/buf-setup-action@v1
+
+      - name: Install substreams CLI
+        run: |
+          VERSION=$(curl -s https://api.github.com/repos/streamingfast/substreams/releases/latest | jq -r '.tag_name')
+          curl -Lo /tmp/substreams.tar.gz \
+            "https://github.com/streamingfast/substreams/releases/download/${VERSION}/substreams_linux_x86_64.tar.gz"
+          sudo tar -xzf /tmp/substreams.tar.gz -C /usr/local/bin substreams
+          substreams --version
+
+      - name: Build ${{ matrix.package }}
+        run: cd ${{ matrix.package }} && substreams build
+
+      - name: Upload spkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package }}-spkg
+          path: ${{ matrix.package }}/*.spkg
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download all spkg artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: spkgs
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: spkgs/*.spkg
+          generate_release_notes: true
