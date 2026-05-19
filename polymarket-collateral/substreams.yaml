@@ -1,0 +1,55 @@
+specVersion: v0.1.0
+package:
+  name: polymarket-collateral
+  version: v0.1.0
+  url: https://github.com/bluehoodie/substreams-polymarket
+  image: ./polymarket.png
+
+network: polygon
+
+imports:
+  ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
+
+protobuf:
+  files:
+    - polymarket/collateral/v1/events.proto
+  importPaths:
+    - ./proto
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ./target/wasm32-unknown-unknown/release/polymarket_collateral.wasm
+
+modules:
+  - name: map_pusd_events
+    kind: map
+    initialBlock: 84902320
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.collateral.v1.PusdEvents
+
+  - name: map_ctf_adapter_events
+    kind: map
+    initialBlock: 84902320
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.collateral.v1.CtfAdapterEvents
+
+  - name: map_neg_risk_ctf_adapter_events
+    kind: map
+    initialBlock: 84902320
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.collateral.v1.NegRiskCtfAdapterEvents
+
+  - name: map_all_events
+    kind: map
+    initialBlock: 84902320
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.collateral.v1.AllEvents

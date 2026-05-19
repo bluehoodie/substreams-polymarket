@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package polymarket.collateral.v1;
+
+message TransactionContext {
+  string tx_hash = 1;
+  uint64 log_index = 2;
+  uint64 block_number = 3;
+  uint64 timestamp = 4;
+}
+
+// pUSD events
+message Transfer {
+  string from = 1;
+  string to = 2;
+  string amount = 3;
+  TransactionContext tx = 4;
+}
+
+message Wrapped {
+  string caller = 1;
+  string asset = 2;
+  string to = 3;
+  string amount = 4;
+  TransactionContext tx = 5;
+}
+
+message Unwrapped {
+  string caller = 1;
+  string asset = 2;
+  string to = 3;
+  string amount = 4;
+  TransactionContext tx = 5;
+}
+
+// Adapter events (shared)
+message PositionSplit {
+  string initiator = 1;
+  bytes condition_id = 2;
+  string amount = 3;
+  TransactionContext tx = 4;
+}
+
+message PositionsMerged {
+  string initiator = 1;
+  bytes condition_id = 2;
+  string amount = 3;
+  TransactionContext tx = 4;
+}
+
+message PositionsRedeemed {
+  string initiator = 1;
+  bytes condition_id = 2;
+  repeated string amounts = 3;
+  string payout = 4;
+  TransactionContext tx = 5;
+}
+
+// NegRisk-specific
+message PositionsConverted {
+  string initiator = 1;
+  bytes market_id = 2;
+  string index_set = 3;
+  string amount = 4;
+  string amount_out = 5;
+  TransactionContext tx = 6;
+}
+
+// Container messages
+message PusdEvents {
+  repeated Transfer transfer = 1;
+  repeated Wrapped wrapped = 2;
+  repeated Unwrapped unwrapped = 3;
+}
+
+message CtfAdapterEvents {
+  repeated PositionSplit position_split = 1;
+  repeated PositionsMerged positions_merged = 2;
+  repeated PositionsRedeemed positions_redeemed = 3;
+}
+
+message NegRiskCtfAdapterEvents {
+  repeated PositionSplit position_split = 1;
+  repeated PositionsMerged positions_merged = 2;
+  repeated PositionsRedeemed positions_redeemed = 3;
+  repeated PositionsConverted positions_converted = 4;
+}
+
+message AllEvents {
+  optional PusdEvents pusd_events = 1;
+  optional CtfAdapterEvents ctf_adapter_events = 2;
+  optional NegRiskCtfAdapterEvents neg_risk_ctf_adapter_events = 3;
+}

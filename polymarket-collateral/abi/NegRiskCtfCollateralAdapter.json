@@ -1,0 +1,45 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "initiator", "type": "address"},
+      {"indexed": true, "name": "conditionId", "type": "bytes32"},
+      {"indexed": false, "name": "amount", "type": "uint256"}
+    ],
+    "name": "PositionSplit",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "initiator", "type": "address"},
+      {"indexed": true, "name": "conditionId", "type": "bytes32"},
+      {"indexed": false, "name": "amount", "type": "uint256"}
+    ],
+    "name": "PositionsMerged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "initiator", "type": "address"},
+      {"indexed": true, "name": "conditionId", "type": "bytes32"},
+      {"indexed": false, "name": "amounts", "type": "uint256[]"},
+      {"indexed": false, "name": "payout", "type": "uint256"}
+    ],
+    "name": "PositionsRedeemed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "initiator", "type": "address"},
+      {"indexed": true, "name": "marketId", "type": "bytes32"},
+      {"indexed": false, "name": "indexSet", "type": "uint256"},
+      {"indexed": false, "name": "amount", "type": "uint256"},
+      {"indexed": false, "name": "amountOut", "type": "uint256"}
+    ],
+    "name": "PositionsConverted",
+    "type": "event"
+  }
+]
