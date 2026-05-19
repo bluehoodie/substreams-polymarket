@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package polymarket.wallet_factory.v1;
+
+message TransactionContext {
+  string tx_hash = 1;
+  uint64 log_index = 2;
+  uint64 block_number = 3;
+  uint64 timestamp = 4;
+}
+
+message WalletDeployed {
+  string wallet = 1;
+  string owner = 2;
+  string id = 3;
+  string implementation = 4;
+  TransactionContext tx = 5;
+}
+
+message ImplementationAuthorized {
+  string implementation = 1;
+  TransactionContext tx = 2;
+}
+
+message FactoryEvents {
+  repeated WalletDeployed wallet_deployed = 1;
+  repeated ImplementationAuthorized implementation_authorized = 2;
+}

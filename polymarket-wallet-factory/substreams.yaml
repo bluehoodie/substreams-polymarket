@@ -1,0 +1,31 @@
+specVersion: v0.1.0
+package:
+  name: polymarket-wallet-factory
+  version: v0.1.0
+  url: https://github.com/bluehoodie/substreams-polymarket
+  image: ./polymarket.png
+
+network: polygon
+
+imports:
+  ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
+
+protobuf:
+  files:
+    - polymarket/wallet_factory/v1/events.proto
+  importPaths:
+    - ./proto
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ./target/wasm32-unknown-unknown/release/polymarket_wallet_factory.wasm
+
+modules:
+  - name: map_factory_events
+    kind: map
+    initialBlock: 84902000
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.wallet_factory.v1.FactoryEvents

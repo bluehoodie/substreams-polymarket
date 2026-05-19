@@ -1,0 +1,21 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "wallet", "type": "address"},
+      {"indexed": true, "name": "owner", "type": "address"},
+      {"indexed": false, "name": "id", "type": "uint256"},
+      {"indexed": false, "name": "implementation", "type": "address"}
+    ],
+    "name": "WalletDeployed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "implementation", "type": "address"}
+    ],
+    "name": "ImplementationAuthorized",
+    "type": "event"
+  }
+]
