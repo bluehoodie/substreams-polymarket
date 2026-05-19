@@ -2,58 +2,16 @@
   {
     "anonymous": false,
     "inputs": [
-      {
-        "indexed": true,
-        "name": "orderHash",
-        "type": "bytes32"
-      }
-    ],
-    "name": "OrderCancelled",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "name": "orderHash",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "name": "maker",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "name": "taker",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "name": "makerAssetId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "takerAssetId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "makerAmountFilled",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "takerAmountFilled",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "fee",
-        "type": "uint256"
-      }
+      {"indexed": true, "name": "orderHash", "type": "bytes32"},
+      {"indexed": true, "name": "maker", "type": "address"},
+      {"indexed": true, "name": "taker", "type": "address"},
+      {"indexed": false, "name": "side", "type": "uint32"},
+      {"indexed": false, "name": "tokenId", "type": "uint256"},
+      {"indexed": false, "name": "makerAmountFilled", "type": "uint256"},
+      {"indexed": false, "name": "takerAmountFilled", "type": "uint256"},
+      {"indexed": false, "name": "fee", "type": "uint256"},
+      {"indexed": false, "name": "builder", "type": "bytes32"},
+      {"indexed": false, "name": "metadata", "type": "bytes32"}
     ],
     "name": "OrderFilled",
     "type": "event"
@@ -61,36 +19,12 @@
   {
     "anonymous": false,
     "inputs": [
-      {
-        "indexed": true,
-        "name": "takerOrderHash",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "name": "takerOrderMaker",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "name": "makerAssetId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "takerAssetId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "makerAmountFilled",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "takerAmountFilled",
-        "type": "uint256"
-      }
+      {"indexed": true, "name": "takerOrderHash", "type": "bytes32"},
+      {"indexed": true, "name": "takerOrderMaker", "type": "address"},
+      {"indexed": false, "name": "side", "type": "uint32"},
+      {"indexed": false, "name": "tokenId", "type": "uint256"},
+      {"indexed": false, "name": "makerAmountFilled", "type": "uint256"},
+      {"indexed": false, "name": "takerAmountFilled", "type": "uint256"}
     ],
     "name": "OrdersMatched",
     "type": "event"
@@ -98,205 +32,105 @@
   {
     "anonymous": false,
     "inputs": [
-      {
-        "indexed": true,
-        "name": "token0",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "name": "token1",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "name": "conditionId",
-        "type": "bytes32"
-      }
+      {"indexed": true, "name": "orderHash", "type": "bytes32"}
     ],
-    "name": "TokenRegistered",
+    "name": "OrderPreapproved",
     "type": "event"
   },
   {
     "anonymous": false,
     "inputs": [
-      {
-        "indexed": true,
-        "name": "recipient",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "name": "tokenId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "amount",
-        "type": "uint256"
-      }
+      {"indexed": true, "name": "orderHash", "type": "bytes32"}
+    ],
+    "name": "OrderPreapprovalInvalidated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "newAdminAddress", "type": "address"},
+      {"indexed": true, "name": "admin", "type": "address"}
+    ],
+    "name": "NewAdmin",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "newOperatorAddress", "type": "address"},
+      {"indexed": true, "name": "admin", "type": "address"}
+    ],
+    "name": "NewOperator",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "removedAdmin", "type": "address"},
+      {"indexed": true, "name": "admin", "type": "address"}
+    ],
+    "name": "RemovedAdmin",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "removedOperator", "type": "address"},
+      {"indexed": true, "name": "admin", "type": "address"}
+    ],
+    "name": "RemovedOperator",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "recipient", "type": "address"},
+      {"indexed": false, "name": "tokenId", "type": "uint256"},
+      {"indexed": false, "name": "amount", "type": "uint256"}
     ],
     "name": "FeeCharged",
     "type": "event"
   },
   {
+    "anonymous": false,
     "inputs": [
-      {
-        "name": "order",
-        "type": "tuple"
-      }
+      {"indexed": true, "name": "feeReceiver", "type": "address"}
     ],
-    "name": "cancelOrder",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    "name": "FeeReceiverUpdated",
+    "type": "event"
   },
   {
+    "anonymous": false,
     "inputs": [
-      {
-        "name": "makerOrder",
-        "type": "tuple"
-      },
-      {
-        "name": "takerOrder",
-        "type": "tuple"
-      }
+      {"indexed": false, "name": "maxFeeRate", "type": "uint256"}
     ],
-    "name": "matchOrders",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    "name": "MaxFeeRateUpdated",
+    "type": "event"
   },
   {
+    "anonymous": false,
     "inputs": [
-      {
-        "name": "token0",
-        "type": "uint256"
-      },
-      {
-        "name": "token1",
-        "type": "uint256"
-      },
-      {
-        "name": "conditionId",
-        "type": "bytes32"
-      }
+      {"indexed": true, "name": "user", "type": "address"},
+      {"indexed": false, "name": "effectivePauseBlock", "type": "uint256"}
     ],
-    "name": "registerTokenPair",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    "name": "UserPaused",
+    "type": "event"
   },
   {
+    "anonymous": false,
     "inputs": [
-      {
-        "name": "orderHash",
-        "type": "bytes32"
-      }
+      {"indexed": true, "name": "user", "type": "address"}
     ],
-    "name": "isValidSignature",
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
+    "name": "UserUnpaused",
+    "type": "event"
   },
   {
+    "anonymous": false,
     "inputs": [
-      {
-        "name": "orderHash",
-        "type": "bytes32"
-      }
+      {"indexed": false, "name": "oldInterval", "type": "uint256"},
+      {"indexed": false, "name": "newInterval", "type": "uint256"}
     ],
-    "name": "isOrderCancelled",
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "name": "token0",
-        "type": "uint256"
-      },
-      {
-        "name": "token1",
-        "type": "uint256"
-      }
-    ],
-    "name": "getTokenPairConditionId",
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "name": "conditionId",
-        "type": "bytes32"
-      }
-    ],
-    "name": "getRegisteredTokens",
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      },
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "conditionalTokens",
-    "outputs": [
-      {
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "feeRecipient",
-    "outputs": [
-      {
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "feeBasisPoints",
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
+    "name": "UserPauseBlockIntervalUpdated",
+    "type": "event"
   }
 ]
