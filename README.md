@@ -4,22 +4,32 @@ A collection of Substreams packages for extracting and processing events from Po
 
 ## Overview
 
-This project provides Substreams packages for three core Polymarket contracts:
+| Package | Contract | V2 Address | Deploy Block |
+|---------|----------|-----------|--------------|
+| [polymarket-ctf](./polymarket-ctf) | Conditional Tokens Framework | `0x4D97DCd97eC945f40cF65F87097ACe5EA0476045` (unchanged) | — |
+| [polymarket-exchange](./polymarket-exchange) | CTF Exchange V2 | `0xE111180000d2663C0091e4f400237545B87B996B` | 84902353 |
+| [polymarket-neg-risk-ctf](./polymarket-neg-risk-ctf) | Neg Risk CTF Exchange V2 | `0xe2222d279d744050d28e00520010520000310F59` | 85058176 |
+| [polymarket-neg-risk-adapter](./polymarket-neg-risk-adapter) | NegRiskAdapter | `0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296` | 50505403 |
+| [polymarket-collateral](./polymarket-collateral) | pUSD + Collateral Adapters | Multiple (see below) | 84902320 |
+| [polymarket-wallet-factory](./polymarket-wallet-factory) | DepositWalletFactory | `0x00000000000Fb5C9ADea0298D729A0CB3823Cc07` | 84902000 |
 
-| Package | Contract | Description |
-|---------|----------|-------------|
-| [polymarket-ctf](./polymarket-ctf) | Conditional Tokens Framework | Manages conditional token creation and transfers |
-| [polymarket-exchange](./polymarket-exchange) | CTF Exchange | Handles order matching and trading |
-| [polymarket-neg-risk-ctf](./polymarket-neg-risk-ctf) | Negative Risk CTF | Specialized CTF for negative risk markets |
+### Collateral Package Addresses
+
+| Contract | Address |
+|----------|---------|
+| pUSD | `0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB` |
+| CollateralOnramp | `0x93070a847efEf7F70739046A929D47a521F5B8ee` |
+| CtfCollateralAdapter | `0xAdA100Db00Ca00073811820692005400218FcE1f` |
+| NegRiskCtfCollateralAdapter | `0xadA2005600Dec949baf300f4C6120000bDB6eAab` |
 
 ## Architecture
 
 All packages follow a unified design pattern:
 
-- **Single-pass event extraction** - Efficiently extracts all events in one block traversal
-- **Optimized address comparison** - Uses `alloy_primitives::Address` for fast contract filtering
-- **Consistent protobuf schema** - All events include `TransactionContext` metadata
-- **Modular outputs** - Separate modules for different event categories
+- **Single-pass event extraction** — all events extracted in one block traversal
+- **Byte-level address comparison** — 20-byte array for fast contract filtering (~25x faster than string)
+- **Consistent protobuf schema** — all events include `TransactionContext` metadata
+- **Modular outputs** — separate modules for different event categories
 
 ## Quick Start
 
@@ -27,131 +37,88 @@ All packages follow a unified design pattern:
 
 - Rust with `wasm32-unknown-unknown` target
 - Substreams CLI (`substreams` command)
-- Make (optional, for convenience)
-- Substreams API key — authenticate once with `substreams auth` ([get a key at thegraph.market](https://thegraph.market))
+- `buf` CLI (required for protobuf generation)
+- Substreams API key — authenticate with `substreams auth` ([get a key at thegraph.market](https://thegraph.market))
 
-### Build All Packages
+### Build
 
 ```bash
+# Build all packages
 make build-all
+
+# Build individual packages
+make build-exchange
+make build-ctf
+make build-neg-risk-ctf
+make build-neg-risk-adapter
+make build-collateral
+make build-wallet-factory
 ```
 
-### Package All SPKGs
+### Run
 
 ```bash
-make package-all
+# V2 exchange events (from V2 deploy block)
+substreams run polymarket-exchange/substreams.yaml map_all_events \
+  -s 84902353 -t +1000
+
+# NegRisk adapter market events
+substreams run polymarket-neg-risk-adapter/substreams.yaml map_market_events \
+  -s 50505403 -t +10000
+
+# pUSD wrap/unwrap events
+substreams run polymarket-collateral/substreams.yaml map_pusd_events \
+  -s 84902320 -t +10000
+
+# Wallet deployments
+substreams run polymarket-wallet-factory/substreams.yaml map_factory_events \
+  -s 84902000 -t +10000
 ```
 
-### Run a Package
+## V2 Event Changes (exchange packages)
 
-```bash
-# CTF package
-make run-ctf
+Polymarket launched V2 contracts in April 2026 with a redesigned order struct:
 
-# Exchange package
-make run-exchange
+**`OrderFilled`**: `side` (uint32) + `token_id` replace the old `maker_asset_id`/`taker_asset_id`. New fields: `builder`, `metadata`.
 
-# Negative Risk CTF package
-make run-neg-risk
+**`OrdersMatched`**: Same restructuring — `side` + `token_id` added, dual asset IDs removed.
 
-# Run a specific module
-make run-exchange MODULE=map_exchange_events
-```
+**Removed**: `OrderCancelled`, `TokenRegistered` (V2 no longer emits these).
 
-## Contract Addresses
+**New events**: `UserPaused`/`UserUnpaused`, `OrderPreapproved`/`OrderPreapprovalInvalidated`, `FeeReceiverUpdated`, `MaxFeeRateUpdated`, admin events.
 
-| Contract | Address | Explorer |
-|----------|---------|----------|
-| CTF | `0x4D97DCd97eC945f40cF65F87097ACe5EA0476045` | [Polygonscan](https://polygonscan.com/address/0x4D97DCd97eC945f40cF65F87097ACe5EA0476045) |
-| Exchange | `0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E` | [Polygonscan](https://polygonscan.com/address/0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E) |
-| Neg Risk CTF | `0xc5d563a36ae78145c45a50134d48a1215220f80a` | [Polygonscan](https://polygonscan.com/address/0xc5d563a36ae78145c45a50134d48a1215220f80a) |
+## Event Categories
 
-## Project Structure
+### Exchange / Neg Risk CTF (V2)
+- Trading: `OrderFilled` (with `side`, `token_id`), `OrdersMatched`
+- Fee: `FeeCharged`, `FeeReceiverUpdated`, `MaxFeeRateUpdated`
+- Admin: `NewAdmin`, `NewOperator`, `RemovedAdmin`, `RemovedOperator`
+- Pause: `UserPaused`, `UserUnpaused`, `UserPauseBlockIntervalUpdated`
+- Approval: `OrderPreapproved`, `OrderPreapprovalInvalidated`
 
-```
-substreams-polymarket/
-├── Makefile                  # Unified build/run commands
-├── polymarket-ctf/           # Conditional Tokens Framework
-│   ├── src/
-│   ├── proto/
-│   ├── substreams.yaml
-│   └── Cargo.toml
-├── polymarket-exchange/      # CTF Exchange
-│   ├── src/
-│   ├── proto/
-│   ├── substreams.yaml
-│   └── Cargo.toml
-└── polymarket-neg-risk-ctf/  # Negative Risk CTF
-    ├── src/
-    ├── proto/
-    ├── substreams.yaml
-    └── Cargo.toml
-```
+### CTF (unchanged)
+- `ConditionPreparation`, `ConditionResolution`
+- `PositionSplit`, `PositionsMerge`, `PayoutRedemption`
+- ERC-1155: `TransferSingle`, `TransferBatch`, `ApprovalForAll`
+
+### NegRiskAdapter
+- Market: `MarketPrepared`, `QuestionPrepared`, `OutcomeReported`
+- Trading: `PositionSplit`, `PositionsMerge`, `PositionsConverted`, `PayoutRedemption`
+- Admin: `NewAdmin`, `RemovedAdmin`
+
+### Collateral
+- pUSD: `Transfer`, `Wrapped`, `Unwrapped`
+- Adapters: `PositionSplit`, `PositionsMerged`, `PositionsRedeemed`
+- NegRisk adapter only: `PositionsConverted`
+
+### Wallet Factory
+- `WalletDeployed`, `ImplementationAuthorized`
 
 ## Dependencies
-
-All packages use consistent dependency versions:
 
 - `substreams`: ^0.7
 - `substreams-ethereum`: ^0.11
 - `ethabi`: ^18
-
-## Available Make Commands
-
-```bash
-# Build individual packages
-make build-ctf
-make build-exchange
-make build-neg-risk
-
-# Build all packages
-make build-all
-
-# Package individual SPKGs
-make package-ctf
-make package-exchange
-make package-neg-risk
-
-# Package all SPKGs
-make package-all
-
-# Run individual packages (last 1000 blocks, Polygon)
-make run-ctf
-make run-exchange
-make run-neg-risk
-
-# Run a specific module
-make run-exchange MODULE=map_exchange_events
-
-# Interactive GUI (substreams gui)
-make gui-ctf
-make gui-exchange
-make gui-neg-risk
-
-# Clean build artifacts
-make clean
-```
-
-## Event Categories
-
-### CTF Events
-- `ConditionPreparation` / `ConditionResolution` — condition lifecycle
-- `PositionSplit` / `PositionsMerge` — collateral and position management
-- `PayoutRedemption` — winning position redemption
-- ERC-1155: `TransferSingle`, `TransferBatch`, `ApprovalForAll`
-
-### Exchange Events
-- `OrderFilled`, `OrderCancelled`, `OrdersMatched` — order lifecycle
-- `TokenRegistered` — token registry
-- `FeeCharged` — protocol fees
-
-### Negative Risk CTF Events
-- Fee: `FeeCharged`
-- Admin: `NewAdmin`, `NewOperator`, `RemovedAdmin`, `RemovedOperator`
-- Trading: `OrderFilled`, `OrderCancelled`, `OrdersMatched`
-- Registry: `TokenRegistered`
-- Pause: `TradingPaused`, `TradingUnpaused`
-- Config: `ProxyFactoryUpdated`, `SafeFactoryUpdated`
 
 ## Resources
 
