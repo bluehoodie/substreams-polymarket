@@ -1,9 +1,9 @@
 specVersion: v0.1.0
 package:
   name: polymarket-neg-risk-ctf
-  version: v0.1.0
+  version: v0.2.0
   url: https://github.com/bluehoodie/substreams-polymarket
-  image: ./polymarket.png  
+  image: ./polymarket.png
 
 network: polygon
 
@@ -22,9 +22,17 @@ binaries:
     file: ./target/wasm32-unknown-unknown/release/polymarket_neg_risk_ctf.wasm
 
 modules:
+  - name: map_trading_events
+    kind: map
+    initialBlock: 85058176
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.neg_risk_ctf.v1.TradingEvents
+
   - name: map_fee_events
     kind: map
-    initialBlock: 4023686
+    initialBlock: 85058176
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -32,47 +40,31 @@ modules:
 
   - name: map_admin_events
     kind: map
-    initialBlock: 4023686
+    initialBlock: 85058176
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_ctf.v1.AdminEvents
 
-  - name: map_trading_events
-    kind: map
-    initialBlock: 4023686
-    inputs:
-      - source: sf.ethereum.type.v2.Block
-    output:
-      type: proto:polymarket.neg_risk_ctf.v1.TradingEvents
-
-  - name: map_registry_events
-    kind: map
-    initialBlock: 4023686
-    inputs:
-      - source: sf.ethereum.type.v2.Block
-    output:
-      type: proto:polymarket.neg_risk_ctf.v1.RegistryEvents
-
   - name: map_pause_events
     kind: map
-    initialBlock: 4023686
+    initialBlock: 85058176
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_ctf.v1.PauseEvents
 
-  - name: map_config_events
+  - name: map_approval_events
     kind: map
-    initialBlock: 4023686
+    initialBlock: 85058176
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
-      type: proto:polymarket.neg_risk_ctf.v1.ConfigEvents
+      type: proto:polymarket.neg_risk_ctf.v1.OrderApprovalEvents
 
   - name: map_all_events
     kind: map
-    initialBlock: 4023686
+    initialBlock: 85058176
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:

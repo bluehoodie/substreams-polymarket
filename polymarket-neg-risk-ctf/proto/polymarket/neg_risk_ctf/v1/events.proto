@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package polymarket.neg_risk_ctf.v1;
 
-// TransactionContext contains metadata about the transaction and log entry
 message TransactionContext {
   string tx_hash = 1;
   uint64 log_index = 2;
@@ -10,7 +9,40 @@ message TransactionContext {
   uint64 timestamp = 4;
 }
 
-// FeeCharged - emitted when protocol fees are collected
+message OrderFilled {
+  bytes order_hash = 1;
+  string maker = 2;
+  string taker = 3;
+  uint32 side = 4;
+  string token_id = 5;
+  string maker_amount_filled = 6;
+  string taker_amount_filled = 7;
+  string fee = 8;
+  TransactionContext tx = 9;
+  bytes builder = 10;
+  bytes metadata = 11;
+}
+
+message OrdersMatched {
+  bytes taker_order_hash = 1;
+  string taker_order_maker = 2;
+  uint32 side = 3;
+  string token_id = 4;
+  string maker_amount_filled = 5;
+  string taker_amount_filled = 6;
+  TransactionContext tx = 7;
+}
+
+message OrderPreapproved {
+  bytes order_hash = 1;
+  TransactionContext tx = 2;
+}
+
+message OrderPreapprovalInvalidated {
+  bytes order_hash = 1;
+  TransactionContext tx = 2;
+}
+
 message FeeCharged {
   string recipient = 1;
   string token_id = 2;
@@ -18,104 +50,68 @@ message FeeCharged {
   TransactionContext tx = 4;
 }
 
-// NewAdmin - emitted when a new admin is added
+message FeeReceiverUpdated {
+  string fee_receiver = 1;
+  TransactionContext tx = 2;
+}
+
+message MaxFeeRateUpdated {
+  string max_fee_rate = 1;
+  TransactionContext tx = 2;
+}
+
 message NewAdmin {
   string new_admin_address = 1;
   string admin = 2;
   TransactionContext tx = 3;
 }
 
-// NewOperator - emitted when a new operator is added
 message NewOperator {
   string new_operator_address = 1;
   string admin = 2;
   TransactionContext tx = 3;
 }
 
-// RemovedAdmin - emitted when an admin is removed
 message RemovedAdmin {
   string removed_admin = 1;
   string admin = 2;
   TransactionContext tx = 3;
 }
 
-// RemovedOperator - emitted when an operator is removed
 message RemovedOperator {
   string removed_operator = 1;
   string admin = 2;
   TransactionContext tx = 3;
 }
 
-// OrderCancelled - emitted when an order is cancelled
-message OrderCancelled {
-  bytes order_hash = 1;
-  TransactionContext tx = 2;
-}
-
-// OrderFilled - emitted when an order is filled (main trading event)
-message OrderFilled {
-  bytes order_hash = 1;
-  string maker = 2;
-  string taker = 3;
-  string maker_asset_id = 4;
-  string taker_asset_id = 5;
-  string maker_amount_filled = 6;
-  string taker_amount_filled = 7;
-  string fee = 8;
-  TransactionContext tx = 9;
-}
-
-// OrdersMatched - emitted when a taker order is matched against maker orders
-message OrdersMatched {
-  bytes taker_order_hash = 1;
-  string taker_order_maker = 2;
-  string maker_asset_id = 3;
-  string taker_asset_id = 4;
-  string maker_amount_filled = 5;
-  string taker_amount_filled = 6;
-  TransactionContext tx = 7;
-}
-
-// TokenRegistered - emitted when a token pair is registered for trading
-message TokenRegistered {
-  string token0 = 1;
-  string token1 = 2;
-  bytes condition_id = 3;
-  TransactionContext tx = 4;
-}
-
-// TradingPaused - emitted when trading is paused
-message TradingPaused {
-  string pauser = 1;
-  TransactionContext tx = 2;
-}
-
-// TradingUnpaused - emitted when trading is unpaused
-message TradingUnpaused {
-  string pauser = 1;
-  TransactionContext tx = 2;
-}
-
-// ProxyFactoryUpdated - emitted when proxy factory is updated
-message ProxyFactoryUpdated {
-  string old_proxy_factory = 1;
-  string new_proxy_factory = 2;
+message UserPaused {
+  string user = 1;
+  string effective_pause_block = 2;
   TransactionContext tx = 3;
 }
 
-// SafeFactoryUpdated - emitted when safe factory is updated
-message SafeFactoryUpdated {
-  string old_safe_factory = 1;
-  string new_safe_factory = 2;
+message UserUnpaused {
+  string user = 1;
+  TransactionContext tx = 2;
+}
+
+message UserPauseBlockIntervalUpdated {
+  string old_interval = 1;
+  string new_interval = 2;
   TransactionContext tx = 3;
 }
 
-// FeeEvents is a collection of all fee events
+message TradingEvents {
+  repeated OrderFilled order_filled = 1;
+  repeated OrdersMatched orders_matched = 2;
+}
+
 message FeeEvents {
   repeated FeeCharged fee_charged = 1;
+  repeated FeeReceiverUpdated fee_receiver_updated = 2;
+  repeated MaxFeeRateUpdated max_fee_rate_updated = 3;
 }
 
-// AdminEvents is a collection of all admin management events
 message AdminEvents {
   repeated NewAdmin new_admin = 1;
   repeated NewOperator new_operator = 2;
@@ -123,36 +119,21 @@ message AdminEvents {
   repeated RemovedOperator removed_operator = 4;
 }
 
-// TradingEvents is a collection of all trading events
-message TradingEvents {
-  repeated OrderCancelled order_cancelled = 1;
-  repeated OrderFilled order_filled = 2;
-  repeated OrdersMatched orders_matched = 3;
-}
-
-// RegistryEvents is a collection of all token registry events
-message RegistryEvents {
-  repeated TokenRegistered token_registered = 1;
-}
-
-// PauseEvents is a collection of all trading pause/unpause events
 message PauseEvents {
-  repeated TradingPaused trading_paused = 1;
-  repeated TradingUnpaused trading_unpaused = 2;
+  repeated UserPaused user_paused = 1;
+  repeated UserUnpaused user_unpaused = 2;
+  repeated UserPauseBlockIntervalUpdated user_pause_block_interval_updated = 3;
 }
 
-// ConfigEvents is a collection of all configuration update events
-message ConfigEvents {
-  repeated ProxyFactoryUpdated proxy_factory_updated = 1;
-  repeated SafeFactoryUpdated safe_factory_updated = 2;
+message OrderApprovalEvents {
+  repeated OrderPreapproved order_preapproved = 1;
+  repeated OrderPreapprovalInvalidated order_preapproval_invalidated = 2;
 }
 
-// AllEvents combines all event types
 message AllEvents {
-  optional FeeEvents fee_events = 1;
-  optional AdminEvents admin_events = 2;
-  optional TradingEvents trading_events = 3;
-  optional RegistryEvents registry_events = 4;
-  optional PauseEvents pause_events = 5;
-  optional ConfigEvents config_events = 6;
+  optional TradingEvents trading_events = 1;
+  optional FeeEvents fee_events = 2;
+  optional AdminEvents admin_events = 3;
+  optional PauseEvents pause_events = 4;
+  optional OrderApprovalEvents order_approval_events = 5;
 }
