@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package polymarket.neg_risk_adapter.v1;
+
+message TransactionContext {
+  string tx_hash = 1;
+  uint64 log_index = 2;
+  uint64 block_number = 3;
+  uint64 timestamp = 4;
+}
+
+message MarketPrepared {
+  bytes market_id = 1;
+  string oracle = 2;
+  string fee_bips = 3;
+  bytes data = 4;
+  TransactionContext tx = 5;
+}
+
+message QuestionPrepared {
+  bytes market_id = 1;
+  bytes question_id = 2;
+  string index = 3;
+  bytes data = 4;
+  TransactionContext tx = 5;
+}
+
+message OutcomeReported {
+  bytes market_id = 1;
+  bytes question_id = 2;
+  bool outcome = 3;
+  TransactionContext tx = 4;
+}
+
+message PositionSplit {
+  string stakeholder = 1;
+  bytes condition_id = 2;
+  string amount = 3;
+  TransactionContext tx = 4;
+}
+
+message PositionsMerge {
+  string stakeholder = 1;
+  bytes condition_id = 2;
+  string amount = 3;
+  TransactionContext tx = 4;
+}
+
+message PositionsConverted {
+  string stakeholder = 1;
+  bytes market_id = 2;
+  string index_set = 3;
+  string amount = 4;
+  TransactionContext tx = 5;
+}
+
+message PayoutRedemption {
+  string redeemer = 1;
+  bytes condition_id = 2;
+  repeated string amounts = 3;
+  string payout = 4;
+  TransactionContext tx = 5;
+}
+
+message NewAdmin {
+  string new_admin_address = 1;
+  string admin = 2;
+  TransactionContext tx = 3;
+}
+
+message RemovedAdmin {
+  string removed_admin = 1;
+  string admin = 2;
+  TransactionContext tx = 3;
+}
+
+message MarketEvents {
+  repeated MarketPrepared market_prepared = 1;
+  repeated QuestionPrepared question_prepared = 2;
+  repeated OutcomeReported outcome_reported = 3;
+}
+
+message TradingEvents {
+  repeated PositionSplit position_split = 1;
+  repeated PositionsMerge positions_merge = 2;
+  repeated PositionsConverted positions_converted = 3;
+  repeated PayoutRedemption payout_redemption = 4;
+}
+
+message AdminEvents {
+  repeated NewAdmin new_admin = 1;
+  repeated RemovedAdmin removed_admin = 2;
+}
+
+message AllEvents {
+  optional MarketEvents market_events = 1;
+  optional TradingEvents trading_events = 2;
+  optional AdminEvents admin_events = 3;
+}

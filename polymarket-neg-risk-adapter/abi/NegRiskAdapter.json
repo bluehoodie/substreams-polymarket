@@ -1,0 +1,94 @@
+[
+  {
+    "type": "event",
+    "name": "MarketPrepared",
+    "inputs": [
+      {"name": "marketId", "type": "bytes32", "indexed": true},
+      {"name": "oracle", "type": "address", "indexed": true},
+      {"name": "feeBips", "type": "uint256", "indexed": false},
+      {"name": "data", "type": "bytes", "indexed": false}
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "QuestionPrepared",
+    "inputs": [
+      {"name": "marketId", "type": "bytes32", "indexed": true},
+      {"name": "questionId", "type": "bytes32", "indexed": true},
+      {"name": "index", "type": "uint256", "indexed": false},
+      {"name": "data", "type": "bytes", "indexed": false}
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OutcomeReported",
+    "inputs": [
+      {"name": "marketId", "type": "bytes32", "indexed": true},
+      {"name": "questionId", "type": "bytes32", "indexed": true},
+      {"name": "outcome", "type": "bool", "indexed": false}
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PositionSplit",
+    "inputs": [
+      {"name": "stakeholder", "type": "address", "indexed": true},
+      {"name": "conditionId", "type": "bytes32", "indexed": true},
+      {"name": "amount", "type": "uint256", "indexed": false}
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PositionsMerge",
+    "inputs": [
+      {"name": "stakeholder", "type": "address", "indexed": true},
+      {"name": "conditionId", "type": "bytes32", "indexed": true},
+      {"name": "amount", "type": "uint256", "indexed": false}
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PositionsConverted",
+    "inputs": [
+      {"name": "stakeholder", "type": "address", "indexed": true},
+      {"name": "marketId", "type": "bytes32", "indexed": true},
+      {"name": "indexSet", "type": "uint256", "indexed": true},
+      {"name": "amount", "type": "uint256", "indexed": false}
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PayoutRedemption",
+    "inputs": [
+      {"name": "redeemer", "type": "address", "indexed": true},
+      {"name": "conditionId", "type": "bytes32", "indexed": true},
+      {"name": "amounts", "type": "uint256[]", "indexed": false},
+      {"name": "payout", "type": "uint256", "indexed": false}
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "NewAdmin",
+    "inputs": [
+      {"name": "admin", "type": "address", "indexed": true},
+      {"name": "newAdminAddress", "type": "address", "indexed": true}
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RemovedAdmin",
+    "inputs": [
+      {"name": "admin", "type": "address", "indexed": true},
+      {"name": "removedAdmin", "type": "address", "indexed": true}
+    ],
+    "anonymous": false
+  }
+]
