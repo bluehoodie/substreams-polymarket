@@ -4,7 +4,7 @@
     "inputs": [
       {"indexed": true, "name": "wallet", "type": "address"},
       {"indexed": true, "name": "owner", "type": "address"},
-      {"indexed": false, "name": "id", "type": "uint256"},
+      {"indexed": true, "name": "id", "type": "bytes32"},
       {"indexed": false, "name": "implementation", "type": "address"}
     ],
     "name": "WalletDeployed",

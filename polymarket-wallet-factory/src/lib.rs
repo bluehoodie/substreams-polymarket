@@ -25,7 +25,7 @@ pub fn map_factory_events(blk: eth::Block) -> Result<proto::FactoryEvents, Error
                 events.wallet_deployed.push(proto::WalletDeployed {
                     wallet: format_address(&event.wallet),
                     owner: format_address(&event.owner),
-                    id: bigint_to_string(&event.id),
+                    id: format!("0x{}", hex::encode(event.id)),
                     implementation: format_address(&event.implementation),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });

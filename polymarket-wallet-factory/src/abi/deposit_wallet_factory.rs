@@ -97,49 +97,49 @@ pub mod events {
     pub struct WalletDeployed {
         pub wallet: Vec<u8>,
         pub owner: Vec<u8>,
-        pub id: substreams::scalar::BigInt,
+        pub id: [u8; 32usize],
         pub implementation: Vec<u8>,
     }
     impl WalletDeployed {
         const TOPIC_ID: [u8; 32] = [
-            58u8,
-            72u8,
-            77u8,
-            251u8,
-            14u8,
-            76u8,
-            60u8,
-            47u8,
-            246u8,
-            83u8,
-            60u8,
-            32u8,
-            114u8,
-            71u8,
-            161u8,
-            126u8,
-            224u8,
-            4u8,
-            195u8,
-            120u8,
-            112u8,
-            89u8,
-            243u8,
-            27u8,
-            78u8,
-            42u8,
-            87u8,
-            160u8,
-            104u8,
-            253u8,
-            23u8,
+            116u8,
+            65u8,
+            222u8,
+            10u8,
+            214u8,
+            57u8,
+            254u8,
             93u8,
+            43u8,
+            241u8,
+            194u8,
+            36u8,
+            71u8,
+            113u8,
+            90u8,
+            5u8,
+            40u8,
+            182u8,
+            130u8,
+            56u8,
+            87u8,
+            54u8,
+            187u8,
+            64u8,
+            174u8,
+            141u8,
+            217u8,
+            37u8,
+            85u8,
+            235u8,
+            130u8,
+            118u8,
         ];
         pub fn match_log(log: &substreams_ethereum::pb::eth::v2::Log) -> bool {
-            if log.topics.len() != 3usize {
+            if log.topics.len() != 4usize {
                 return false;
             }
-            if log.data.len() != 64usize {
+            if log.data.len() != 32usize {
                 return false;
             }
             return log.topics.get(0).expect("bounds already checked").as_ref() as &[u8]
@@ -149,7 +149,7 @@ pub mod events {
             log: &substreams_ethereum::pb::eth::v2::Log,
         ) -> Result<Self, String> {
             let mut values = ethabi::decode(
-                    &[ethabi::ParamType::Uint(256usize), ethabi::ParamType::Address],
+                    &[ethabi::ParamType::Address],
                     log.data.as_ref(),
                 )
                 .map_err(|e| format!("unable to decode log.data: {:?}", e))?;
@@ -188,14 +188,23 @@ pub mod events {
                     .as_bytes()
                     .to_vec(),
                 id: {
-                    let mut v = [0 as u8; 32];
-                    values
+                    let mut result = [0u8; 32];
+                    let v = ethabi::decode(
+                            &[ethabi::ParamType::FixedBytes(32usize)],
+                            log.topics[3usize].as_ref(),
+                        )
+                        .map_err(|e| {
+                            format!(
+                                "unable to decode param 'id' from topic of type 'bytes32': {:?}",
+                                e
+                            )
+                        })?
                         .pop()
                         .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR)
-                        .to_big_endian(v.as_mut_slice());
-                    substreams::scalar::BigInt::from_unsigned_bytes_be(&v)
+                        .into_fixed_bytes()
+                        .expect(INTERNAL_ERR);
+                    result.copy_from_slice(&v);
+                    result
                 },
                 implementation: values
                     .pop()
