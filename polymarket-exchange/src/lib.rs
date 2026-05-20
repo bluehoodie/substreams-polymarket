@@ -452,4 +452,128 @@ mod tests {
         let result = format_address(&bytes);
         assert_eq!(result, "0xe111180000d2663c0091e4f400237545b87b996b");
     }
+
+    #[test]
+    fn test_order_filled_decodes_valid_log() {
+        use crate::abi::ctf_exchange::events::OrderFilled;
+
+        // keccak256("OrderFilled(bytes32,address,address,uint32,uint256,uint256,uint256,uint256,bytes32,bytes32)")
+        // mirrors the generated binding's TOPIC_ID
+        let topic0: Vec<u8> = hex_literal::hex!(
+            "1af7da91714912b8776e9e34e2764c310e8f46d7cece4c6be4ea90709ad832be"
+        )
+        .to_vec();
+
+        let order_hash = [0x11u8; 32];
+        let maker_addr: [u8; 20] = hex_literal::hex!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        let taker_addr: [u8; 20] = hex_literal::hex!("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+
+        // addresses left-padded to 32 bytes in topics
+        let mut maker_topic = [0u8; 32];
+        maker_topic[12..].copy_from_slice(&maker_addr);
+        let mut taker_topic = [0u8; 32];
+        taker_topic[12..].copy_from_slice(&taker_addr);
+
+        // 7 non-indexed fields ABI-encoded as 32-byte words (big-endian right-aligned)
+        let u256_word = |v: u64| -> [u8; 32] {
+            let mut w = [0u8; 32];
+            w[24..].copy_from_slice(&v.to_be_bytes());
+            w
+        };
+        let side: u64 = 1;
+        let token_id: u64 = 0x1234;
+        let maker_amount_filled: u64 = 1_000_000;
+        let taker_amount_filled: u64 = 2_000_000;
+        let fee: u64 = 500;
+        let builder = [0xAAu8; 32];
+        let metadata = [0xBBu8; 32];
+
+        let mut data = Vec::with_capacity(224);
+        data.extend_from_slice(&u256_word(side));
+        data.extend_from_slice(&u256_word(token_id));
+        data.extend_from_slice(&u256_word(maker_amount_filled));
+        data.extend_from_slice(&u256_word(taker_amount_filled));
+        data.extend_from_slice(&u256_word(fee));
+        data.extend_from_slice(&builder);
+        data.extend_from_slice(&metadata);
+        assert_eq!(data.len(), 224);
+
+        let log = eth::Log {
+            address: CTF_EXCHANGE_CONTRACT_ADDRESS.to_vec(),
+            topics: vec![
+                topic0,
+                order_hash.to_vec(),
+                maker_topic.to_vec(),
+                taker_topic.to_vec(),
+            ],
+            data,
+            ..Default::default()
+        };
+
+        assert!(OrderFilled::match_log(&log), "match_log must return true for valid log");
+
+        let decoded = OrderFilled::decode(&log).expect("decode must succeed for valid log");
+        assert_eq!(decoded.order_hash, order_hash);
+        assert_eq!(decoded.maker, maker_addr.to_vec());
+        assert_eq!(decoded.taker, taker_addr.to_vec());
+        assert_eq!(decoded.side, substreams::scalar::BigInt::from(side));
+        assert_eq!(decoded.token_id, substreams::scalar::BigInt::from(token_id));
+        assert_eq!(decoded.maker_amount_filled, substreams::scalar::BigInt::from(maker_amount_filled));
+        assert_eq!(decoded.taker_amount_filled, substreams::scalar::BigInt::from(taker_amount_filled));
+        assert_eq!(decoded.fee, substreams::scalar::BigInt::from(fee));
+        assert_eq!(decoded.builder, builder);
+        assert_eq!(decoded.metadata, metadata);
+    }
+
+    #[test]
+    fn test_order_filled_rejects_wrong_topic() {
+        use crate::abi::ctf_exchange::events::OrderFilled;
+
+        // keccak256("OrderFilled(bytes32,address,address,uint32,uint256,uint256,uint256,uint256,bytes32,bytes32)")
+        // mirrors the generated binding's TOPIC_ID
+        let mut topic0: Vec<u8> = hex_literal::hex!(
+            "1af7da91714912b8776e9e34e2764c310e8f46d7cece4c6be4ea90709ad832be"
+        )
+        .to_vec();
+
+        let order_hash = [0x11u8; 32];
+        let maker_addr: [u8; 20] = hex_literal::hex!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        let taker_addr: [u8; 20] = hex_literal::hex!("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+
+        let mut maker_topic = [0u8; 32];
+        maker_topic[12..].copy_from_slice(&maker_addr);
+        let mut taker_topic = [0u8; 32];
+        taker_topic[12..].copy_from_slice(&taker_addr);
+
+        let u256_word = |v: u128| -> [u8; 32] {
+            let mut w = [0u8; 32];
+            w[16..].copy_from_slice(&v.to_be_bytes());
+            w
+        };
+        let mut data = Vec::with_capacity(224);
+        data.extend_from_slice(&u256_word(1));
+        data.extend_from_slice(&u256_word(0x1234));
+        data.extend_from_slice(&u256_word(1_000_000));
+        data.extend_from_slice(&u256_word(2_000_000));
+        data.extend_from_slice(&u256_word(500));
+        data.extend_from_slice(&[0xAAu8; 32]);
+        data.extend_from_slice(&[0xBBu8; 32]);
+
+        // flip first byte of topic0 to simulate wrong event signature
+        topic0[0] ^= 0xFF;
+
+        let log = eth::Log {
+            address: CTF_EXCHANGE_CONTRACT_ADDRESS.to_vec(),
+            topics: vec![
+                topic0,
+                order_hash.to_vec(),
+                maker_topic.to_vec(),
+                taker_topic.to_vec(),
+            ],
+            data,
+            ..Default::default()
+        };
+
+        assert!(!OrderFilled::match_log(&log), "match_log must return false for wrong topic0");
+    }
 }
