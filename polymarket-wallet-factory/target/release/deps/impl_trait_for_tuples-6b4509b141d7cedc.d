@@ -1,8 +1,0 @@
-/Users/colindickson/code/telex/substreams-polymarket/polymarket-wallet-factory/target/release/deps/impl_trait_for_tuples-6b4509b141d7cedc.d: /Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/lib.rs /Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/full_automatic.rs /Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/semi_automatic.rs /Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/utils.rs
-
-/Users/colindickson/code/telex/substreams-polymarket/polymarket-wallet-factory/target/release/deps/libimpl_trait_for_tuples-6b4509b141d7cedc.dylib: /Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/lib.rs /Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/full_automatic.rs /Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/semi_automatic.rs /Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/utils.rs
-
-/Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/lib.rs:
-/Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/full_automatic.rs:
-/Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/semi_automatic.rs:
-/Users/colindickson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/impl-trait-for-tuples-0.2.3/src/utils.rs:
