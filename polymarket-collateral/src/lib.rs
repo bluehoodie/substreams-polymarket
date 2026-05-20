@@ -169,6 +169,9 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
     let mut ctf = proto::CtfAdapterEvents::default();
     let mut neg_risk = proto::NegRiskCtfAdapterEvents::default();
 
+    // Contract-first dispatch: match the log address once, then branch per event.
+    // Intentional for this multi-contract package — avoids redundant per-event
+    // address checks when a log belongs to none of the matched contracts.
     for log in blk.logs() {
         let addr = &log.log.address;
 
