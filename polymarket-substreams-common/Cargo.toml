@@ -1,0 +1,9 @@
+[package]
+name = "polymarket-substreams-common"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+substreams = "0.7"
+substreams-ethereum = "0.11"
+hex = "0.4"

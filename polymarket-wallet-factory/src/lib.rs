@@ -6,6 +6,7 @@ use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::wallet_factory::v1 as proto;
+use polymarket_substreams_common::{build_tx_context, format_address};
 
 const DEPOSIT_WALLET_FACTORY_ADDRESS: [u8; 20] = hex_literal::hex!("00000000000Fb5C9ADea0298D729A0CB3823Cc07");
 
@@ -44,28 +45,18 @@ pub fn map_factory_events(blk: eth::Block) -> Result<proto::FactoryEvents, Error
 }
 
 #[inline]
-fn bigint_to_string(bigint: &substreams::scalar::BigInt) -> String {
-    let s = bigint.to_string();
-    if s.is_empty() { "0".to_string() } else { s }
-}
-
-#[inline]
 fn is_factory_contract(log: &eth::Log) -> bool {
     log.address == DEPOSIT_WALLET_FACTORY_ADDRESS
 }
 
 #[inline]
-fn format_address(bytes: &[u8]) -> String {
-    format!("0x{}", hex::encode(bytes))
-}
-
-#[inline]
 fn build_transaction_context(blk: &eth::Block, log: &substreams_ethereum::block_view::LogView) -> proto::TransactionContext {
+    let ctx = build_tx_context(blk, log);
     proto::TransactionContext {
-        tx_hash: format_address(&log.receipt.transaction.hash),
-        log_index: log.log.block_index as u64,
-        block_number: blk.number,
-        timestamp: blk.timestamp_seconds(),
+        tx_hash: ctx.tx_hash,
+        log_index: ctx.log_index,
+        block_number: ctx.block_number,
+        timestamp: ctx.timestamp,
     }
 }
 

@@ -19,8 +19,3 @@ num-bigint = "0.4"
 [build-dependencies]
 anyhow = "1.0"
 substreams-ethereum = "0.11"
-
-[profile.release]
-lto = true
-opt-level = 'z'
-strip = true

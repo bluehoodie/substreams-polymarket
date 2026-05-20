@@ -6,6 +6,7 @@ use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::collateral::v1 as proto;
+use polymarket_substreams_common::{bigint_to_string, build_tx_context, format_address};
 
 const PUSD_CONTRACT_ADDRESS: [u8; 20] = hex_literal::hex!("C011a7E12a19f7B1f670d46F03B03f3342E82DFB");
 const CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] = hex_literal::hex!("AdA100Db00Ca00073811820692005400218FcE1f");
@@ -306,12 +307,6 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
 }
 
 #[inline]
-fn bigint_to_string(bigint: &substreams::scalar::BigInt) -> String {
-    let s = bigint.to_string();
-    if s.is_empty() { "0".to_string() } else { s }
-}
-
-#[inline]
 fn is_pusd_contract(log: &eth::Log) -> bool {
     log.address == PUSD_CONTRACT_ADDRESS
 }
@@ -327,17 +322,13 @@ fn is_neg_risk_ctf_adapter_contract(log: &eth::Log) -> bool {
 }
 
 #[inline]
-fn format_address(bytes: &[u8]) -> String {
-    format!("0x{}", hex::encode(bytes))
-}
-
-#[inline]
 fn build_transaction_context(blk: &eth::Block, log: &substreams_ethereum::block_view::LogView) -> proto::TransactionContext {
+    let ctx = build_tx_context(blk, log);
     proto::TransactionContext {
-        tx_hash: format_address(&log.receipt.transaction.hash),
-        log_index: log.log.block_index as u64,
-        block_number: blk.number,
-        timestamp: blk.timestamp_seconds(),
+        tx_hash: ctx.tx_hash,
+        log_index: ctx.log_index,
+        block_number: ctx.block_number,
+        timestamp: ctx.timestamp,
     }
 }
 

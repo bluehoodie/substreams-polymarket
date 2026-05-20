@@ -14,13 +14,8 @@ prost-types = "0.13"
 hex-literal = "0.4"
 hex = "0.4"
 ethabi = "18"
-num-bigint = "0.4"
+polymarket-substreams-common = { path = "../polymarket-substreams-common" }
 
 [build-dependencies]
 anyhow = "1.0"
 substreams-ethereum = "0.11"
-
-[profile.release]
-lto = true
-opt-level = 'z'
-strip = true

@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = [
+    "polymarket-substreams-common",
+    "polymarket-collateral",
+    "polymarket-ctf",
+    "polymarket-exchange",
+    "polymarket-neg-risk-adapter",
+    "polymarket-neg-risk-ctf",
+    "polymarket-wallet-factory",
+]
+
+[profile.release]
+lto = true
+opt-level = 'z'
+strip = true
