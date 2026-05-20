@@ -35,7 +35,7 @@
     "inputs": [
       {"indexed": true, "name": "initiator", "type": "address"},
       {"indexed": true, "name": "marketId", "type": "bytes32"},
-      {"indexed": false, "name": "indexSet", "type": "uint256"},
+      {"indexed": true, "name": "indexSet", "type": "uint256"},
       {"indexed": false, "name": "amount", "type": "uint256"},
       {"indexed": false, "name": "amountOut", "type": "uint256"}
     ],

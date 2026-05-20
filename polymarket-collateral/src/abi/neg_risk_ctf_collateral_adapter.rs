@@ -174,10 +174,10 @@ pub mod events {
             25u8,
         ];
         pub fn match_log(log: &substreams_ethereum::pb::eth::v2::Log) -> bool {
-            if log.topics.len() != 3usize {
+            if log.topics.len() != 4usize {
                 return false;
             }
-            if log.data.len() != 96usize {
+            if log.data.len() != 64usize {
                 return false;
             }
             return log.topics.get(0).expect("bounds already checked").as_ref() as &[u8]
@@ -188,7 +188,6 @@ pub mod events {
         ) -> Result<Self, String> {
             let mut values = ethabi::decode(
                     &[
-                        ethabi::ParamType::Uint(256usize),
                         ethabi::ParamType::Uint(256usize),
                         ethabi::ParamType::Uint(256usize),
                     ],
@@ -234,7 +233,16 @@ pub mod events {
                 },
                 index_set: {
                     let mut v = [0 as u8; 32];
-                    values
+                    ethabi::decode(
+                            &[ethabi::ParamType::Uint(256usize)],
+                            log.topics[3usize].as_ref(),
+                        )
+                        .map_err(|e| {
+                            format!(
+                                "unable to decode param 'index_set' from topic of type 'uint256': {:?}",
+                                e
+                            )
+                        })?
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
