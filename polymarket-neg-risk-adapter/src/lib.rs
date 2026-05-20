@@ -100,7 +100,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
                 events.payout_redemption.push(proto::PayoutRedemption {
                     redeemer: format_address(&event.redeemer),
                     condition_id: event.condition_id.to_vec(),
-                    amounts: event.amounts.iter().map(|a| bigint_to_string(a)).collect(),
+                    amounts: event.amounts.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
@@ -219,7 +219,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 trading_events.payout_redemption.push(proto::PayoutRedemption {
                     redeemer: format_address(&event.redeemer),
                     condition_id: event.condition_id.to_vec(),
-                    amounts: event.amounts.iter().map(|a| bigint_to_string(a)).collect(),
+                    amounts: event.amounts.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
