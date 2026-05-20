@@ -1,5 +1,4 @@
 replay.log
 *.spkg
 .worktrees/
-**/src/pb/
 **/target/
