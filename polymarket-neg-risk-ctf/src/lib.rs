@@ -10,7 +10,7 @@ use pb::polymarket::neg_risk_ctf::v1 as proto;
 const NEG_RISK_CTF_CONTRACT_ADDRESS: [u8; 20] = hex_literal::hex!("e2222d279d744050d28e00520010520000310F59");
 
 #[substreams::handlers::map]
-fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
+pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
     use abi::neg_risk_ctf::events::*;
 
     let mut events = proto::TradingEvents::default();
@@ -55,7 +55,7 @@ fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
 }
 
 #[substreams::handlers::map]
-fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
+pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
     use abi::neg_risk_ctf::events::*;
 
     let mut events = proto::FeeEvents::default();
@@ -95,7 +95,7 @@ fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
 }
 
 #[substreams::handlers::map]
-fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
+pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
     use abi::neg_risk_ctf::events::*;
 
     let mut events = proto::AdminEvents::default();
@@ -144,7 +144,7 @@ fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
 }
 
 #[substreams::handlers::map]
-fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
+pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
     use abi::neg_risk_ctf::events::*;
 
     let mut events = proto::PauseEvents::default();
@@ -184,7 +184,7 @@ fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
 }
 
 #[substreams::handlers::map]
-fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents, Error> {
+pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents, Error> {
     use abi::neg_risk_ctf::events::*;
 
     let mut events = proto::OrderApprovalEvents::default();

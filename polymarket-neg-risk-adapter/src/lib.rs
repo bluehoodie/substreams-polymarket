@@ -10,7 +10,7 @@ use pb::polymarket::neg_risk_adapter::v1 as proto;
 const NEG_RISK_ADAPTER_CONTRACT_ADDRESS: [u8; 20] = hex_literal::hex!("d91E80cF2E7be2e162c6513ceD06f1dD0dA35296");
 
 #[substreams::handlers::map]
-fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> {
+pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> {
     use abi::neg_risk_adapter::events::*;
 
     let mut events = proto::MarketEvents::default();
@@ -56,7 +56,7 @@ fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> {
 }
 
 #[substreams::handlers::map]
-fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
+pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
     use abi::neg_risk_adapter::events::*;
 
     let mut events = proto::TradingEvents::default();
@@ -111,7 +111,7 @@ fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
 }
 
 #[substreams::handlers::map]
-fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
+pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
     use abi::neg_risk_adapter::events::*;
 
     let mut events = proto::AdminEvents::default();

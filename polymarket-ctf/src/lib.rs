@@ -17,7 +17,7 @@ const CTF_CONTRACT_ADDRESS: [u8; 20] = hex_literal::hex!("4D97DCd97eC945f40cF65F
 
 /// Map module that extracts CTF-specific events from blocks
 #[substreams::handlers::map]
-fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
+pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
     use abi::conditional_tokens::events::*;
 
     let mut events = proto::CtfEvents::default();
@@ -100,7 +100,7 @@ fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
 
 /// Map module that extracts ERC1155 events from blocks
 #[substreams::handlers::map]
-fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error> {
+pub fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error> {
     use abi::conditional_tokens::events::*;
 
     let mut events = proto::Erc1155Events::default();
@@ -166,7 +166,7 @@ fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error> {
 /// # Returns
 /// AllEvents message containing all extracted event types with optional fields
 #[substreams::handlers::map]
-fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
+pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
     use abi::conditional_tokens::events::*;
 
     // Initialize all event collectors

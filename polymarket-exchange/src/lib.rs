@@ -10,7 +10,7 @@ use pb::polymarket::exchange::v1 as proto;
 const CTF_EXCHANGE_CONTRACT_ADDRESS: [u8; 20] = hex_literal::hex!("E111180000d2663C0091e4f400237545B87B996B");
 
 #[substreams::handlers::map]
-fn map_exchange_events(blk: eth::Block) -> Result<proto::ExchangeEvents, Error> {
+pub fn map_exchange_events(blk: eth::Block) -> Result<proto::ExchangeEvents, Error> {
     use abi::ctf_exchange::events::*;
 
     let mut events = proto::ExchangeEvents::default();
@@ -55,7 +55,7 @@ fn map_exchange_events(blk: eth::Block) -> Result<proto::ExchangeEvents, Error> 
 }
 
 #[substreams::handlers::map]
-fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
+pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
     use abi::ctf_exchange::events::*;
 
     let mut events = proto::FeeEvents::default();
@@ -95,7 +95,7 @@ fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
 }
 
 #[substreams::handlers::map]
-fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
+pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
     use abi::ctf_exchange::events::*;
 
     let mut events = proto::AdminEvents::default();
@@ -144,7 +144,7 @@ fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
 }
 
 #[substreams::handlers::map]
-fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
+pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
     use abi::ctf_exchange::events::*;
 
     let mut events = proto::PauseEvents::default();
@@ -184,7 +184,7 @@ fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
 }
 
 #[substreams::handlers::map]
-fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents, Error> {
+pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents, Error> {
     use abi::ctf_exchange::events::*;
 
     let mut events = proto::OrderApprovalEvents::default();

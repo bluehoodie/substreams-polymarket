@@ -12,7 +12,7 @@ const CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] = hex_literal::hex!("AdA100Db00Ca
 const NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] = hex_literal::hex!("adA2005600Dec949baf300f4C6120000bDB6eAab");
 
 #[substreams::handlers::map]
-fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
+pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
     use abi::p_usd::events::*;
 
     let mut events = proto::PusdEvents::default();
@@ -58,7 +58,7 @@ fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
 }
 
 #[substreams::handlers::map]
-fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents, Error> {
+pub fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents, Error> {
     use abi::ctf_collateral_adapter::events::*;
 
     let mut events = proto::CtfAdapterEvents::default();
@@ -103,7 +103,7 @@ fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents, Er
 }
 
 #[substreams::handlers::map]
-fn map_neg_risk_ctf_adapter_events(blk: eth::Block) -> Result<proto::NegRiskCtfAdapterEvents, Error> {
+pub fn map_neg_risk_ctf_adapter_events(blk: eth::Block) -> Result<proto::NegRiskCtfAdapterEvents, Error> {
     use abi::neg_risk_ctf_collateral_adapter::events::*;
 
     let mut events = proto::NegRiskCtfAdapterEvents::default();
