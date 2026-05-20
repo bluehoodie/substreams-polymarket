@@ -539,9 +539,9 @@ mod tests {
         let mut taker_topic = [0u8; 32];
         taker_topic[12..].copy_from_slice(&taker_addr);
 
-        let u256_word = |v: u128| -> [u8; 32] {
+        let u256_word = |v: u64| -> [u8; 32] {
             let mut w = [0u8; 32];
-            w[16..].copy_from_slice(&v.to_be_bytes());
+            w[24..].copy_from_slice(&v.to_be_bytes());
             w
         };
         let mut data = Vec::with_capacity(224);
