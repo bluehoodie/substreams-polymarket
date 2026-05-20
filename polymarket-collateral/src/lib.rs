@@ -8,8 +8,6 @@ use substreams_ethereum::pb::eth::v2 as eth;
 use pb::polymarket::collateral::v1 as proto;
 
 const PUSD_CONTRACT_ADDRESS: [u8; 20] = hex_literal::hex!("C011a7E12a19f7B1f670d46F03B03f3342E82DFB");
-#[allow(dead_code)]
-const COLLATERAL_ONRAMP_ADDRESS: [u8; 20] = hex_literal::hex!("93070a847efEf7F70739046A929D47a521F5B8ee");
 const CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] = hex_literal::hex!("AdA100Db00Ca00073811820692005400218FcE1f");
 const NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] = hex_literal::hex!("adA2005600Dec949baf300f4C6120000bDB6eAab");
 
@@ -351,11 +349,6 @@ mod tests {
     #[test]
     fn test_pusd_address_is_20_bytes() {
         assert_eq!(PUSD_CONTRACT_ADDRESS.len(), 20);
-    }
-
-    #[test]
-    fn test_collateral_onramp_address_is_20_bytes() {
-        assert_eq!(COLLATERAL_ONRAMP_ADDRESS.len(), 20);
     }
 
     #[test]
