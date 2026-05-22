@@ -70,7 +70,6 @@ pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
             if let Ok(event) = FeeCharged::decode(log.log) {
                 events.fee_charged.push(proto::FeeCharged {
                     recipient: format_address(&event.recipient),
-                    token_id: bigint_to_string(&event.token_id),
                     amount: bigint_to_string(&event.amount),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
@@ -262,7 +261,6 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
             if let Ok(event) = FeeCharged::decode(log.log) {
                 fee_events.fee_charged.push(proto::FeeCharged {
                     recipient: format_address(&event.recipient),
-                    token_id: bigint_to_string(&event.token_id),
                     amount: bigint_to_string(&event.amount),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
@@ -575,5 +573,40 @@ mod tests {
         };
 
         assert!(!OrderFilled::match_log(&log), "match_log must return false for wrong topic0");
+    }
+
+    #[test]
+    fn test_fee_charged_decodes_valid_log() {
+        use crate::abi::ctf_exchange::events::FeeCharged;
+
+        // keccak256("FeeCharged(address,uint256)")
+        // mirrors the generated binding's TOPIC_ID
+        let topic0: Vec<u8> = hex_literal::hex!(
+            "55bb3cade9d43b798a4fe5ffdd05024b2d7870df53920673bfc7e68047cd0ab1"
+        )
+        .to_vec();
+
+        let recipient_addr: [u8; 20] = hex_literal::hex!("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
+        // indexed address is left-padded to 32 bytes in topics
+        let mut recipient_topic = [0u8; 32];
+        recipient_topic[12..].copy_from_slice(&recipient_addr);
+
+        // single non-indexed uint256 field (amount), ABI-encoded as one 32-byte word
+        let amount: u64 = 81_580;
+        let mut data = [0u8; 32];
+        data[24..].copy_from_slice(&amount.to_be_bytes());
+
+        let log = eth::Log {
+            address: CTF_EXCHANGE_CONTRACT_ADDRESS.to_vec(),
+            topics: vec![topic0, recipient_topic.to_vec()],
+            data: data.to_vec(),
+            ..Default::default()
+        };
+
+        assert!(FeeCharged::match_log(&log), "match_log must return true for valid FeeCharged log");
+
+        let decoded = FeeCharged::decode(&log).expect("decode must succeed for valid log");
+        assert_eq!(decoded.recipient, recipient_addr.to_vec());
+        assert_eq!(decoded.amount, substreams::scalar::BigInt::from(amount));
     }
 }

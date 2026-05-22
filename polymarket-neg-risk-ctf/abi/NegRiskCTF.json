@@ -5,7 +5,7 @@
       {"indexed": true, "name": "orderHash", "type": "bytes32"},
       {"indexed": true, "name": "maker", "type": "address"},
       {"indexed": true, "name": "taker", "type": "address"},
-      {"indexed": false, "name": "side", "type": "uint32"},
+      {"indexed": false, "name": "side", "type": "uint8"},
       {"indexed": false, "name": "tokenId", "type": "uint256"},
       {"indexed": false, "name": "makerAmountFilled", "type": "uint256"},
       {"indexed": false, "name": "takerAmountFilled", "type": "uint256"},
@@ -21,7 +21,7 @@
     "inputs": [
       {"indexed": true, "name": "takerOrderHash", "type": "bytes32"},
       {"indexed": true, "name": "takerOrderMaker", "type": "address"},
-      {"indexed": false, "name": "side", "type": "uint32"},
+      {"indexed": false, "name": "side", "type": "uint8"},
       {"indexed": false, "name": "tokenId", "type": "uint256"},
       {"indexed": false, "name": "makerAmountFilled", "type": "uint256"},
       {"indexed": false, "name": "takerAmountFilled", "type": "uint256"}
@@ -85,7 +85,6 @@
     "anonymous": false,
     "inputs": [
       {"indexed": true, "name": "recipient", "type": "address"},
-      {"indexed": false, "name": "tokenId", "type": "uint256"},
       {"indexed": false, "name": "amount", "type": "uint256"}
     ],
     "name": "FeeCharged",

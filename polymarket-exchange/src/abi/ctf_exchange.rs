@@ -15,49 +15,48 @@ pub mod events {
     #[derive(Debug, Clone, PartialEq)]
     pub struct FeeCharged {
         pub recipient: Vec<u8>,
-        pub token_id: substreams::scalar::BigInt,
         pub amount: substreams::scalar::BigInt,
     }
     impl FeeCharged {
         const TOPIC_ID: [u8; 32] = [
-            172u8,
-            255u8,
-            204u8,
-            134u8,
-            131u8,
-            77u8,
-            15u8,
-            26u8,
-            100u8,
-            176u8,
-            213u8,
-            166u8,
-            117u8,
+            85u8,
+            187u8,
+            60u8,
+            173u8,
+            233u8,
+            212u8,
+            59u8,
             121u8,
-            141u8,
-            238u8,
-            214u8,
+            138u8,
+            79u8,
+            229u8,
             255u8,
-            11u8,
-            207u8,
-            194u8,
-            35u8,
-            30u8,
             221u8,
-            52u8,
+            5u8,
+            2u8,
+            75u8,
+            45u8,
+            120u8,
+            112u8,
+            223u8,
+            83u8,
+            146u8,
+            6u8,
+            115u8,
+            191u8,
+            199u8,
+            230u8,
             128u8,
-            231u8,
-            40u8,
-            141u8,
-            186u8,
-            127u8,
-            244u8,
+            71u8,
+            205u8,
+            10u8,
+            177u8,
         ];
         pub fn match_log(log: &substreams_ethereum::pb::eth::v2::Log) -> bool {
             if log.topics.len() != 2usize {
                 return false;
             }
-            if log.data.len() != 64usize {
+            if log.data.len() != 32usize {
                 return false;
             }
             return log.topics.get(0).expect("bounds already checked").as_ref() as &[u8]
@@ -67,10 +66,7 @@ pub mod events {
             log: &substreams_ethereum::pb::eth::v2::Log,
         ) -> Result<Self, String> {
             let mut values = ethabi::decode(
-                    &[
-                        ethabi::ParamType::Uint(256usize),
-                        ethabi::ParamType::Uint(256usize),
-                    ],
+                    &[ethabi::ParamType::Uint(256usize)],
                     log.data.as_ref(),
                 )
                 .map_err(|e| format!("unable to decode log.data: {:?}", e))?;
@@ -92,16 +88,6 @@ pub mod events {
                     .expect(INTERNAL_ERR)
                     .as_bytes()
                     .to_vec(),
-                token_id: {
-                    let mut v = [0 as u8; 32];
-                    values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR)
-                        .to_big_endian(v.as_mut_slice());
-                    substreams::scalar::BigInt::from_unsigned_bytes_be(&v)
-                },
                 amount: {
                     let mut v = [0 as u8; 32];
                     values

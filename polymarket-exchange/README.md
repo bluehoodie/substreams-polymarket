@@ -4,9 +4,9 @@ Substreams package for extracting events from the Polymarket CTF Exchange contra
 
 ## Contract Information
 
-- **Address**: `0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E`
+- **Address**: `0xE111180000d2663C0091e4f400237545B87B996B`
 - **Network**: Polygon
-- **Explorer**: [View on Polygonscan](https://polygonscan.com/address/0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E)
+- **Explorer**: [View on Polygonscan](https://polygonscan.com/address/0xE111180000d2663C0091e4f400237545B87B996B)
 
 ## Available Modules
 

@@ -80,10 +80,8 @@ pub struct FeeCharged {
     #[prost(string, tag="1")]
     pub recipient: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
-    pub token_id: ::prost::alloc::string::String,
-    #[prost(string, tag="3")]
     pub amount: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="4")]
+    #[prost(message, optional, tag="3")]
     pub tx: ::core::option::Option<TransactionContext>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

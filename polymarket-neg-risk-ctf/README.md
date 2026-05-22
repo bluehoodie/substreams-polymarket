@@ -4,9 +4,9 @@ Substreams package for extracting events from the Polymarket Negative Risk Condi
 
 ## Contract Information
 
-- **Address**: `0xc5d563a36ae78145c45a50134d48a1215220f80a`
+- **Address**: `0xe2222d279d744050d28e00520010520000310F59`
 - **Network**: Polygon
-- **Explorer**: [View on Polygonscan](https://polygonscan.com/address/0xc5d563a36ae78145c45a50134d48a1215220f80a)
+- **Explorer**: [View on Polygonscan](https://polygonscan.com/address/0xe2222d279d744050d28e00520010520000310F59)
 
 ## Available Modules
 
