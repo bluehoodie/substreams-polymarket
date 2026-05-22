@@ -79,9 +79,11 @@ substreams run polymarket-wallet-factory/substreams.yaml map_factory_events \
 
 Polymarket launched V2 contracts in April 2026 with a redesigned order struct:
 
-**`OrderFilled`**: `side` (uint32) + `token_id` replace the old `maker_asset_id`/`taker_asset_id`. New fields: `builder`, `metadata`.
+**`OrderFilled`**: `side` (uint8) + `token_id` replace the old `maker_asset_id`/`taker_asset_id`. New fields: `builder`, `metadata`.
 
-**`OrdersMatched`**: Same restructuring — `side` + `token_id` added, dual asset IDs removed.
+**`OrdersMatched`**: Same restructuring — `side` (uint8) + `token_id` added, dual asset IDs removed.
+
+**`FeeCharged`**: Removed `tokenId` parameter. V2 signature is `FeeCharged(address indexed recipient, uint256 amount)`.
 
 **Removed**: `OrderCancelled`, `TokenRegistered` (V2 no longer emits these).
 

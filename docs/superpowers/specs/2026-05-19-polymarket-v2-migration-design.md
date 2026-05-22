@@ -24,8 +24,9 @@ Polymarket launched V2 smart contracts in late March/early April 2026. This migr
 ## V2 Exchange Event Changes (both exchange packages)
 
 ### Modified events
-- `OrderFilled`: drop `maker_asset_id`/`taker_asset_id`; add `side` (uint32), `token_id` (uint256), `builder` (bytes32), `metadata` (bytes32)
-- `OrdersMatched`: drop `maker_asset_id`/`taker_asset_id`; add `side` (uint32), `token_id` (uint256)
+- `OrderFilled`: drop `maker_asset_id`/`taker_asset_id`; add `side` (uint8), `token_id` (uint256), `builder` (bytes32), `metadata` (bytes32)
+- `OrdersMatched`: drop `maker_asset_id`/`taker_asset_id`; add `side` (uint8), `token_id` (uint256)
+- `FeeCharged`: removed `tokenId` parameter; V2 signature is `FeeCharged(address indexed recipient, uint256 amount)`
 
 ### Removed events
 - `OrderCancelled` (replaced by `UserPaused`/`UserUnpaused`)

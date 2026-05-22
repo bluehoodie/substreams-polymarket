@@ -12,7 +12,12 @@ Substreams package for extracting events from the Polymarket Negative Risk Condi
 
 | Module | Description | Output Type |
 |--------|-------------|-------------|
-| `map_all_events` | Extracts all negative risk CTF events | `proto:negriskctf.v1.AllEvents` |
+| `map_trading_events` | Extracts trading events | `proto:polymarket.neg_risk_ctf.v1.TradingEvents` |
+| `map_fee_events` | Extracts fee-related events | `proto:polymarket.neg_risk_ctf.v1.FeeEvents` |
+| `map_admin_events` | Extracts admin role events | `proto:polymarket.neg_risk_ctf.v1.AdminEvents` |
+| `map_pause_events` | Extracts user pause events | `proto:polymarket.neg_risk_ctf.v1.PauseEvents` |
+| `map_approval_events` | Extracts order approval events | `proto:polymarket.neg_risk_ctf.v1.OrderApprovalEvents` |
+| `map_all_events` | Extracts all negative risk CTF events | `proto:polymarket.neg_risk_ctf.v1.AllEvents` |
 
 ## Quick Start
 
@@ -44,10 +49,16 @@ substreams run substreams.yaml map_all_events \
 
 ## Event Types
 
-The package extracts the following event categories:
+The package extracts the following V2 event categories:
+
+### Trading Events
+- `OrderFilled` - Order filled (with `side` uint8, `token_id`, `builder`, `metadata`)
+- `OrdersMatched` - Orders matched (with `side` uint8, `token_id`)
 
 ### Fee Events
-- `FeeCharged` - Protocol fee collected
+- `FeeCharged` - Protocol fee collected (`recipient`, `amount`)
+- `FeeReceiverUpdated` - Fee receiver address changed
+- `MaxFeeRateUpdated` - Maximum fee rate changed
 
 ### Admin Events
 - `NewAdmin` - New admin added
@@ -55,21 +66,14 @@ The package extracts the following event categories:
 - `RemovedAdmin` - Admin removed
 - `RemovedOperator` - Operator removed
 
-### Trading Events
-- `OrderCancelled` - Order cancelled
-- `OrderFilled` - Order filled (main trading event)
-- `OrdersMatched` - Taker order matched against maker orders
-
-### Registry Events
-- `TokenRegistered` - Token pair registered for trading
-
 ### Pause Events
-- `TradingPaused` - Trading paused
-- `TradingUnpaused` - Trading unpaused
+- `UserPaused` - User paused from trading
+- `UserUnpaused` - User unpaused
+- `UserPauseBlockIntervalUpdated` - Pause interval changed
 
-### Config Events
-- `ProxyFactoryUpdated` - Proxy factory updated
-- `SafeFactoryUpdated` - Safe factory updated
+### Order Approval Events
+- `OrderPreapproved` - Order preapproved
+- `OrderPreapprovalInvalidated` - Order preapproval invalidated
 
 ## Dependencies
 

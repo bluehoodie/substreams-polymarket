@@ -12,10 +12,12 @@ Substreams package for extracting events from the Polymarket CTF Exchange contra
 
 | Module | Description | Output Type |
 |--------|-------------|-------------|
-| `map_exchange_events` | Extracts exchange trading events | `proto:exchange.v1.ExchangeEvents` |
-| `map_registry_events` | Extracts token registry events | `proto:exchange.v1.RegistryEvents` |
-| `map_fee_events` | Extracts fee-related events | `proto:exchange.v1.FeeEvents` |
-| `map_all_events` | Extracts all exchange events | `proto:exchange.v1.AllEvents` |
+| `map_exchange_events` | Extracts exchange trading events | `proto:polymarket.exchange.v1.ExchangeEvents` |
+| `map_fee_events` | Extracts fee-related events | `proto:polymarket.exchange.v1.FeeEvents` |
+| `map_admin_events` | Extracts admin role events | `proto:polymarket.exchange.v1.AdminEvents` |
+| `map_pause_events` | Extracts user pause events | `proto:polymarket.exchange.v1.PauseEvents` |
+| `map_approval_events` | Extracts order approval events | `proto:polymarket.exchange.v1.OrderApprovalEvents` |
+| `map_all_events` | Extracts all exchange events | `proto:polymarket.exchange.v1.AllEvents` |
 
 ## Quick Start
 
@@ -47,18 +49,31 @@ substreams run substreams.yaml map_all_events \
 
 ## Event Types
 
-The package extracts the following event categories:
+The package extracts the following V2 event categories:
 
 ### Exchange Events
-- `OrderFilled` - Order executed
-- `OrderCancelled` - Order cancelled
-- `OrdersMatched` - Orders matched
-
-### Registry Events
-- `TokenRegistered` - New token pair registered
+- `OrderFilled` - Order filled (with `side` uint8, `token_id`, `builder`, `metadata`)
+- `OrdersMatched` - Orders matched (with `side` uint8, `token_id`)
 
 ### Fee Events
-- `FeeCharged` - Trading fee charged
+- `FeeCharged` - Trading fee charged (`recipient`, `amount`)
+- `FeeReceiverUpdated` - Fee receiver address changed
+- `MaxFeeRateUpdated` - Maximum fee rate changed
+
+### Admin Events
+- `NewAdmin` - New admin added
+- `NewOperator` - New operator added
+- `RemovedAdmin` - Admin removed
+- `RemovedOperator` - Operator removed
+
+### Pause Events
+- `UserPaused` - User paused from trading
+- `UserUnpaused` - User unpaused
+- `UserPauseBlockIntervalUpdated` - Pause interval changed
+
+### Order Approval Events
+- `OrderPreapproved` - Order preapproved
+- `OrderPreapprovalInvalidated` - Order preapproval invalidated
 
 ## Dependencies
 
