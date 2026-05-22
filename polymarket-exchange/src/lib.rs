@@ -457,10 +457,10 @@ mod tests {
     fn test_order_filled_decodes_valid_log() {
         use crate::abi::ctf_exchange::events::OrderFilled;
 
-        // keccak256("OrderFilled(bytes32,address,address,uint32,uint256,uint256,uint256,uint256,bytes32,bytes32)")
+        // keccak256("OrderFilled(bytes32,address,address,uint8,uint256,uint256,uint256,uint256,bytes32,bytes32)")
         // mirrors the generated binding's TOPIC_ID
         let topic0: Vec<u8> = hex_literal::hex!(
-            "1af7da91714912b8776e9e34e2764c310e8f46d7cece4c6be4ea90709ad832be"
+            "d543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee"
         )
         .to_vec();
 
@@ -529,10 +529,10 @@ mod tests {
     fn test_order_filled_rejects_wrong_topic() {
         use crate::abi::ctf_exchange::events::OrderFilled;
 
-        // keccak256("OrderFilled(bytes32,address,address,uint32,uint256,uint256,uint256,uint256,bytes32,bytes32)")
+        // keccak256("OrderFilled(bytes32,address,address,uint8,uint256,uint256,uint256,uint256,bytes32,bytes32)")
         // mirrors the generated binding's TOPIC_ID
         let mut topic0: Vec<u8> = hex_literal::hex!(
-            "1af7da91714912b8776e9e34e2764c310e8f46d7cece4c6be4ea90709ad832be"
+            "d543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee"
         )
         .to_vec();
 
