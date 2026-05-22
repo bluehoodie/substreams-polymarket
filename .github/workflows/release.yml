@@ -34,10 +34,10 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
-            ${{ matrix.package }}/target
-          key: ${{ runner.os }}-cargo-${{ matrix.package }}-${{ hashFiles(format('{0}/Cargo.lock', matrix.package)) }}
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-${{ matrix.package }}-
+            ${{ runner.os }}-cargo-
 
       - name: Install buf
         uses: bufbuild/buf-setup-action@v1

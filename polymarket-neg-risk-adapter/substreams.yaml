@@ -19,7 +19,7 @@ protobuf:
 binaries:
   default:
     type: wasm/rust-v1
-    file: ./target/wasm32-unknown-unknown/release/polymarket_neg_risk_adapter.wasm
+    file: ../target/wasm32-unknown-unknown/release/polymarket_neg_risk_adapter.wasm
 
 modules:
   - name: map_market_events

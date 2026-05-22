@@ -19,7 +19,7 @@ protobuf:
 binaries:
   default:
     type: wasm/rust-v1
-    file: ./target/wasm32-unknown-unknown/release/polymarket_wallet_factory.wasm
+    file: ../target/wasm32-unknown-unknown/release/polymarket_wallet_factory.wasm
 
 modules:
   - name: map_factory_events
