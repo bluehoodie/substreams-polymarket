@@ -15,9 +15,12 @@ jobs:
     strategy:
       matrix:
         package:
+          - polymarket-collateral
           - polymarket-ctf
           - polymarket-exchange
+          - polymarket-neg-risk-adapter
           - polymarket-neg-risk-ctf
+          - polymarket-wallet-factory
 
     steps:
       - uses: actions/checkout@v4
