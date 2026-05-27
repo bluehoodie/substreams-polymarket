@@ -12,149 +12,87 @@ pub struct TransactionContext {
     #[prost(uint64, tag="4")]
     pub timestamp: u64,
 }
-// === OptimisticOracleV2 events ===
+// === Unified Oracle events (V2 + V3 reconciled) ===
 
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ProposePrice {
+pub struct ResolutionProposal {
     #[prost(string, tag="1")]
-    pub requester: ::prost::alloc::string::String,
+    pub oracle_version: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub proposer: ::prost::alloc::string::String,
     #[prost(bytes="vec", tag="3")]
     pub identifier: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag="4")]
-    pub timestamp: ::prost::alloc::string::String,
-    #[prost(bytes="vec", tag="5")]
-    pub ancillary_data: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="vec", tag="4")]
+    pub question_data: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag="5")]
+    pub proposed_price: ::prost::alloc::string::String,
     #[prost(string, tag="6")]
-    pub proposed_price: ::prost::alloc::string::String,
-    #[prost(string, tag="7")]
-    pub expiration_timestamp: ::prost::alloc::string::String,
-    #[prost(string, tag="8")]
     pub currency: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="9")]
-    pub tx: ::core::option::Option<TransactionContext>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DisputePrice {
-    #[prost(string, tag="1")]
-    pub requester: ::prost::alloc::string::String,
-    #[prost(string, tag="2")]
-    pub proposer: ::prost::alloc::string::String,
-    #[prost(string, tag="3")]
-    pub disputer: ::prost::alloc::string::String,
-    #[prost(bytes="vec", tag="4")]
-    pub identifier: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag="5")]
-    pub timestamp: ::prost::alloc::string::String,
-    #[prost(bytes="vec", tag="6")]
-    pub ancillary_data: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag="7")]
-    pub proposed_price: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="8")]
-    pub tx: ::core::option::Option<TransactionContext>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SettleV2 {
-    #[prost(string, tag="1")]
-    pub requester: ::prost::alloc::string::String,
-    #[prost(string, tag="2")]
-    pub proposer: ::prost::alloc::string::String,
-    #[prost(string, tag="3")]
-    pub disputer: ::prost::alloc::string::String,
-    #[prost(bytes="vec", tag="4")]
-    pub identifier: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag="5")]
-    pub timestamp: ::prost::alloc::string::String,
-    #[prost(bytes="vec", tag="6")]
-    pub ancillary_data: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag="7")]
-    pub price: ::prost::alloc::string::String,
+    #[prost(uint64, tag="7")]
+    pub expiration: u64,
     #[prost(string, tag="8")]
-    pub payout: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="9")]
-    pub tx: ::core::option::Option<TransactionContext>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct OracleV2Events {
-    #[prost(message, repeated, tag="1")]
-    pub propose_price: ::prost::alloc::vec::Vec<ProposePrice>,
-    #[prost(message, repeated, tag="2")]
-    pub dispute_price: ::prost::alloc::vec::Vec<DisputePrice>,
-    #[prost(message, repeated, tag="3")]
-    pub settle: ::prost::alloc::vec::Vec<SettleV2>,
-}
-// === OptimisticOracleV3 events ===
-
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AssertionMade {
-    #[prost(bytes="vec", tag="1")]
+    pub requester: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="9")]
     pub assertion_id: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes="vec", tag="2")]
-    pub domain_id: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes="vec", tag="3")]
-    pub claim: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag="4")]
-    pub asserter: ::prost::alloc::string::String,
-    #[prost(string, tag="5")]
-    pub callback_recipient: ::prost::alloc::string::String,
-    #[prost(string, tag="6")]
-    pub escalation_manager: ::prost::alloc::string::String,
-    #[prost(string, tag="7")]
-    pub caller: ::prost::alloc::string::String,
-    #[prost(uint64, tag="8")]
-    pub expiration_time: u64,
-    #[prost(string, tag="9")]
-    pub currency: ::prost::alloc::string::String,
     #[prost(string, tag="10")]
     pub bond: ::prost::alloc::string::String,
-    #[prost(bytes="vec", tag="11")]
-    pub identifier: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag="12")]
+    #[prost(message, optional, tag="15")]
     pub tx: ::core::option::Option<TransactionContext>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AssertionDisputed {
-    #[prost(bytes="vec", tag="1")]
-    pub assertion_id: ::prost::alloc::vec::Vec<u8>,
+pub struct ResolutionDispute {
+    #[prost(string, tag="1")]
+    pub oracle_version: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
-    pub caller: ::prost::alloc::string::String,
-    #[prost(string, tag="3")]
     pub disputer: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="4")]
+    #[prost(bytes="vec", tag="3")]
+    pub identifier: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="vec", tag="4")]
+    pub assertion_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="vec", tag="5")]
+    pub question_data: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag="6")]
+    pub proposer: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub proposed_price: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="15")]
     pub tx: ::core::option::Option<TransactionContext>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AssertionSettled {
-    #[prost(bytes="vec", tag="1")]
-    pub assertion_id: ::prost::alloc::vec::Vec<u8>,
+pub struct ResolutionSettlement {
+    #[prost(string, tag="1")]
+    pub oracle_version: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
-    pub bond_recipient: ::prost::alloc::string::String,
+    pub price: ::prost::alloc::string::String,
     #[prost(bool, tag="3")]
     pub disputed: bool,
-    #[prost(bool, tag="4")]
-    pub settlement_resolution: bool,
+    #[prost(string, tag="4")]
+    pub proposer: ::prost::alloc::string::String,
     #[prost(string, tag="5")]
-    pub settle_caller: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="6")]
+    pub disputer: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="6")]
+    pub identifier: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="vec", tag="7")]
+    pub assertion_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag="8")]
+    pub payout: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="9")]
+    pub question_data: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag="15")]
     pub tx: ::core::option::Option<TransactionContext>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct OracleV3Events {
+pub struct OracleEvents {
     #[prost(message, repeated, tag="1")]
-    pub assertion_made: ::prost::alloc::vec::Vec<AssertionMade>,
+    pub proposals: ::prost::alloc::vec::Vec<ResolutionProposal>,
     #[prost(message, repeated, tag="2")]
-    pub assertion_disputed: ::prost::alloc::vec::Vec<AssertionDisputed>,
+    pub disputes: ::prost::alloc::vec::Vec<ResolutionDispute>,
     #[prost(message, repeated, tag="3")]
-    pub assertion_settled: ::prost::alloc::vec::Vec<AssertionSettled>,
+    pub settlements: ::prost::alloc::vec::Vec<ResolutionSettlement>,
 }
 // === CTF Adapter events (question lifecycle) ===
 
@@ -288,7 +226,7 @@ pub struct AdapterEvents {
     #[prost(message, repeated, tag="10")]
     pub admin_changes: ::prost::alloc::vec::Vec<AdapterAdmin>,
 }
-// === Enhanced unified types ===
+// === Alerts ===
 
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -314,16 +252,16 @@ pub struct DisputeAlerts {
     #[prost(message, repeated, tag="1")]
     pub alerts: ::prost::alloc::vec::Vec<DisputeAlert>,
 }
+// === Unified output ===
+
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolutionEvents {
     #[prost(message, optional, tag="1")]
-    pub oracle_v2: ::core::option::Option<OracleV2Events>,
+    pub oracle: ::core::option::Option<OracleEvents>,
     #[prost(message, optional, tag="2")]
-    pub oracle_v3: ::core::option::Option<OracleV3Events>,
-    #[prost(message, optional, tag="3")]
     pub adapter: ::core::option::Option<AdapterEvents>,
-    #[prost(message, optional, tag="4")]
+    #[prost(message, optional, tag="3")]
     pub dispute_alerts: ::core::option::Option<DisputeAlerts>,
 }
 // @@protoc_insertion_point(module)

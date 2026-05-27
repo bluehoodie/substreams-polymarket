@@ -9,86 +9,50 @@ message TransactionContext {
   uint64 timestamp = 4;
 }
 
-// === OptimisticOracleV2 events ===
+// === Unified Oracle events (V2 + V3 reconciled) ===
 
-message ProposePrice {
-  string requester = 1;
+message ResolutionProposal {
+  string oracle_version = 1;
   string proposer = 2;
   bytes identifier = 3;
-  string timestamp = 4;
-  bytes ancillary_data = 5;
-  string proposed_price = 6;
-  string expiration_timestamp = 7;
-  string currency = 8;
-  TransactionContext tx = 9;
-}
-
-message DisputePrice {
-  string requester = 1;
-  string proposer = 2;
-  string disputer = 3;
-  bytes identifier = 4;
-  string timestamp = 5;
-  bytes ancillary_data = 6;
-  string proposed_price = 7;
-  TransactionContext tx = 8;
-}
-
-message SettleV2 {
-  string requester = 1;
-  string proposer = 2;
-  string disputer = 3;
-  bytes identifier = 4;
-  string timestamp = 5;
-  bytes ancillary_data = 6;
-  string price = 7;
-  string payout = 8;
-  TransactionContext tx = 9;
-}
-
-message OracleV2Events {
-  repeated ProposePrice propose_price = 1;
-  repeated DisputePrice dispute_price = 2;
-  repeated SettleV2 settle = 3;
-}
-
-// === OptimisticOracleV3 events ===
-
-message AssertionMade {
-  bytes assertion_id = 1;
-  bytes domain_id = 2;
-  bytes claim = 3;
-  string asserter = 4;
-  string callback_recipient = 5;
-  string escalation_manager = 6;
-  string caller = 7;
-  uint64 expiration_time = 8;
-  string currency = 9;
+  bytes question_data = 4;
+  string proposed_price = 5;
+  string currency = 6;
+  uint64 expiration = 7;
+  string requester = 8;
+  bytes assertion_id = 9;
   string bond = 10;
-  bytes identifier = 11;
-  TransactionContext tx = 12;
+  TransactionContext tx = 15;
 }
 
-message AssertionDisputed {
-  bytes assertion_id = 1;
-  string caller = 2;
-  string disputer = 3;
-  TransactionContext tx = 4;
+message ResolutionDispute {
+  string oracle_version = 1;
+  string disputer = 2;
+  bytes identifier = 3;
+  bytes assertion_id = 4;
+  bytes question_data = 5;
+  string proposer = 6;
+  string proposed_price = 7;
+  TransactionContext tx = 15;
 }
 
-message AssertionSettled {
-  bytes assertion_id = 1;
-  string bond_recipient = 2;
+message ResolutionSettlement {
+  string oracle_version = 1;
+  string price = 2;
   bool disputed = 3;
-  bool settlement_resolution = 4;
-  string settle_caller = 5;
-  TransactionContext tx = 6;
+  string proposer = 4;
+  string disputer = 5;
+  bytes identifier = 6;
+  bytes assertion_id = 7;
+  string payout = 8;
+  bytes question_data = 9;
+  TransactionContext tx = 15;
 }
 
-message OracleV3Events {
-  repeated AssertionMade assertion_made = 1;
-  repeated AssertionDisputed assertion_disputed = 2;
-  repeated AssertionSettled assertion_settled = 3;
+message OracleEvents {
+  repeated ResolutionProposal proposals = 1;
+  repeated ResolutionDispute disputes = 2;
+  repeated ResolutionSettlement settlements = 3;
 }
 
 // === CTF Adapter events (question lifecycle) ===
@@ -169,7 +133,7 @@ message AdapterEvents {
   repeated AdapterAdmin admin_changes = 10;
 }
 
-// === Enhanced unified types ===
+// === Alerts ===
 
 message DisputeAlert {
   string source = 1;
@@ -185,9 +149,10 @@ message DisputeAlerts {
   repeated DisputeAlert alerts = 1;
 }
 
+// === Unified output ===
+
 message ResolutionEvents {
-  optional OracleV2Events oracle_v2 = 1;
-  optional OracleV3Events oracle_v3 = 2;
-  optional AdapterEvents adapter = 3;
-  optional DisputeAlerts dispute_alerts = 4;
+  optional OracleEvents oracle = 1;
+  optional AdapterEvents adapter = 2;
+  optional DisputeAlerts dispute_alerts = 3;
 }
