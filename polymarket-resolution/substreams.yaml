@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-resolution
-  version: v0.1.0
+  version: v0.4.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: Full Polymarket resolution pipeline — UMA Oracle V2/V3 disputes + CTF Adapter question lifecycle
 
