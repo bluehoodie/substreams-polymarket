@@ -22,6 +22,7 @@ ALL_PACKAGES=(
   polymarket-neg-risk-adapter
   polymarket-neg-risk-ctf
   polymarket-wallet-factory
+  polymarket-uma-oracle
 )
 
 # Use packages passed as arguments, or all of them.

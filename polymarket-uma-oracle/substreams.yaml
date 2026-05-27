@@ -1,0 +1,55 @@
+specVersion: v0.1.0
+package:
+  name: polymarket-uma-oracle
+  version: v0.1.0
+  url: https://github.com/bluehoodie/substreams-polymarket
+  description: UMA OptimisticOracle V2+V3 dispute tracking for Polymarket
+
+network: polygon
+
+imports:
+  ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
+
+protobuf:
+  files:
+    - polymarket/uma_oracle/v1/events.proto
+  importPaths:
+    - ./proto
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ../target/wasm32-unknown-unknown/release/polymarket_uma_oracle.wasm
+
+modules:
+  - name: map_v2_events
+    kind: map
+    initialBlock: 50505403
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.uma_oracle.v1.OracleV2Events
+
+  - name: map_v3_events
+    kind: map
+    initialBlock: 50505403
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.uma_oracle.v1.OracleV3Events
+
+  - name: map_dispute_alerts
+    kind: map
+    initialBlock: 50505403
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.uma_oracle.v1.DisputeAlerts
+
+  - name: map_all_events
+    kind: map
+    initialBlock: 50505403
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.uma_oracle.v1.AllEvents

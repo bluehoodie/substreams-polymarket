@@ -1,4 +1,4 @@
-.PHONY: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory build-all
+.PHONY: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory build-uma-oracle build-all
 
 build-exchange:
 	cd polymarket-exchange && substreams build
@@ -18,4 +18,7 @@ build-collateral:
 build-wallet-factory:
 	cd polymarket-wallet-factory && substreams build
 
-build-all: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory
+build-uma-oracle:
+	cd polymarket-uma-oracle && substreams build
+
+build-all: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory build-uma-oracle
