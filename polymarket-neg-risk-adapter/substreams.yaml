@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-neg-risk-adapter
-  version: v0.4.0
+  version: v0.4.1
   url: https://github.com/bluehoodie/substreams-polymarket
   image: ./polymarket.png
 
