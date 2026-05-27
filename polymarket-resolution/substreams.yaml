@@ -1,9 +1,9 @@
 specVersion: v0.1.0
 package:
-  name: polymarket-uma-oracle
+  name: polymarket-resolution
   version: v0.1.0
   url: https://github.com/bluehoodie/substreams-polymarket
-  description: UMA OptimisticOracle V2+V3 dispute tracking for Polymarket
+  description: Full Polymarket resolution pipeline — UMA Oracle V2/V3 disputes + CTF Adapter question lifecycle
 
 network: polygon
 
@@ -19,37 +19,45 @@ protobuf:
 binaries:
   default:
     type: wasm/rust-v1
-    file: ../target/wasm32-unknown-unknown/release/polymarket_uma_oracle.wasm
+    file: ../target/wasm32-unknown-unknown/release/polymarket_resolution.wasm
 
 modules:
-  - name: map_v2_events
+  - name: map_oracle_v2_events
     kind: map
-    initialBlock: 50505403
+    initialBlock: 29088718
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
-      type: proto:polymarket.uma_oracle.v1.OracleV2Events
+      type: proto:polymarket.resolution.v1.OracleV2Events
 
-  - name: map_v3_events
+  - name: map_oracle_v3_events
     kind: map
-    initialBlock: 50505403
+    initialBlock: 29088718
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
-      type: proto:polymarket.uma_oracle.v1.OracleV3Events
+      type: proto:polymarket.resolution.v1.OracleV3Events
+
+  - name: map_adapter_events
+    kind: map
+    initialBlock: 29088718
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.resolution.v1.AdapterEvents
 
   - name: map_dispute_alerts
     kind: map
-    initialBlock: 50505403
+    initialBlock: 29088718
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
-      type: proto:polymarket.uma_oracle.v1.DisputeAlerts
+      type: proto:polymarket.resolution.v1.DisputeAlerts
 
-  - name: map_all_events
+  - name: map_resolution_events
     kind: map
-    initialBlock: 50505403
+    initialBlock: 29088718
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
-      type: proto:polymarket.uma_oracle.v1.AllEvents
+      type: proto:polymarket.resolution.v1.ResolutionEvents
