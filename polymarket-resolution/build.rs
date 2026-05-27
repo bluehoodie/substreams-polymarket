@@ -14,6 +14,11 @@ fn main() -> Result<()> {
             "abi/OptimisticOracleV3.json",
             "src/abi/optimistic_oracle_v3.rs",
         ),
+        (
+            "UmaCtfAdapter",
+            "abi/UmaCtfAdapter.json",
+            "src/abi/uma_ctf_adapter.rs",
+        ),
     ] {
         Abigen::new(name, abi_path)?
             .generate()?

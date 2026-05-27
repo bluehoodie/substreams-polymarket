@@ -1,0 +1,103 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "bytes32", "name": "questionID", "type": "bytes32" },
+      { "indexed": false, "internalType": "uint256", "name": "requestTimestamp", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "creator", "type": "address" },
+      { "indexed": false, "internalType": "bytes", "name": "ancillaryData", "type": "bytes" },
+      { "indexed": false, "internalType": "address", "name": "rewardToken", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "reward", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "proposalBond", "type": "uint256" }
+    ],
+    "name": "QuestionInitialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "bytes32", "name": "questionID", "type": "bytes32" },
+      { "indexed": true, "internalType": "int256", "name": "settledPrice", "type": "int256" },
+      { "indexed": false, "internalType": "uint256[]", "name": "payouts", "type": "uint256[]" }
+    ],
+    "name": "QuestionResolved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "bytes32", "name": "questionID", "type": "bytes32" },
+      { "indexed": false, "internalType": "uint256[]", "name": "payouts", "type": "uint256[]" }
+    ],
+    "name": "QuestionEmergencyResolved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "bytes32", "name": "questionID", "type": "bytes32" }
+    ],
+    "name": "QuestionFlagged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "bytes32", "name": "questionID", "type": "bytes32" }
+    ],
+    "name": "QuestionUnflagged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "bytes32", "name": "questionID", "type": "bytes32" }
+    ],
+    "name": "QuestionPaused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "bytes32", "name": "questionID", "type": "bytes32" }
+    ],
+    "name": "QuestionUnpaused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "bytes32", "name": "questionID", "type": "bytes32" }
+    ],
+    "name": "QuestionReset",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "bytes32", "name": "questionID", "type": "bytes32" },
+      { "indexed": true, "internalType": "address", "name": "owner", "type": "address" },
+      { "indexed": false, "internalType": "bytes", "name": "update", "type": "bytes" }
+    ],
+    "name": "AncillaryDataUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "admin", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "newAdminAddress", "type": "address" }
+    ],
+    "name": "NewAdmin",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "admin", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "removedAdmin", "type": "address" }
+    ],
+    "name": "RemovedAdmin",
+    "type": "event"
+  }
+]
