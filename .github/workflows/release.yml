@@ -20,6 +20,7 @@ jobs:
           - polymarket-exchange
           - polymarket-neg-risk-adapter
           - polymarket-neg-risk-ctf
+          - polymarket-resolution
           - polymarket-wallet-factory
 
     steps:
@@ -93,6 +94,7 @@ jobs:
           - polymarket-exchange
           - polymarket-neg-risk-adapter
           - polymarket-neg-risk-ctf
+          - polymarket-resolution
           - polymarket-wallet-factory
 
     steps:
