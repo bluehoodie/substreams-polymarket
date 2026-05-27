@@ -8,7 +8,7 @@ members = [
     "polymarket-neg-risk-adapter",
     "polymarket-neg-risk-ctf",
     "polymarket-wallet-factory",
-    "polymarket-uma-oracle",
+    "polymarket-resolution",
 ]
 
 [profile.release]

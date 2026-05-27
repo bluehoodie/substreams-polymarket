@@ -795,16 +795,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "polymarket-substreams-common"
-version = "0.1.0"
-dependencies = [
- "hex",
- "substreams",
- "substreams-ethereum",
-]
-
-[[package]]
-name = "polymarket-uma-oracle"
+name = "polymarket-resolution"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -814,6 +805,15 @@ dependencies = [
  "polymarket-substreams-common",
  "prost 0.13.5",
  "prost-types 0.13.5",
+ "substreams",
+ "substreams-ethereum",
+]
+
+[[package]]
+name = "polymarket-substreams-common"
+version = "0.1.0"
+dependencies = [
+ "hex",
  "substreams",
  "substreams-ethereum",
 ]
