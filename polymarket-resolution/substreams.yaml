@@ -12,7 +12,7 @@ imports:
 
 protobuf:
   files:
-    - polymarket/uma_oracle/v1/events.proto
+    - polymarket/resolution/v1/events.proto
   importPaths:
     - ./proto
 

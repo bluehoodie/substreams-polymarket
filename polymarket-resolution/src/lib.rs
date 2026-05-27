@@ -5,7 +5,7 @@ pub mod abi;
 use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
-use pb::polymarket::uma_oracle::v1 as proto;
+use pb::polymarket::resolution::v1 as proto;
 use polymarket_substreams_common::{bigint_to_string, build_tx_context, format_address};
 
 const UMA_ORACLE_V2_ADDRESS: [u8; 20] =
@@ -147,10 +147,11 @@ pub fn map_dispute_alerts(blk: eth::Block) -> Result<proto::DisputeAlerts, Error
                 if let Ok(event) = DisputePrice::decode(log.log) {
                     alerts.alerts.push(proto::DisputeAlert {
                         source: "v2".to_string(),
-                        requester: format_address(&event.requester),
+                        alert_type: "dispute".to_string(),
                         disputer: format_address(&event.disputer),
                         identifier: event.identifier.to_vec(),
                         ancillary_data: event.ancillary_data,
+                        payouts: Vec::new(),
                         tx: Some(to_proto_tx(&blk, &log)),
                     });
                 }
@@ -161,10 +162,11 @@ pub fn map_dispute_alerts(blk: eth::Block) -> Result<proto::DisputeAlerts, Error
                 if let Ok(event) = AssertionDisputed::decode(log.log) {
                     alerts.alerts.push(proto::DisputeAlert {
                         source: "v3".to_string(),
-                        requester: String::new(),
+                        alert_type: "dispute".to_string(),
                         disputer: format_address(&event.disputer),
                         identifier: event.assertion_id.to_vec(),
                         ancillary_data: Vec::new(),
+                        payouts: Vec::new(),
                         tx: Some(to_proto_tx(&blk, &log)),
                     });
                 }
@@ -176,7 +178,7 @@ pub fn map_dispute_alerts(blk: eth::Block) -> Result<proto::DisputeAlerts, Error
 }
 
 #[substreams::handlers::map]
-pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
+pub fn map_all_events(blk: eth::Block) -> Result<proto::ResolutionEvents, Error> {
     use abi::optimistic_oracle_v2::events as v2_events;
     use abi::optimistic_oracle_v3::events as v3_events;
 
@@ -214,10 +216,11 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     };
                     disputes.alerts.push(proto::DisputeAlert {
                         source: "v2".to_string(),
-                        requester: format_address(&event.requester),
+                        alert_type: "dispute".to_string(),
                         disputer: format_address(&event.disputer),
                         identifier: event.identifier.to_vec(),
                         ancillary_data: event.ancillary_data,
+                        payouts: Vec::new(),
                         tx: Some(to_proto_tx(&blk, &log)),
                     });
                     v2.dispute_price.push(dp);
@@ -259,10 +262,11 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 if let Ok(event) = v3_events::AssertionDisputed::decode(log.log) {
                     disputes.alerts.push(proto::DisputeAlert {
                         source: "v3".to_string(),
-                        requester: String::new(),
+                        alert_type: "dispute".to_string(),
                         disputer: format_address(&event.disputer),
                         identifier: event.assertion_id.to_vec(),
                         ancillary_data: Vec::new(),
+                        payouts: Vec::new(),
                         tx: Some(to_proto_tx(&blk, &log)),
                     });
                     v3.assertion_disputed.push(proto::AssertionDisputed {
@@ -294,9 +298,10 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
         || !v3.assertion_disputed.is_empty()
         || !v3.assertion_settled.is_empty();
 
-    Ok(proto::AllEvents {
-        v2_events: if has_v2 { Some(v2) } else { None },
-        v3_events: if has_v3 { Some(v3) } else { None },
+    Ok(proto::ResolutionEvents {
+        oracle_v2: if has_v2 { Some(v2) } else { None },
+        oracle_v3: if has_v3 { Some(v3) } else { None },
+        adapter: None,
         dispute_alerts: if !disputes.alerts.is_empty() { Some(disputes) } else { None },
     })
 }

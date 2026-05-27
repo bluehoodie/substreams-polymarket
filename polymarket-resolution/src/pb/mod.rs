@@ -7,11 +7,11 @@ pub mod google {
     }
 }
 pub mod polymarket {
-    pub mod uma_oracle {
-        // @@protoc_insertion_point(attribute:polymarket.uma_oracle.v1)
+    pub mod resolution {
+        // @@protoc_insertion_point(attribute:polymarket.resolution.v1)
         pub mod v1 {
-            include!("polymarket.uma_oracle.v1.rs");
-            // @@protoc_insertion_point(polymarket.uma_oracle.v1)
+            include!("polymarket.resolution.v1.rs");
+            // @@protoc_insertion_point(polymarket.resolution.v1)
         }
     }
 }

@@ -12,9 +12,8 @@ pub struct TransactionContext {
     #[prost(uint64, tag="4")]
     pub timestamp: u64,
 }
-// --- OptimisticOracleV2 events (primary — 222k+ txns) ---
+// === OptimisticOracleV2 events ===
 
-/// ProposePrice - emitted when someone proposes a resolution on V2
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ProposePrice {
@@ -37,7 +36,6 @@ pub struct ProposePrice {
     #[prost(message, optional, tag="9")]
     pub tx: ::core::option::Option<TransactionContext>,
 }
-/// DisputePrice - emitted when someone disputes a proposed price on V2
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DisputePrice {
@@ -58,7 +56,6 @@ pub struct DisputePrice {
     #[prost(message, optional, tag="8")]
     pub tx: ::core::option::Option<TransactionContext>,
 }
-/// Settle - emitted when a V2 request reaches final settlement
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SettleV2 {
@@ -91,9 +88,8 @@ pub struct OracleV2Events {
     #[prost(message, repeated, tag="3")]
     pub settle: ::prost::alloc::vec::Vec<SettleV2>,
 }
-// --- OptimisticOracleV3 events (secondary — 47 txns) ---
+// === OptimisticOracleV3 events ===
 
-/// AssertionMade - emitted when a resolution is proposed to the V3 oracle
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AssertionMade {
@@ -122,7 +118,6 @@ pub struct AssertionMade {
     #[prost(message, optional, tag="12")]
     pub tx: ::core::option::Option<TransactionContext>,
 }
-/// AssertionDisputed - emitted when someone disputes a pending V3 assertion
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AssertionDisputed {
@@ -135,7 +130,6 @@ pub struct AssertionDisputed {
     #[prost(message, optional, tag="4")]
     pub tx: ::core::option::Option<TransactionContext>,
 }
-/// AssertionSettled - emitted when a V3 assertion reaches final settlement
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AssertionSettled {
@@ -162,7 +156,139 @@ pub struct OracleV3Events {
     #[prost(message, repeated, tag="3")]
     pub assertion_settled: ::prost::alloc::vec::Vec<AssertionSettled>,
 }
-// --- Unified dispute alerts (from both V2 and V3) ---
+// === CTF Adapter events (question lifecycle) ===
+
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QuestionInitialized {
+    #[prost(bytes="vec", tag="1")]
+    pub question_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag="2")]
+    pub request_timestamp: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub creator: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="4")]
+    pub ancillary_data: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag="5")]
+    pub reward_token: ::prost::alloc::string::String,
+    #[prost(string, tag="6")]
+    pub reward: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub proposal_bond: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="8")]
+    pub tx: ::core::option::Option<TransactionContext>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QuestionResolved {
+    #[prost(bytes="vec", tag="1")]
+    pub question_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag="2")]
+    pub settled_price: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag="3")]
+    pub payouts: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag="4")]
+    pub tx: ::core::option::Option<TransactionContext>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QuestionEmergencyResolved {
+    #[prost(bytes="vec", tag="1")]
+    pub question_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, repeated, tag="2")]
+    pub payouts: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag="3")]
+    pub tx: ::core::option::Option<TransactionContext>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QuestionFlagged {
+    #[prost(bytes="vec", tag="1")]
+    pub question_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag="2")]
+    pub tx: ::core::option::Option<TransactionContext>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QuestionUnflagged {
+    #[prost(bytes="vec", tag="1")]
+    pub question_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag="2")]
+    pub tx: ::core::option::Option<TransactionContext>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QuestionPaused {
+    #[prost(bytes="vec", tag="1")]
+    pub question_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag="2")]
+    pub tx: ::core::option::Option<TransactionContext>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QuestionUnpaused {
+    #[prost(bytes="vec", tag="1")]
+    pub question_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag="2")]
+    pub tx: ::core::option::Option<TransactionContext>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QuestionReset {
+    #[prost(bytes="vec", tag="1")]
+    pub question_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag="2")]
+    pub tx: ::core::option::Option<TransactionContext>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AncillaryDataUpdated {
+    #[prost(bytes="vec", tag="1")]
+    pub question_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag="2")]
+    pub owner: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="3")]
+    pub update_data: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag="4")]
+    pub tx: ::core::option::Option<TransactionContext>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AdapterAdmin {
+    #[prost(string, tag="1")]
+    pub admin: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub target_admin: ::prost::alloc::string::String,
+    #[prost(bool, tag="3")]
+    pub is_addition: bool,
+    #[prost(message, optional, tag="4")]
+    pub tx: ::core::option::Option<TransactionContext>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AdapterEvents {
+    #[prost(message, repeated, tag="1")]
+    pub question_initialized: ::prost::alloc::vec::Vec<QuestionInitialized>,
+    #[prost(message, repeated, tag="2")]
+    pub question_resolved: ::prost::alloc::vec::Vec<QuestionResolved>,
+    #[prost(message, repeated, tag="3")]
+    pub question_emergency_resolved: ::prost::alloc::vec::Vec<QuestionEmergencyResolved>,
+    #[prost(message, repeated, tag="4")]
+    pub question_flagged: ::prost::alloc::vec::Vec<QuestionFlagged>,
+    #[prost(message, repeated, tag="5")]
+    pub question_unflagged: ::prost::alloc::vec::Vec<QuestionUnflagged>,
+    #[prost(message, repeated, tag="6")]
+    pub question_paused: ::prost::alloc::vec::Vec<QuestionPaused>,
+    #[prost(message, repeated, tag="7")]
+    pub question_unpaused: ::prost::alloc::vec::Vec<QuestionUnpaused>,
+    #[prost(message, repeated, tag="8")]
+    pub question_reset: ::prost::alloc::vec::Vec<QuestionReset>,
+    #[prost(message, repeated, tag="9")]
+    pub ancillary_data_updated: ::prost::alloc::vec::Vec<AncillaryDataUpdated>,
+    #[prost(message, repeated, tag="10")]
+    pub admin_changes: ::prost::alloc::vec::Vec<AdapterAdmin>,
+}
+// === Enhanced unified types ===
 
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -170,14 +296,16 @@ pub struct DisputeAlert {
     #[prost(string, tag="1")]
     pub source: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
-    pub requester: ::prost::alloc::string::String,
-    #[prost(string, tag="3")]
-    pub disputer: ::prost::alloc::string::String,
-    #[prost(bytes="vec", tag="4")]
+    pub alert_type: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="3")]
     pub identifier: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag="4")]
+    pub disputer: ::prost::alloc::string::String,
     #[prost(bytes="vec", tag="5")]
     pub ancillary_data: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag="6")]
+    #[prost(string, repeated, tag="6")]
+    pub payouts: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag="7")]
     pub tx: ::core::option::Option<TransactionContext>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -186,15 +314,16 @@ pub struct DisputeAlerts {
     #[prost(message, repeated, tag="1")]
     pub alerts: ::prost::alloc::vec::Vec<DisputeAlert>,
 }
-/// AllEvents wraps all event types
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AllEvents {
+pub struct ResolutionEvents {
     #[prost(message, optional, tag="1")]
-    pub v2_events: ::core::option::Option<OracleV2Events>,
+    pub oracle_v2: ::core::option::Option<OracleV2Events>,
     #[prost(message, optional, tag="2")]
-    pub v3_events: ::core::option::Option<OracleV3Events>,
+    pub oracle_v3: ::core::option::Option<OracleV3Events>,
     #[prost(message, optional, tag="3")]
+    pub adapter: ::core::option::Option<AdapterEvents>,
+    #[prost(message, optional, tag="4")]
     pub dispute_alerts: ::core::option::Option<DisputeAlerts>,
 }
 // @@protoc_insertion_point(module)

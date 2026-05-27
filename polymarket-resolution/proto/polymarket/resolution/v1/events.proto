@@ -1,0 +1,193 @@
+syntax = "proto3";
+
+package polymarket.resolution.v1;
+
+message TransactionContext {
+  string tx_hash = 1;
+  uint64 log_index = 2;
+  uint64 block_number = 3;
+  uint64 timestamp = 4;
+}
+
+// === OptimisticOracleV2 events ===
+
+message ProposePrice {
+  string requester = 1;
+  string proposer = 2;
+  bytes identifier = 3;
+  string timestamp = 4;
+  bytes ancillary_data = 5;
+  string proposed_price = 6;
+  string expiration_timestamp = 7;
+  string currency = 8;
+  TransactionContext tx = 9;
+}
+
+message DisputePrice {
+  string requester = 1;
+  string proposer = 2;
+  string disputer = 3;
+  bytes identifier = 4;
+  string timestamp = 5;
+  bytes ancillary_data = 6;
+  string proposed_price = 7;
+  TransactionContext tx = 8;
+}
+
+message SettleV2 {
+  string requester = 1;
+  string proposer = 2;
+  string disputer = 3;
+  bytes identifier = 4;
+  string timestamp = 5;
+  bytes ancillary_data = 6;
+  string price = 7;
+  string payout = 8;
+  TransactionContext tx = 9;
+}
+
+message OracleV2Events {
+  repeated ProposePrice propose_price = 1;
+  repeated DisputePrice dispute_price = 2;
+  repeated SettleV2 settle = 3;
+}
+
+// === OptimisticOracleV3 events ===
+
+message AssertionMade {
+  bytes assertion_id = 1;
+  bytes domain_id = 2;
+  bytes claim = 3;
+  string asserter = 4;
+  string callback_recipient = 5;
+  string escalation_manager = 6;
+  string caller = 7;
+  uint64 expiration_time = 8;
+  string currency = 9;
+  string bond = 10;
+  bytes identifier = 11;
+  TransactionContext tx = 12;
+}
+
+message AssertionDisputed {
+  bytes assertion_id = 1;
+  string caller = 2;
+  string disputer = 3;
+  TransactionContext tx = 4;
+}
+
+message AssertionSettled {
+  bytes assertion_id = 1;
+  string bond_recipient = 2;
+  bool disputed = 3;
+  bool settlement_resolution = 4;
+  string settle_caller = 5;
+  TransactionContext tx = 6;
+}
+
+message OracleV3Events {
+  repeated AssertionMade assertion_made = 1;
+  repeated AssertionDisputed assertion_disputed = 2;
+  repeated AssertionSettled assertion_settled = 3;
+}
+
+// === CTF Adapter events (question lifecycle) ===
+
+message QuestionInitialized {
+  bytes question_id = 1;
+  string request_timestamp = 2;
+  string creator = 3;
+  bytes ancillary_data = 4;
+  string reward_token = 5;
+  string reward = 6;
+  string proposal_bond = 7;
+  TransactionContext tx = 8;
+}
+
+message QuestionResolved {
+  bytes question_id = 1;
+  string settled_price = 2;
+  repeated string payouts = 3;
+  TransactionContext tx = 4;
+}
+
+message QuestionEmergencyResolved {
+  bytes question_id = 1;
+  repeated string payouts = 2;
+  TransactionContext tx = 3;
+}
+
+message QuestionFlagged {
+  bytes question_id = 1;
+  TransactionContext tx = 2;
+}
+
+message QuestionUnflagged {
+  bytes question_id = 1;
+  TransactionContext tx = 2;
+}
+
+message QuestionPaused {
+  bytes question_id = 1;
+  TransactionContext tx = 2;
+}
+
+message QuestionUnpaused {
+  bytes question_id = 1;
+  TransactionContext tx = 2;
+}
+
+message QuestionReset {
+  bytes question_id = 1;
+  TransactionContext tx = 2;
+}
+
+message AncillaryDataUpdated {
+  bytes question_id = 1;
+  string owner = 2;
+  bytes update_data = 3;
+  TransactionContext tx = 4;
+}
+
+message AdapterAdmin {
+  string admin = 1;
+  string target_admin = 2;
+  bool is_addition = 3;
+  TransactionContext tx = 4;
+}
+
+message AdapterEvents {
+  repeated QuestionInitialized question_initialized = 1;
+  repeated QuestionResolved question_resolved = 2;
+  repeated QuestionEmergencyResolved question_emergency_resolved = 3;
+  repeated QuestionFlagged question_flagged = 4;
+  repeated QuestionUnflagged question_unflagged = 5;
+  repeated QuestionPaused question_paused = 6;
+  repeated QuestionUnpaused question_unpaused = 7;
+  repeated QuestionReset question_reset = 8;
+  repeated AncillaryDataUpdated ancillary_data_updated = 9;
+  repeated AdapterAdmin admin_changes = 10;
+}
+
+// === Enhanced unified types ===
+
+message DisputeAlert {
+  string source = 1;
+  string alert_type = 2;
+  bytes identifier = 3;
+  string disputer = 4;
+  bytes ancillary_data = 5;
+  repeated string payouts = 6;
+  TransactionContext tx = 7;
+}
+
+message DisputeAlerts {
+  repeated DisputeAlert alerts = 1;
+}
+
+message ResolutionEvents {
+  optional OracleV2Events oracle_v2 = 1;
+  optional OracleV3Events oracle_v3 = 2;
+  optional AdapterEvents adapter = 3;
+  optional DisputeAlerts dispute_alerts = 4;
+}
