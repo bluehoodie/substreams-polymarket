@@ -4,13 +4,14 @@ A collection of Substreams packages for extracting and processing events from Po
 
 ## Overview
 
-| Package | Contract | V2 Address | Deploy Block |
-|---------|----------|-----------|--------------|
-| [polymarket-ctf](./polymarket-ctf) | Conditional Tokens Framework | `0x4D97DCd97eC945f40cF65F87097ACe5EA0476045` (unchanged) | — |
+| Package | Contract | Address | Deploy Block |
+|---------|----------|---------|--------------|
+| [polymarket-ctf](./polymarket-ctf) | Conditional Tokens Framework | `0x4D97DCd97eC945f40cF65F87097ACe5EA0476045` | — |
 | [polymarket-exchange](./polymarket-exchange) | CTF Exchange V2 | `0xE111180000d2663C0091e4f400237545B87B996B` | 84902353 |
 | [polymarket-neg-risk-ctf](./polymarket-neg-risk-ctf) | Neg Risk CTF Exchange V2 | `0xe2222d279d744050d28e00520010520000310F59` | 85058176 |
 | [polymarket-neg-risk-adapter](./polymarket-neg-risk-adapter) | NegRiskAdapter | `0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296` | 50505403 |
 | [polymarket-collateral](./polymarket-collateral) | pUSD + Collateral Adapters | Multiple (see below) | 84902320 |
+| [polymarket-resolution](./polymarket-resolution) | UMA Oracle + CTF Adapter | Multiple (see below) | 29786052 |
 | [polymarket-wallet-factory](./polymarket-wallet-factory) | DepositWalletFactory | `0x00000000000Fb5C9ADea0298D729A0CB3823Cc07` | 84902000 |
 
 ### Collateral Package Addresses
@@ -21,6 +22,15 @@ A collection of Substreams packages for extracting and processing events from Po
 | CollateralOnramp | `0x93070a847efEf7F70739046A929D47a521F5B8ee` |
 | CtfCollateralAdapter | `0xAdA100Db00Ca00073811820692005400218FcE1f` |
 | NegRiskCtfCollateralAdapter | `0xadA2005600Dec949baf300f4C6120000bDB6eAab` |
+
+### Resolution Package Addresses
+
+| Contract | Address |
+|----------|---------|
+| UMA Oracle V2 | `0xee3afe347D5C74317041E2618C49534dAf887c24` |
+| UMA Oracle V3 | `0x5953f2538F613E05bAED8A5AeFa8e6622467AD3D` |
+| CTF Adapter V2 | `0x6A9D222616C90FcA5754cd1333cFD9b7fb6a4F74` |
+| CTF Adapter V3 | `0x2f5e3684cb1F318eC51b00eDba38D79ac2c0aA9D` |
 
 ## Architecture
 
@@ -52,6 +62,7 @@ make build-ctf
 make build-neg-risk-ctf
 make build-neg-risk-adapter
 make build-collateral
+make build-resolution
 make build-wallet-factory
 ```
 
@@ -69,6 +80,10 @@ substreams run polymarket-neg-risk-adapter/substreams.yaml map_market_events \
 # pUSD wrap/unwrap events
 substreams run polymarket-collateral/substreams.yaml map_pusd_events \
   -s 84902320 -t +10000
+
+# Resolution pipeline (oracle + adapter events)
+substreams run polymarket-resolution/substreams.yaml map_resolution_events \
+  -s 29786052 -t +10000
 
 # Wallet deployments
 substreams run polymarket-wallet-factory/substreams.yaml map_factory_events \
@@ -107,6 +122,12 @@ Polymarket launched V2 contracts in April 2026 with a redesigned order struct:
 - Market: `MarketPrepared`, `QuestionPrepared`, `OutcomeReported`
 - Trading: `PositionSplit`, `PositionsMerge`, `PositionsConverted`, `PayoutRedemption`
 - Admin: `NewAdmin`, `RemovedAdmin`
+
+### Resolution (UMA Oracle + CTF Adapter)
+- Oracle: `ResolutionProposal`, `ResolutionDispute`, `ResolutionSettlement` (unified across V2/V3)
+- Adapter: `QuestionInitialized`, `QuestionResolved`, `QuestionEmergencyResolved`, `QuestionFlagged`/`QuestionUnflagged`, `QuestionPaused`/`QuestionUnpaused`, `QuestionReset`, `AncillaryDataUpdated`
+- Admin: `NewAdmin`, `RemovedAdmin`
+- Alerts: `DisputeAlert` (disputes, emergency resolutions, flags, pauses, resets)
 
 ### Collateral
 - pUSD: `Transfer`, `Wrapped`, `Unwrapped`
