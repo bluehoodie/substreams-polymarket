@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-resolution
-  version: v0.5.0
+  version: v0.6.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: Full Polymarket resolution pipeline — UMA Oracle disputes + CTF Adapter question lifecycle
   image: ./polymarket.png
@@ -23,9 +23,27 @@ binaries:
     file: ../target/wasm32-unknown-unknown/release/polymarket_resolution.wasm
 
 modules:
+  - name: index_events
+    kind: blockIndex
+    initialBlock: 29786052
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:sf.substreams.index.v1.Keys
+    doc: |
+      Emits `evt_addr:<address>` for every block containing a log from any of this
+      package's resolution contracts (UMA Oracle V2/V3, UMA CTF Adapter V2/V3).
+      Each consumer filters on the address(es) it needs.
+
   - name: map_oracle_events
     kind: map
     initialBlock: 29786052
+    blockFilter:
+      module: index_events
+      query:
+        string: >-
+          evt_addr:0xee3afe347d5c74317041e2618c49534daf887c24 ||
+          evt_addr:0x5953f2538f613e05baed8a5aefa8e6622467ad3d
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -34,6 +52,12 @@ modules:
   - name: map_adapter_events
     kind: map
     initialBlock: 29786052
+    blockFilter:
+      module: index_events
+      query:
+        string: >-
+          evt_addr:0x6a9d222616c90fca5754cd1333cfd9b7fb6a4f74 ||
+          evt_addr:0x2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -42,6 +66,14 @@ modules:
   - name: map_dispute_alerts
     kind: map
     initialBlock: 29786052
+    blockFilter:
+      module: index_events
+      query:
+        string: >-
+          evt_addr:0xee3afe347d5c74317041e2618c49534daf887c24 ||
+          evt_addr:0x5953f2538f613e05baed8a5aefa8e6622467ad3d ||
+          evt_addr:0x6a9d222616c90fca5754cd1333cfd9b7fb6a4f74 ||
+          evt_addr:0x2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -50,6 +82,14 @@ modules:
   - name: map_resolution_events
     kind: map
     initialBlock: 29786052
+    blockFilter:
+      module: index_events
+      query:
+        string: >-
+          evt_addr:0xee3afe347d5c74317041e2618c49534daf887c24 ||
+          evt_addr:0x5953f2538f613e05baed8a5aefa8e6622467ad3d ||
+          evt_addr:0x6a9d222616c90fca5754cd1333cfd9b7fb6a4f74 ||
+          evt_addr:0x2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:

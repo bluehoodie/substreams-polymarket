@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-collateral
-  version: v0.5.0
+  version: v0.6.0
   url: https://github.com/bluehoodie/substreams-polymarket
   image: ./polymarket.png
 
@@ -22,9 +22,25 @@ binaries:
     file: ../target/wasm32-unknown-unknown/release/polymarket_collateral.wasm
 
 modules:
+  - name: index_events
+    kind: blockIndex
+    initialBlock: 85049190
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:sf.substreams.index.v1.Keys
+    doc: |
+      Emits `evt_addr:<address>` for every block containing a log from any of this
+      package's collateral contracts (pUSD, CTF collateral adapter, neg-risk CTF
+      collateral adapter). Each consumer filters on the address(es) it needs.
+
   - name: map_pusd_events
     kind: map
-    initialBlock: 84902320
+    initialBlock: 85049190
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xc011a7e12a19f7b1f670d46f03b03f3342e82dfb"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -32,7 +48,11 @@ modules:
 
   - name: map_ctf_adapter_events
     kind: map
-    initialBlock: 84902320
+    initialBlock: 85049190
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xada100db00ca00073811820692005400218fce1f"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -40,7 +60,11 @@ modules:
 
   - name: map_neg_risk_ctf_adapter_events
     kind: map
-    initialBlock: 84902320
+    initialBlock: 85049190
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xada2005600dec949baf300f4c6120000bdb6eaab"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -48,7 +72,14 @@ modules:
 
   - name: map_all_events
     kind: map
-    initialBlock: 84902320
+    initialBlock: 85049190
+    blockFilter:
+      module: index_events
+      query:
+        string: >-
+          evt_addr:0xc011a7e12a19f7b1f670d46f03b03f3342e82dfb ||
+          evt_addr:0xada100db00ca00073811820692005400218fce1f ||
+          evt_addr:0xada2005600dec949baf300f4c6120000bdb6eaab
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:

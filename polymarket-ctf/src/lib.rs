@@ -6,6 +6,7 @@ use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::ctf::v1 as proto;
+use pb::sf::substreams::index::v1::Keys;
 
 /// Ethereum address of the Polymarket Conditional Tokens Framework (CTF) contract on Polygon.
 ///
@@ -14,6 +15,36 @@ use pb::polymarket::ctf::v1 as proto;
 ///
 /// See: <https://polygonscan.com/address/0x4D97DCd97eC945f40cF65F87097ACe5EA0476045>
 const CTF_CONTRACT_ADDRESS: [u8; 20] = hex_literal::hex!("4D97DCd97eC945f40cF65F87097ACe5EA0476045");
+
+/// Block index module: emits one `evt_addr:<address>` key per block that contains
+/// at least one log from the CTF contract.
+///
+/// Downstream modules declare a `blockFilter` referencing this index so the engine
+/// skips every block that never touches the CTF contract — the data is sparse
+/// (a single contract on Polygon), so this is a large cost/latency win.
+#[substreams::handlers::map]
+pub fn index_events(blk: eth::Block) -> Result<Keys, Error> {
+    let mut keys = Keys::default();
+    for log in blk.logs() {
+        if let Some(key) = index_key_for_address(&log.log.address) {
+            if !keys.keys.contains(&key) {
+                keys.keys.push(key);
+            }
+        }
+    }
+    Ok(keys)
+}
+
+/// Returns the block-index key for a log address, or `None` if the address is not
+/// one this package cares about. The key string must match the `blockFilter` query
+/// in `substreams.yaml` exactly (lowercase hex, `0x` prefix).
+fn index_key_for_address(addr: &[u8]) -> Option<String> {
+    if addr == CTF_CONTRACT_ADDRESS {
+        Some(format!("evt_addr:{}", format_address(addr)))
+    } else {
+        None
+    }
+}
 
 /// Map module that extracts CTF-specific events from blocks
 #[substreams::handlers::map]
@@ -408,5 +439,20 @@ mod tests {
         let bytes: [u8; 0] = [];
         let result = format_address(&bytes);
         assert_eq!(result, "0x");
+    }
+
+    #[test]
+    fn test_index_key_for_ctf_address() {
+        let addr = hex_literal::hex!("4D97DCd97eC945f40cF65F87097ACe5EA0476045");
+        assert_eq!(
+            index_key_for_address(&addr),
+            Some("evt_addr:0x4d97dcd97ec945f40cf65f87097ace5ea0476045".to_string())
+        );
+    }
+
+    #[test]
+    fn test_index_key_for_non_ctf_address() {
+        let addr = hex_literal::hex!("0000000000000000000000000000000000000000");
+        assert_eq!(index_key_for_address(&addr), None);
     }
 }

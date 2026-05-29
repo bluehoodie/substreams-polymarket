@@ -6,9 +6,37 @@ use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::neg_risk_adapter::v1 as proto;
+use pb::sf::substreams::index::v1::Keys;
 use polymarket_substreams_common::{bigint_to_string, build_tx_context, format_address};
 
 const NEG_RISK_ADAPTER_CONTRACT_ADDRESS: [u8; 20] = hex_literal::hex!("d91E80cF2E7be2e162c6513ceD06f1dD0dA35296");
+
+/// Block index module: emits one `evt_addr:<address>` key per block containing a
+/// Neg Risk Adapter contract log, so downstream modules can skip blocks that never
+/// touch it (the data is sparse — a single contract on Polygon).
+#[substreams::handlers::map]
+pub fn index_events(blk: eth::Block) -> Result<Keys, Error> {
+    let mut keys = Keys::default();
+    for log in blk.logs() {
+        if let Some(key) = index_key_for_address(&log.log.address) {
+            if !keys.keys.contains(&key) {
+                keys.keys.push(key);
+            }
+        }
+    }
+    Ok(keys)
+}
+
+/// Returns the block-index key for a log address, or `None` if it is not a
+/// contract this package targets. The returned string must match the
+/// `blockFilter` query in `substreams.yaml` exactly (lowercase hex, `0x` prefix).
+fn index_key_for_address(addr: &[u8]) -> Option<String> {
+    if addr == NEG_RISK_ADAPTER_CONTRACT_ADDRESS {
+        Some(format!("evt_addr:{}", format_address(addr)))
+    } else {
+        None
+    }
+}
 
 #[substreams::handlers::map]
 pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> {
@@ -320,5 +348,25 @@ mod tests {
         let bytes = hex_literal::hex!("d91E80cF2E7be2e162c6513ceD06f1dD0dA35296");
         let result = format_address(&bytes);
         assert_eq!(result, "0xd91e80cf2e7be2e162c6513ced06f1dd0da35296");
+    }
+}
+
+#[cfg(test)]
+mod index_tests {
+    use super::*;
+
+    #[test]
+    fn test_index_key_for_adapter_address() {
+        let addr = hex_literal::hex!("d91E80cF2E7be2e162c6513ceD06f1dD0dA35296");
+        assert_eq!(
+            index_key_for_address(&addr),
+            Some("evt_addr:0xd91e80cf2e7be2e162c6513ced06f1dd0da35296".to_string())
+        );
+    }
+
+    #[test]
+    fn test_index_key_for_unrelated_address() {
+        let addr = hex_literal::hex!("00000000000000000000000000000000000000ff");
+        assert_eq!(index_key_for_address(&addr), None);
     }
 }

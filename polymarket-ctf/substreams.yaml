@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-ctf
-  version: v0.5.0
+  version: v0.6.0
   url: https://github.com/bluehoodie/substreams-polymarket
   image: ./polymarket.png  
 
@@ -22,9 +22,24 @@ binaries:
     file: ../target/wasm32-unknown-unknown/release/polymarket_ctf.wasm
 
 modules:
+  - name: index_events
+    kind: blockIndex
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:sf.substreams.index.v1.Keys
+    doc: |
+      Emits `evt_addr:<address>` for every block containing a CTF contract log,
+      letting downstream modules skip blocks that never touch the contract.
+
   - name: map_ctf_events
     kind: map
     initialBlock: 4023686
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0x4d97dcd97ec945f40cf65f87097ace5ea0476045"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -33,6 +48,10 @@ modules:
   - name: map_erc1155_events
     kind: map
     initialBlock: 4023686
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0x4d97dcd97ec945f40cf65f87097ace5ea0476045"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -41,6 +60,10 @@ modules:
   - name: map_all_events
     kind: map
     initialBlock: 4023686
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0x4d97dcd97ec945f40cf65f87097ace5ea0476045"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:

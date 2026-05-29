@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-exchange
-  version: v0.5.0
+  version: v0.6.0
   url: https://github.com/bluehoodie/substreams-polymarket
   image: ./polymarket.png
 
@@ -22,9 +22,24 @@ binaries:
     file: ../target/wasm32-unknown-unknown/release/polymarket_exchange.wasm
 
 modules:
+  - name: index_events
+    kind: blockIndex
+    initialBlock: 84934480
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:sf.substreams.index.v1.Keys
+    doc: |
+      Emits `evt_addr:<address>` for every block containing a CTF Exchange log,
+      letting downstream modules skip blocks that never touch the contract.
+
   - name: map_exchange_events
     kind: map
-    initialBlock: 84902353
+    initialBlock: 84934480
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -32,7 +47,11 @@ modules:
 
   - name: map_fee_events
     kind: map
-    initialBlock: 84902353
+    initialBlock: 84934480
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -40,7 +59,11 @@ modules:
 
   - name: map_admin_events
     kind: map
-    initialBlock: 84902353
+    initialBlock: 84934480
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -48,7 +71,11 @@ modules:
 
   - name: map_pause_events
     kind: map
-    initialBlock: 84902353
+    initialBlock: 84934480
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -56,7 +83,11 @@ modules:
 
   - name: map_approval_events
     kind: map
-    initialBlock: 84902353
+    initialBlock: 84934480
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -64,7 +95,11 @@ modules:
 
   - name: map_all_events
     kind: map
-    initialBlock: 84902353
+    initialBlock: 84934480
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:

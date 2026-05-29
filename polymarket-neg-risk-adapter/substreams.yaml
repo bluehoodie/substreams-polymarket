@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-neg-risk-adapter
-  version: v0.5.0
+  version: v0.6.0
   url: https://github.com/bluehoodie/substreams-polymarket
   image: ./polymarket.png
 
@@ -22,9 +22,24 @@ binaries:
     file: ../target/wasm32-unknown-unknown/release/polymarket_neg_risk_adapter.wasm
 
 modules:
+  - name: index_events
+    kind: blockIndex
+    initialBlock: 50505403
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:sf.substreams.index.v1.Keys
+    doc: |
+      Emits `evt_addr:<address>` for every block containing a Neg Risk Adapter log,
+      letting downstream modules skip blocks that never touch the contract.
+
   - name: map_market_events
     kind: map
     initialBlock: 50505403
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xd91e80cf2e7be2e162c6513ced06f1dd0da35296"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -33,6 +48,10 @@ modules:
   - name: map_trading_events
     kind: map
     initialBlock: 50505403
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xd91e80cf2e7be2e162c6513ced06f1dd0da35296"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -41,6 +60,10 @@ modules:
   - name: map_admin_events
     kind: map
     initialBlock: 50505403
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xd91e80cf2e7be2e162c6513ced06f1dd0da35296"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -49,6 +72,10 @@ modules:
   - name: map_all_events
     kind: map
     initialBlock: 50505403
+    blockFilter:
+      module: index_events
+      query:
+        string: "evt_addr:0xd91e80cf2e7be2e162c6513ced06f1dd0da35296"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
