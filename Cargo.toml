@@ -9,6 +9,7 @@ members = [
     "polymarket-neg-risk-ctf",
     "polymarket-wallet-factory",
     "polymarket-resolution",
+    "polymarket-trader-index",
 ]
 
 [profile.release]

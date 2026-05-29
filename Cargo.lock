@@ -819,6 +819,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "polymarket-trader-index"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ethabi 18.0.0",
+ "hex",
+ "hex-literal 0.4.1",
+ "num-bigint",
+ "polymarket-substreams-common",
+ "prost 0.13.5",
+ "prost-types 0.13.5",
+ "substreams",
+ "substreams-ethereum",
+]
+
+[[package]]
 name = "polymarket-wallet-factory"
 version = "0.1.0"
 dependencies = [

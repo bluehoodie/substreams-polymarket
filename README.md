@@ -13,6 +13,7 @@ A collection of Substreams packages for extracting and processing events from Po
 | [polymarket-collateral](./polymarket-collateral) | pUSD + Collateral Adapters | Multiple (see below) | 84902320 |
 | [polymarket-resolution](./polymarket-resolution) | UMA Oracle + CTF Adapter | Multiple (see below) | 29786052 |
 | [polymarket-wallet-factory](./polymarket-wallet-factory) | DepositWalletFactory | `0x00000000000Fb5C9ADea0298D729A0CB3823Cc07` | 84902000 |
+| [polymarket-trader-index](./polymarket-trader-index) | All contracts (foundational user-activity index) | — | 4023686 |
 
 ### Collateral Package Addresses
 
@@ -40,6 +41,69 @@ All packages follow a unified design pattern:
 - **Byte-level address comparison** — 20-byte array for fast contract filtering (~25x faster than string)
 - **Consistent protobuf schema** — all events include `TransactionContext` metadata
 - **Modular outputs** — separate modules for different event categories
+
+## Block Indexes & Filtering
+
+Every package ships a **block index** so the Substreams engine can *skip blocks it never needs to read*. Polymarket activity is sparse relative to all of Polygon, so this is the biggest lever on backfill speed and cost: a contract active in 0.5% of blocks costs roughly 0.5% as much to stream, and filtering by a single wallet is far more selective still.
+
+A block index emits a set of string **keys** per block (`sf.substreams.index.v1.Keys`). A downstream `map`/`store` module declares a `blockFilter` with a query over those keys; **blocks whose keys don't match are never read, decoded, or processed**.
+
+### Key namespaces
+
+| Key | Emitted by | Meaning |
+|-----|-----------|---------|
+| `evt_addr:<address>` | every package — `index_events` | the block contains a log from this targeted contract |
+| `trader:<address>` | `polymarket-exchange`, `polymarket-neg-risk-ctf` — `index_events` | this wallet was a maker/taker in an `OrderFilled`/`OrdersMatched` in the block |
+| `user:<address>` | `polymarket-trader-index` — `index_users` | this wallet took **any** action on Polymarket in the block (trades, splits/merges, redemptions, conversions, pUSD transfers, ERC-1155 transfers, wallet deploys), across **all** contracts |
+
+All keys are lowercase hex with a `0x` prefix.
+
+### Query syntax (SQE)
+
+A `blockFilter` query is a boolean expression over keys — `&&` (and), `||` (or), `-` (not), `( )` grouping. It can be hard-coded in the manifest (`query.string:`) or supplied at run time (`query.params: true`, read from the module's `params` input).
+
+> The index alone changes nothing — a module skips blocks **only** when it declares a `blockFilter`. The query namespace must match the emitted keys exactly (`evt_addr:` vs `trader:` vs `user:`); a mismatch silently matches no blocks.
+
+### Example use-cases
+
+**1. Stream a single contract's events.** Every `map_*` module is already wired to its package's `index_events` (`evt_addr:`), so backfills skip irrelevant blocks automatically:
+
+```bash
+substreams run polymarket-collateral/substreams.yaml map_pusd_events -s 85049190 -t +500000
+# only blocks containing a pUSD log are processed
+```
+
+**2. Track one trader's fills.** The exchange packages expose a params-driven `map_user_trades` backed by the `trader:` index:
+
+```bash
+substreams run polymarket-exchange/substreams.yaml map_user_trades \
+  -p map_user_trades="trader:0xabc…" -s 84934480 -t +1000000
+```
+
+**3. Track an array of wallets across an exchange.** Pass an `||` list — the engine skips every block none of them traded in:
+
+```bash
+substreams run polymarket-neg-risk-ctf/substreams.yaml map_user_trades \
+  -p map_user_trades="trader:0xabc… || trader:0xdef… || trader:0x123…"
+```
+
+**4. Track a wallet's entire Polymarket footprint.** `polymarket-trader-index` indexes user activity across *all* contracts from CTF genesis. A downstream package imports it and filters on `user:`, so a wallet that appears in only a few hundred of Polygon's ~88M blocks is streamed by reading only those blocks:
+
+```yaml
+imports:
+  pmusers: ./polymarket-trader-index/polymarket-trader-index-v0.1.0.spkg
+modules:
+  - name: my_wallet_activity
+    kind: map
+    blockFilter:
+      module: pmusers:index_users
+      query: { params: true }          # "user:0xA || user:0xB || user:0xC"
+    inputs:
+      - params: string
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:my.types.WalletActivity
+```
 
 ## Quick Start
 

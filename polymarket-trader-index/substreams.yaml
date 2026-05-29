@@ -1,0 +1,37 @@
+specVersion: v0.1.0
+package:
+  name: polymarket-trader-index
+  version: v0.8.0
+  url: https://github.com/bluehoodie/substreams-polymarket
+  description: >-
+    Foundational block index of Polymarket user activity. Emits a `user:<address>`
+    key for every wallet that took ANY action in a block (trades, position
+    splits/merges, redemptions, conversions, pUSD transfers, ERC1155 transfers,
+    wallet deployments) across all Polymarket contracts. Downstream packages
+    import this and add a `blockFilter` querying `user:0x…` to skip every block a
+    wallet never touched.
+  image: ./polymarket.png
+
+network: polygon
+
+imports:
+  ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ../target/wasm32-unknown-unknown/release/polymarket_trader_index.wasm
+
+modules:
+  - name: index_users
+    kind: blockIndex
+    initialBlock: 4023686
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:sf.substreams.index.v1.Keys
+    doc: |
+      Per block, emits `user:<address>` for every wallet involved in any Polymarket
+      action that block. Consumers filter with e.g.
+      query.string: "user:0xabc… || user:0xdef…" to process only the blocks those
+      wallets were active in.

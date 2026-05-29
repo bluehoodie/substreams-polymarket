@@ -22,6 +22,7 @@ jobs:
           - polymarket-neg-risk-ctf
           - polymarket-resolution
           - polymarket-wallet-factory
+          - polymarket-trader-index
 
     steps:
       - uses: actions/checkout@v4
@@ -96,6 +97,7 @@ jobs:
           - polymarket-neg-risk-ctf
           - polymarket-resolution
           - polymarket-wallet-factory
+          - polymarket-trader-index
 
     steps:
       - name: Download spkg artifacts

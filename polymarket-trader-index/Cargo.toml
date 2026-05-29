@@ -1,0 +1,22 @@
+[package]
+name = "polymarket-trader-index"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+substreams = "0.7"
+substreams-ethereum = "0.11"
+prost = "0.13"
+prost-types = "0.13"
+hex-literal = "0.4"
+hex = "0.4"
+ethabi = "18"
+num-bigint = "0.4"
+polymarket-substreams-common = { path = "../polymarket-substreams-common" }
+
+[build-dependencies]
+anyhow = "1.0"
+substreams-ethereum = "0.11"

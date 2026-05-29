@@ -1,4 +1,4 @@
-.PHONY: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory build-resolution build-all
+.PHONY: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory build-resolution build-trader-index build-all
 
 build-exchange:
 	cd polymarket-exchange && substreams build
@@ -21,4 +21,7 @@ build-wallet-factory:
 build-resolution:
 	cd polymarket-resolution && substreams build
 
-build-all: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory build-resolution
+build-trader-index:
+	cd polymarket-trader-index && substreams build
+
+build-all: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory build-resolution build-trader-index

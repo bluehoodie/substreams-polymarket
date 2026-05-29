@@ -23,6 +23,7 @@ ALL_PACKAGES=(
   polymarket-neg-risk-ctf
   polymarket-resolution
   polymarket-wallet-factory
+  polymarket-trader-index
 )
 
 # Use packages passed as arguments, or all of them.
