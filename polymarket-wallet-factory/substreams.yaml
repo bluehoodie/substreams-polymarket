@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-wallet-factory
-  version: v0.6.0
+  version: v0.7.0
   url: https://github.com/bluehoodie/substreams-polymarket
   image: ./polymarket.png
 

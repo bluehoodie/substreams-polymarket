@@ -11,20 +11,35 @@ use polymarket_substreams_common::{bigint_to_string, bigint_to_u32, build_tx_con
 
 const CTF_EXCHANGE_CONTRACT_ADDRESS: [u8; 20] = hex_literal::hex!("E111180000d2663C0091e4f400237545B87B996B");
 
-/// Block index module: emits one `evt_addr:<address>` key per block containing a
-/// CTF Exchange contract log, so downstream modules can skip blocks that never
-/// touch it (the data is sparse — a single contract on Polygon).
+/// Block index module. Per block it emits:
+///   * `evt_addr:<contract>` — when the block contains a CTF Exchange log, so
+///     consumers can skip blocks that never touch the contract.
+///   * `trader:<address>` — one per maker/taker seen in a trade event, so consumers
+///     can skip blocks a specific user never traded in. This is far more selective
+///     than the contract key (a given wallet trades in a tiny fraction of blocks).
 #[substreams::handlers::map]
 pub fn index_events(blk: eth::Block) -> Result<Keys, Error> {
-    let mut keys = Keys::default();
+    use abi::ctf_exchange::events::*;
+    use std::collections::HashSet;
+
+    let mut set: HashSet<String> = HashSet::new();
     for log in blk.logs() {
-        if let Some(key) = index_key_for_address(&log.log.address) {
-            if !keys.keys.contains(&key) {
-                keys.keys.push(key);
+        if let Some(addr_key) = index_key_for_address(&log.log.address) {
+            set.insert(addr_key);
+
+            if OrderFilled::match_log(log.log) {
+                if let Ok(e) = OrderFilled::decode(log.log) {
+                    set.insert(trader_key(&e.maker));
+                    set.insert(trader_key(&e.taker));
+                }
+            } else if OrdersMatched::match_log(log.log) {
+                if let Ok(e) = OrdersMatched::decode(log.log) {
+                    set.insert(trader_key(&e.taker_order_maker));
+                }
             }
         }
     }
-    Ok(keys)
+    Ok(Keys { keys: set.into_iter().collect() })
 }
 
 /// Returns the block-index key for a log address, or `None` if it is not a
@@ -36,6 +51,83 @@ fn index_key_for_address(addr: &[u8]) -> Option<String> {
     } else {
         None
     }
+}
+
+/// Block-index key for a trader address. Must match the `trader:` namespace used in
+/// `map_user_trades` blockFilter queries (lowercase hex, `0x` prefix).
+fn trader_key(addr: &[u8]) -> String {
+    format!("trader:{}", format_address(addr))
+}
+
+/// Extracts the 20-byte trader addresses named in an SQE params string such as
+/// `"trader:0x… || trader:0x…"`, for in-handler filtering. Tokens in other
+/// namespaces (e.g. `evt_addr:`) or with a leading `-` (NOT) are ignored.
+fn extract_trader_addresses(params: &str) -> Vec<Vec<u8>> {
+    params
+        .split(|c| matches!(c, ' ' | '|' | '&' | '(' | ')' | '\t' | '\n'))
+        .filter_map(|tok| tok.trim().strip_prefix("trader:"))
+        .filter_map(|h| hex::decode(h.trim_start_matches("0x")).ok())
+        .filter(|b| b.len() == 20)
+        .collect()
+}
+
+/// User-activity map: emits only the trades (OrderFilled / OrdersMatched) involving
+/// the trader address(es) named in `params` — an SQE expression like
+/// `"trader:0x… || trader:0x…"`, the same value used by the blockFilter query. The
+/// blockFilter skips blocks none of the users traded in; this handler then keeps
+/// only those users' trades within the surviving blocks.
+#[substreams::handlers::map]
+pub fn map_user_trades(params: String, blk: eth::Block) -> Result<proto::ExchangeEvents, Error> {
+    use abi::ctf_exchange::events::*;
+
+    let mut events = proto::ExchangeEvents::default();
+    let watched = extract_trader_addresses(&params);
+    if watched.is_empty() {
+        return Ok(events);
+    }
+    let is_watched = |addr: &[u8]| watched.iter().any(|w| w.as_slice() == addr);
+
+    for log in blk.logs() {
+        if !is_exchange_contract(log.log) {
+            continue;
+        }
+
+        if OrderFilled::match_log(log.log) {
+            if let Ok(event) = OrderFilled::decode(log.log) {
+                if is_watched(&event.maker) || is_watched(&event.taker) {
+                    events.order_filled.push(proto::OrderFilled {
+                        order_hash: event.order_hash.to_vec(),
+                        maker: format_address(&event.maker),
+                        taker: format_address(&event.taker),
+                        side: bigint_to_u32(&event.side),
+                        token_id: bigint_to_string(&event.token_id),
+                        maker_amount_filled: bigint_to_string(&event.maker_amount_filled),
+                        taker_amount_filled: bigint_to_string(&event.taker_amount_filled),
+                        fee: bigint_to_string(&event.fee),
+                        builder: event.builder.to_vec(),
+                        metadata: event.metadata.to_vec(),
+                        tx: Some(build_transaction_context(&blk, &log)),
+                    });
+                }
+            }
+        } else if OrdersMatched::match_log(log.log) {
+            if let Ok(event) = OrdersMatched::decode(log.log) {
+                if is_watched(&event.taker_order_maker) {
+                    events.orders_matched.push(proto::OrdersMatched {
+                        taker_order_hash: event.taker_order_hash.to_vec(),
+                        taker_order_maker: format_address(&event.taker_order_maker),
+                        side: bigint_to_u32(&event.side),
+                        token_id: bigint_to_string(&event.token_id),
+                        maker_amount_filled: bigint_to_string(&event.maker_amount_filled),
+                        taker_amount_filled: bigint_to_string(&event.taker_amount_filled),
+                        tx: Some(build_transaction_context(&blk, &log)),
+                    });
+                }
+            }
+        }
+    }
+
+    Ok(events)
 }
 
 #[substreams::handlers::map]
@@ -656,5 +748,49 @@ mod index_tests {
     fn test_index_key_for_unrelated_address() {
         let addr = hex_literal::hex!("00000000000000000000000000000000000000ff");
         assert_eq!(index_key_for_address(&addr), None);
+    }
+}
+
+#[cfg(test)]
+mod user_index_tests {
+    use super::*;
+
+    #[test]
+    fn test_trader_key() {
+        let addr = hex_literal::hex!("00000000000000000000000000000000000000ab");
+        assert_eq!(trader_key(&addr), "trader:0x00000000000000000000000000000000000000ab");
+    }
+
+    #[test]
+    fn test_extract_trader_addresses_single() {
+        let got = extract_trader_addresses("trader:0x00000000000000000000000000000000000000ab");
+        assert_eq!(got, vec![hex_literal::hex!("00000000000000000000000000000000000000ab").to_vec()]);
+    }
+
+    #[test]
+    fn test_extract_trader_addresses_or_list() {
+        let got = extract_trader_addresses(
+            "trader:0x00000000000000000000000000000000000000ab || trader:0x00000000000000000000000000000000000000cd",
+        );
+        assert_eq!(
+            got,
+            vec![
+                hex_literal::hex!("00000000000000000000000000000000000000ab").to_vec(),
+                hex_literal::hex!("00000000000000000000000000000000000000cd").to_vec(),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_extract_trader_addresses_ignores_other_namespaces() {
+        let got = extract_trader_addresses(
+            "evt_addr:0xdeadbeef || trader:0x00000000000000000000000000000000000000ab",
+        );
+        assert_eq!(got, vec![hex_literal::hex!("00000000000000000000000000000000000000ab").to_vec()]);
+    }
+
+    #[test]
+    fn test_extract_trader_addresses_empty() {
+        assert!(extract_trader_addresses("").is_empty());
     }
 }

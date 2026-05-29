@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-neg-risk-ctf
-  version: v0.6.0
+  version: v0.7.0
   url: https://github.com/bluehoodie/substreams-polymarket
   image: ./polymarket.png
 
@@ -104,3 +104,25 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_ctf.v1.AllEvents
+
+  # Track all trades by specific user(s). The blockFilter skips blocks none of the
+  # watched traders appear in; the handler keeps only their trades within the rest.
+  # Set the watched traders at runtime, e.g.:
+  #   -p map_user_trades="trader:0x<addr> || trader:0x<addr>"
+  - name: map_user_trades
+    kind: map
+    initialBlock: 85058176
+    blockFilter:
+      module: index_events
+      query:
+        params: true
+    inputs:
+      - params: string
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.neg_risk_ctf.v1.TradingEvents
+
+params:
+  # Default watched trader (the zero address — matches no real wallet). Override at
+  # run time with -p map_user_trades="trader:0x<addr> || trader:0x<addr>".
+  map_user_trades: "trader:0x0000000000000000000000000000000000000000"
