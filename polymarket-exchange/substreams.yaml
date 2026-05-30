@@ -23,21 +23,6 @@ binaries:
     file: ../target/wasm32-unknown-unknown/release/polymarket_exchange.wasm
 
 modules:
-  - name: index_traders
-    kind: blockIndex
-    initialBlock: 84934480
-    inputs:
-      - source: sf.ethereum.type.v2.Block
-    output:
-      type: proto:sf.substreams.index.v1.Keys
-    doc: |
-      Emits `trader:<address>` for every maker/taker seen in a CTF Exchange trade
-      (OrderFilled / OrdersMatched) in the block. This is decoded from event data and
-      cannot be produced by the foundational `evt_addr:`/`evt_sig:` index, so it stays
-      local. `map_user_trades` filters on these keys to skip blocks a watched wallet
-      never traded in. Contract-level (`evt_addr:`) skipping is delegated to the
-      foundational `eth_common:index_events`.
-
   - name: map_exchange_events
     kind: map
     initialBlock: 84934480
@@ -109,25 +94,3 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.exchange.v1.AllEvents
-
-  # Track all trades by specific user(s). The blockFilter skips blocks none of the
-  # watched traders appear in; the handler keeps only their trades within the rest.
-  # Set the watched traders at runtime, e.g.:
-  #   -p map_user_trades="trader:0x<addr> || trader:0x<addr>"
-  - name: map_user_trades
-    kind: map
-    initialBlock: 84934480
-    blockFilter:
-      module: index_traders
-      query:
-        params: true
-    inputs:
-      - params: string
-      - source: sf.ethereum.type.v2.Block
-    output:
-      type: proto:polymarket.exchange.v1.ExchangeEvents
-
-params:
-  # Default watched trader (the zero address — matches no real wallet). Override at
-  # run time with -p map_user_trades="trader:0x<addr> || trader:0x<addr>".
-  map_user_trades: "trader:0x0000000000000000000000000000000000000000"

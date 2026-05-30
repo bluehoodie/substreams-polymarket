@@ -53,8 +53,8 @@ fn extract_user_addresses(params: &str) -> Vec<Vec<u8>> {
 /// Consumer of the `index_users` block index. Its `blockFilter` skips every block
 /// none of the watched wallets (from `params`, e.g. `"user:0x… || user:0x…"`)
 /// touched; for the surviving blocks it emits the watched wallets that were active.
-/// Pair with the per-contract packages (e.g. `polymarket-exchange:map_user_trades`)
-/// to fetch the full event details for those blocks.
+/// Pair with the per-contract event maps (e.g. `polymarket-exchange:map_all_events`,
+/// `polymarket-ctf:map_all_events`) to fetch full decoded event details for those blocks.
 ///
 /// NOTE: the index must be warm (computed once in `--production-mode`) before the
 /// filter returns matches; a cold first run builds the index and returns nothing.

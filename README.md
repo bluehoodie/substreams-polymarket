@@ -51,14 +51,13 @@ A block index emits a set of string **keys** per block (`sf.substreams.index.v1.
 Two kinds of index are in play:
 
 - **Contract-level skipping** (`evt_addr:`) is delegated to the shared **foundational `ethereum_common` index** (`eth_common:index_events`), imported by every package. It emits `evt_addr:`/`evt_sig:` keys for every block, is computed once and reused across *all* Substreams, and is never invalidated by our releases — so there is no per-package index to hand-roll or re-warm. We don't reinvent it.
-- **Data-derived skipping** (`trader:`, `user:`) needs keys decoded from event *payloads*, which the foundational `evt_addr`/`evt_sig` index cannot produce. Only those genuinely-custom indexes stay local: `index_traders` and `index_users`.
+- **Data-derived skipping** (`user:`) needs keys decoded from event *payloads* — *which wallet* acted, not just *which contract* — something the foundational `evt_addr`/`evt_sig` index cannot produce. This is the one genuinely-custom index we keep local: **`polymarket-trader-index`'s `index_users`**, the canonical way to filter by wallet across *all* Polymarket contracts.
 
 ### Key namespaces
 
 | Key | Emitted by | Meaning |
 |-----|-----------|---------|
 | `evt_addr:<address>` | foundational `ethereum_common` — `eth_common:index_events` (imported by every package) | the block contains a log from this targeted contract |
-| `trader:<address>` | `polymarket-exchange`, `polymarket-neg-risk-ctf` — `index_traders` | this wallet was a maker/taker in an `OrderFilled`/`OrdersMatched` in the block |
 | `user:<address>` | `polymarket-trader-index` — `index_users` | this wallet took **any** action on Polymarket in the block (trades, splits/merges, redemptions, conversions, pUSD transfers, ERC-1155 transfers, wallet deploys), across **all** contracts |
 
 All keys are lowercase hex with a `0x` prefix.
@@ -67,7 +66,7 @@ All keys are lowercase hex with a `0x` prefix.
 
 A `blockFilter` query is a boolean expression over keys — `&&` (and), `||` (or), `-` (not), `( )` grouping. It can be hard-coded in the manifest (`query.string:`) or supplied at run time (`query.params: true`, read from the module's `params` input).
 
-> The index alone changes nothing — a module skips blocks **only** when it declares a `blockFilter`. The query namespace must match the emitted keys exactly (`evt_addr:` vs `trader:` vs `user:`); a mismatch silently matches no blocks.
+> The index alone changes nothing — a module skips blocks **only** when it declares a `blockFilter`. The query namespace must match the emitted keys exactly (`evt_addr:` vs `user:`); a mismatch silently matches no blocks.
 
 ### Example use-cases
 
@@ -78,37 +77,53 @@ substreams run polymarket-collateral/substreams.yaml map_pusd_events -s 85049190
 # only blocks containing a pUSD log are processed
 ```
 
-**2. Track one trader's fills.** The exchange packages expose a params-driven `map_user_trades` backed by the `trader:` index:
+**2. Track one (or many) wallets' full Polymarket activity.** This is the job of `polymarket-trader-index`: its `index_users` blockIndex emits a `user:<address>` key for every wallet that took *any* action — on *any* Polymarket contract — in a block, from CTF genesis onward. Because a given wallet appears in only a tiny fraction of Polygon's ~88M blocks, filtering on `user:` lets a stream read **only** that wallet's active blocks.
 
-```bash
-substreams run polymarket-exchange/substreams.yaml map_user_trades \
-  -p map_user_trades="trader:0xabc…" -s 84934480 -t +1000000
-```
-
-**3. Track an array of wallets across an exchange.** Pass an `||` list — the engine skips every block none of them traded in:
-
-```bash
-substreams run polymarket-neg-risk-ctf/substreams.yaml map_user_trades \
-  -p map_user_trades="trader:0xabc… || trader:0xdef… || trader:0x123…"
-```
-
-**4. Track a wallet's entire Polymarket footprint.** `polymarket-trader-index` indexes user activity across *all* contracts from CTF genesis. A downstream package imports it and filters on `user:`, so a wallet that appears in only a few hundred of Polygon's ~88M blocks is streamed by reading only those blocks:
+The powerful pattern is **composition**: use `index_users` as the block-skip *gate*, and the per-contract packages as the *decoders*. Build a small downstream package that imports both, and the engine skips every block the wallet was inactive in while you reuse the already-decoded event structs from each contract package:
 
 ```yaml
 imports:
-  pmusers: ./polymarket-trader-index/polymarket-trader-index-v0.1.0.spkg
+  pmusers:   ../polymarket-trader-index/polymarket-trader-index-v0.10.0.spkg
+  exchange:  ../polymarket-exchange/polymarket-exchange-v0.10.0.spkg
+  ctf:       ../polymarket-ctf/polymarket-ctf-v0.10.0.spkg
+  # …import whichever contract packages you care about
+
 modules:
-  - name: my_wallet_activity
+  - name: map_wallet_activity
     kind: map
     blockFilter:
-      module: pmusers:index_users
-      query: { params: true }          # "user:0xA || user:0xB || user:0xC"
+      module: pmusers:index_users        # the user: gate — skips blocks the wallet never touched
+      query: { params: true }            # e.g. "user:0xA || user:0xB || user:0xC"
     inputs:
       - params: string
-      - source: sf.ethereum.type.v2.Block
+      - map: exchange:map_all_events     # already evt_addr-filtered + decoded for you
+      - map: ctf:map_all_events
     output:
       type: proto:my.types.WalletActivity
 ```
+```rust
+// Your handler runs ONLY on the wallet's active blocks. For each, the per-contract
+// maps hand you fully-decoded events (already evt_addr-filtered upstream) — keep the
+// ones belonging to the watched wallet(s) and stitch them into one record.
+#[substreams::handlers::map]
+fn map_wallet_activity(
+    params: String,
+    exchange: exchange_pb::AllEvents,
+    ctf: ctf_pb::AllEvents,
+) -> Result<WalletActivity, Error> { /* filter to params' wallets, merge */ }
+```
+
+How the two indexes cooperate: the downstream `blockFilter` on `index_users` decides *which blocks run at all* (the wallet's blocks); each upstream `map_all_events` carries its own `eth_common:index_events` (`evt_addr:`) filter, so within a surviving block only the contracts the wallet actually touched produce events. You pay only for the wallet's blocks, and only decode the contracts you imported.
+
+Run it with an `||` list of wallets (single or many — the engine skips every block none of them touched):
+
+```bash
+substreams run my-package/substreams.yaml map_wallet_activity \
+  -p map_wallet_activity="user:0xabc… || user:0xdef… || user:0x123…" \
+  -s 4023686 -t +88000000 --production-mode
+```
+
+> **Warm the index first.** `index_users` is versioned, so the first `--production-mode` full-range pass *computes* the index (and returns nothing). Once warm, filtered runs skip straight to the wallet's active blocks. See the `warming-substreams-indexes` workflow.
 
 ## Quick Start
 
