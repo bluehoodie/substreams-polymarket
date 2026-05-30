@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-trader-index
-  version: v0.8.0
+  version: v0.9.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: >-
     Foundational block index of Polymarket user activity. Emits a `user:<address>`
@@ -35,3 +35,19 @@ modules:
       action that block. Consumers filter with e.g.
       query.string: "user:0xabc… || user:0xdef…" to process only the blocks those
       wallets were active in.
+
+  - name: map_user_activity
+    kind: map
+    initialBlock: 4023686
+    blockFilter:
+      module: index_users
+      query:
+        params: true
+    inputs:
+      - params: string
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:sf.substreams.index.v1.Keys
+
+params:
+  map_user_activity: "user:0x0000000000000000000000000000000000000000"

@@ -29,12 +29,51 @@ fn user_key(addr: &[u8]) -> String {
     format!("user:{}", format_address(addr))
 }
 
+/// Parses the watched wallet addresses out of an SQE params string such as
+/// `"user:0x… || user:0x…"` (the same value used by the blockFilter query).
+fn extract_user_addresses(params: &str) -> Vec<Vec<u8>> {
+    params
+        .split(|c| matches!(c, ' ' | '|' | '&' | '(' | ')' | '\t' | '\n'))
+        .filter_map(|tok| tok.trim().strip_prefix("user:"))
+        .filter_map(|h| hex::decode(h.trim_start_matches("0x")).ok())
+        .filter(|b| b.len() == 20)
+        .collect()
+}
+
+/// Consumer of the `index_users` block index. Its `blockFilter` skips every block
+/// none of the watched wallets (from `params`, e.g. `"user:0x… || user:0x…"`)
+/// touched; for the surviving blocks it emits the watched wallets that were active.
+/// Pair with the per-contract packages (e.g. `polymarket-exchange:map_user_trades`)
+/// to fetch the full event details for those blocks.
+///
+/// NOTE: the index must be warm (computed once in `--production-mode`) before the
+/// filter returns matches; a cold first run builds the index and returns nothing.
+#[substreams::handlers::map]
+pub fn map_user_activity(params: String, blk: eth::Block) -> Result<Keys, Error> {
+    let watched: Vec<String> = extract_user_addresses(&params)
+        .iter()
+        .map(|a| user_key(a))
+        .collect();
+    if watched.is_empty() {
+        return Ok(Keys::default());
+    }
+    let keys: Vec<String> = collect_user_keys(&blk)
+        .into_iter()
+        .filter(|k| watched.contains(k))
+        .collect();
+    Ok(Keys { keys })
+}
+
 /// Foundational block index of Polymarket user activity. For each block it emits a
 /// `user:<address>` key for every wallet involved in any action across all
 /// Polymarket contracts — trades, position splits/merges, redemptions,
 /// conversions, pUSD transfers, ERC1155 transfers, and wallet deployments.
 #[substreams::handlers::map]
 pub fn index_users(blk: eth::Block) -> Result<Keys, Error> {
+    Ok(Keys { keys: collect_user_keys(&blk) })
+}
+
+fn collect_user_keys(blk: &eth::Block) -> Vec<String> {
     let mut set: HashSet<String> = HashSet::new();
     {
         let mut add = |a: &[u8]| {
@@ -182,9 +221,11 @@ pub fn index_users(blk: eth::Block) -> Result<Keys, Error> {
         }
     }
 
-    Ok(Keys {
-        keys: set.into_iter().collect(),
-    })
+    // Emit keys in a deterministic (sorted) order. HashSet iteration order is
+    // unspecified; a stable order keeps the cached index reproducible across runs.
+    let mut keys: Vec<String> = set.into_iter().collect();
+    keys.sort();
+    keys
 }
 
 #[cfg(test)]
@@ -222,5 +263,33 @@ mod tests {
                 assert_ne!(a, b);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod user_activity_tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_user_addresses_or_list() {
+        let got = extract_user_addresses(
+            "user:0x00000000000000000000000000000000000000ab || user:0x00000000000000000000000000000000000000cd",
+        );
+        assert_eq!(
+            got,
+            vec![
+                hex_literal::hex!("00000000000000000000000000000000000000ab").to_vec(),
+                hex_literal::hex!("00000000000000000000000000000000000000cd").to_vec(),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_extract_user_addresses_ignores_other_namespaces_and_empty() {
+        assert!(extract_user_addresses("").is_empty());
+        assert_eq!(
+            extract_user_addresses("trader:0xdead || user:0x00000000000000000000000000000000000000ab"),
+            vec![hex_literal::hex!("00000000000000000000000000000000000000ab").to_vec()]
+        );
     }
 }
