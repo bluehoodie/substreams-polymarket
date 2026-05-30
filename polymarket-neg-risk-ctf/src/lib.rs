@@ -1,56 +1,73 @@
+// The `#[substreams::handlers::map]` macro generates an `extern "C"` shim that rebuilds
+// `params: String` handler inputs from a raw `*mut u8` via `String::from_raw_parts`. The
+// macro drops the annotated fn's attributes, so a fn-scoped allow cannot reach the
+// generated shim — `not_unsafe_ptr_arg_deref` must be allowed at crate scope. The unsafe
+// deref lives entirely in macro-generated code; our handlers are safe.
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
+pub mod abi;
 #[allow(dead_code, clippy::all)]
 pub mod pb;
-pub mod abi;
 
 use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::neg_risk_ctf::v1 as proto;
 use pb::sf::substreams::index::v1::Keys;
-use polymarket_substreams_common::{bigint_to_string, bigint_to_u32, build_tx_context, format_address};
+use polymarket_substreams_common::{
+    bigint_to_string, bigint_to_u32, build_tx_context, format_address,
+};
 
-const NEG_RISK_CTF_CONTRACT_ADDRESS: [u8; 20] = hex_literal::hex!("e2222d279d744050d28e00520010520000310F59");
+const NEG_RISK_CTF_CONTRACT_ADDRESS: [u8; 20] =
+    hex_literal::hex!("e2222d279d744050d28e00520010520000310F59");
 
-/// Block index module. Per block it emits:
-///   * `evt_addr:<contract>` — when the block contains a Neg Risk CTF Exchange log,
-///     so consumers can skip blocks that never touch the contract.
-///   * `trader:<address>` — one per maker/taker seen in a trade event, so consumers
-///     can skip blocks a specific user never traded in. This is far more selective
-///     than the contract key (a given wallet trades in a tiny fraction of blocks).
+/// Block index module. Per block it emits one `trader:<address>` key per maker/taker
+/// seen in a Neg Risk CTF Exchange trade event (OrderFilled / OrdersMatched), so
+/// `map_user_trades` can skip blocks a specific wallet never traded in — far more
+/// selective than a contract-level key (a given wallet trades in a tiny fraction of
+/// blocks).
+///
+/// This index is decoded from event *data* (maker/taker fields), which the
+/// foundational `evt_addr:`/`evt_sig:` index cannot produce, so it stays local.
+/// Contract-level (`evt_addr:`) skipping is delegated to `eth_common:index_events`.
 #[substreams::handlers::map]
-pub fn index_events(blk: eth::Block) -> Result<Keys, Error> {
-    use abi::neg_risk_ctf::events::*;
+pub fn index_traders(blk: eth::Block) -> Result<Keys, Error> {
     use std::collections::HashSet;
 
     let mut set: HashSet<String> = HashSet::new();
     for log in blk.logs() {
-        if let Some(addr_key) = index_key_for_address(&log.log.address) {
-            set.insert(addr_key);
-
-            if OrderFilled::match_log(log.log) {
-                if let Ok(e) = OrderFilled::decode(log.log) {
-                    set.insert(trader_key(&e.maker));
-                    set.insert(trader_key(&e.taker));
-                }
-            } else if OrdersMatched::match_log(log.log) {
-                if let Ok(e) = OrdersMatched::decode(log.log) {
-                    set.insert(trader_key(&e.taker_order_maker));
-                }
-            }
+        for key in trader_keys_for_log(log.log) {
+            set.insert(key);
         }
     }
-    Ok(Keys { keys: set.into_iter().collect() })
+    Ok(Keys {
+        keys: set.into_iter().collect(),
+    })
 }
 
-/// Returns the block-index key for a log address, or `None` if it is not a
-/// contract this package targets. The returned string must match the
-/// `blockFilter` query in `substreams.yaml` exactly (lowercase hex, `0x` prefix).
-fn index_key_for_address(addr: &[u8]) -> Option<String> {
-    if addr == NEG_RISK_CTF_CONTRACT_ADDRESS {
-        Some(format!("evt_addr:{}", format_address(addr)))
-    } else {
-        None
+/// Returns the `trader:<address>` keys contributed by a single log: the maker/taker
+/// of a Neg Risk CTF Exchange trade (OrderFilled / OrdersMatched). Returns empty for
+/// any log not from this package's contract — so an OrderFilled with the same topic0
+/// emitted by an unrelated contract cannot produce trader keys. Pulled out of
+/// `index_traders` so the per-log decode logic is unit-testable without building a
+/// full `eth::Block`.
+fn trader_keys_for_log(log: &eth::Log) -> Vec<String> {
+    use abi::neg_risk_ctf::events::*;
+
+    if !is_neg_risk_ctf_contract(log) {
+        return Vec::new();
     }
+
+    if OrderFilled::match_log(log) {
+        if let Ok(e) = OrderFilled::decode(log) {
+            return vec![trader_key(&e.maker), trader_key(&e.taker)];
+        }
+    } else if OrdersMatched::match_log(log) {
+        if let Ok(e) = OrdersMatched::decode(log) {
+            return vec![trader_key(&e.taker_order_maker)];
+        }
+    }
+    Vec::new()
 }
 
 /// Block-index key for a trader address. Must match the `trader:` namespace used in
@@ -64,7 +81,7 @@ fn trader_key(addr: &[u8]) -> String {
 /// namespaces (e.g. `evt_addr:`) or with a leading `-` (NOT) are ignored.
 fn extract_trader_addresses(params: &str) -> Vec<Vec<u8>> {
     params
-        .split(|c| matches!(c, ' ' | '|' | '&' | '(' | ')' | '\t' | '\n'))
+        .split([' ', '|', '&', '(', ')', '\t', '\n'])
         .filter_map(|tok| tok.trim().strip_prefix("trader:"))
         .filter_map(|h| hex::decode(h.trim_start_matches("0x")).ok())
         .filter(|b| b.len() == 20)
@@ -291,11 +308,13 @@ pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
             }
         } else if UserPauseBlockIntervalUpdated::match_log(log.log) {
             if let Ok(event) = UserPauseBlockIntervalUpdated::decode(log.log) {
-                events.user_pause_block_interval_updated.push(proto::UserPauseBlockIntervalUpdated {
-                    old_interval: bigint_to_string(&event.old_interval),
-                    new_interval: bigint_to_string(&event.new_interval),
-                    tx: Some(build_transaction_context(&blk, &log)),
-                });
+                events.user_pause_block_interval_updated.push(
+                    proto::UserPauseBlockIntervalUpdated {
+                        old_interval: bigint_to_string(&event.old_interval),
+                        new_interval: bigint_to_string(&event.new_interval),
+                        tx: Some(build_transaction_context(&blk, &log)),
+                    },
+                );
             }
         }
     }
@@ -323,10 +342,12 @@ pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents
             }
         } else if OrderPreapprovalInvalidated::match_log(log.log) {
             if let Ok(event) = OrderPreapprovalInvalidated::decode(log.log) {
-                events.order_preapproval_invalidated.push(proto::OrderPreapprovalInvalidated {
-                    order_hash: event.order_hash.to_vec(),
-                    tx: Some(build_transaction_context(&blk, &log)),
-                });
+                events
+                    .order_preapproval_invalidated
+                    .push(proto::OrderPreapprovalInvalidated {
+                        order_hash: event.order_hash.to_vec(),
+                        tx: Some(build_transaction_context(&blk, &log)),
+                    });
             }
         }
     }
@@ -387,17 +408,21 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
             }
         } else if FeeReceiverUpdated::match_log(log.log) {
             if let Ok(event) = FeeReceiverUpdated::decode(log.log) {
-                fee_events.fee_receiver_updated.push(proto::FeeReceiverUpdated {
-                    fee_receiver: format_address(&event.fee_receiver),
-                    tx: Some(build_transaction_context(&blk, &log)),
-                });
+                fee_events
+                    .fee_receiver_updated
+                    .push(proto::FeeReceiverUpdated {
+                        fee_receiver: format_address(&event.fee_receiver),
+                        tx: Some(build_transaction_context(&blk, &log)),
+                    });
             }
         } else if MaxFeeRateUpdated::match_log(log.log) {
             if let Ok(event) = MaxFeeRateUpdated::decode(log.log) {
-                fee_events.max_fee_rate_updated.push(proto::MaxFeeRateUpdated {
-                    max_fee_rate: bigint_to_string(&event.max_fee_rate),
-                    tx: Some(build_transaction_context(&blk, &log)),
-                });
+                fee_events
+                    .max_fee_rate_updated
+                    .push(proto::MaxFeeRateUpdated {
+                        max_fee_rate: bigint_to_string(&event.max_fee_rate),
+                        tx: Some(build_transaction_context(&blk, &log)),
+                    });
             }
         } else if NewAdmin::match_log(log.log) {
             if let Ok(event) = NewAdmin::decode(log.log) {
@@ -448,25 +473,31 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
             }
         } else if UserPauseBlockIntervalUpdated::match_log(log.log) {
             if let Ok(event) = UserPauseBlockIntervalUpdated::decode(log.log) {
-                pause_events.user_pause_block_interval_updated.push(proto::UserPauseBlockIntervalUpdated {
-                    old_interval: bigint_to_string(&event.old_interval),
-                    new_interval: bigint_to_string(&event.new_interval),
-                    tx: Some(build_transaction_context(&blk, &log)),
-                });
+                pause_events.user_pause_block_interval_updated.push(
+                    proto::UserPauseBlockIntervalUpdated {
+                        old_interval: bigint_to_string(&event.old_interval),
+                        new_interval: bigint_to_string(&event.new_interval),
+                        tx: Some(build_transaction_context(&blk, &log)),
+                    },
+                );
             }
         } else if OrderPreapproved::match_log(log.log) {
             if let Ok(event) = OrderPreapproved::decode(log.log) {
-                approval_events.order_preapproved.push(proto::OrderPreapproved {
-                    order_hash: event.order_hash.to_vec(),
-                    tx: Some(build_transaction_context(&blk, &log)),
-                });
+                approval_events
+                    .order_preapproved
+                    .push(proto::OrderPreapproved {
+                        order_hash: event.order_hash.to_vec(),
+                        tx: Some(build_transaction_context(&blk, &log)),
+                    });
             }
         } else if OrderPreapprovalInvalidated::match_log(log.log) {
             if let Ok(event) = OrderPreapprovalInvalidated::decode(log.log) {
-                approval_events.order_preapproval_invalidated.push(proto::OrderPreapprovalInvalidated {
-                    order_hash: event.order_hash.to_vec(),
-                    tx: Some(build_transaction_context(&blk, &log)),
-                });
+                approval_events.order_preapproval_invalidated.push(
+                    proto::OrderPreapprovalInvalidated {
+                        order_hash: event.order_hash.to_vec(),
+                        tx: Some(build_transaction_context(&blk, &log)),
+                    },
+                );
             }
         }
     }
@@ -520,7 +551,10 @@ fn is_neg_risk_ctf_contract(log: &eth::Log) -> bool {
 }
 
 #[inline]
-fn build_transaction_context(blk: &eth::Block, log: &substreams_ethereum::block_view::LogView) -> proto::TransactionContext {
+fn build_transaction_context(
+    blk: &eth::Block,
+    log: &substreams_ethereum::block_view::LogView,
+) -> proto::TransactionContext {
     let ctx = build_tx_context(blk, log);
     proto::TransactionContext {
         tx_hash: ctx.tx_hash,
@@ -571,10 +605,9 @@ mod tests {
 
         // keccak256("OrderFilled(bytes32,address,address,uint8,uint256,uint256,uint256,uint256,bytes32,bytes32)")
         // mirrors the generated binding's TOPIC_ID
-        let topic0: Vec<u8> = hex_literal::hex!(
-            "d543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee"
-        )
-        .to_vec();
+        let topic0: Vec<u8> =
+            hex_literal::hex!("d543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee")
+                .to_vec();
 
         let order_hash = [0x11u8; 32];
         let maker_addr: [u8; 20] = hex_literal::hex!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
@@ -622,7 +655,10 @@ mod tests {
             ..Default::default()
         };
 
-        assert!(OrderFilled::match_log(&log), "match_log must return true for valid log");
+        assert!(
+            OrderFilled::match_log(&log),
+            "match_log must return true for valid log"
+        );
 
         let decoded = OrderFilled::decode(&log).expect("decode must succeed for valid log");
         assert_eq!(decoded.order_hash, order_hash);
@@ -630,8 +666,14 @@ mod tests {
         assert_eq!(decoded.taker, taker_addr.to_vec());
         assert_eq!(decoded.side, substreams::scalar::BigInt::from(side));
         assert_eq!(decoded.token_id, substreams::scalar::BigInt::from(token_id));
-        assert_eq!(decoded.maker_amount_filled, substreams::scalar::BigInt::from(maker_amount_filled));
-        assert_eq!(decoded.taker_amount_filled, substreams::scalar::BigInt::from(taker_amount_filled));
+        assert_eq!(
+            decoded.maker_amount_filled,
+            substreams::scalar::BigInt::from(maker_amount_filled)
+        );
+        assert_eq!(
+            decoded.taker_amount_filled,
+            substreams::scalar::BigInt::from(taker_amount_filled)
+        );
         assert_eq!(decoded.fee, substreams::scalar::BigInt::from(fee));
         assert_eq!(decoded.builder, builder);
         assert_eq!(decoded.metadata, metadata);
@@ -643,10 +685,9 @@ mod tests {
 
         // keccak256("OrderFilled(bytes32,address,address,uint8,uint256,uint256,uint256,uint256,bytes32,bytes32)")
         // mirrors the generated binding's TOPIC_ID
-        let mut topic0: Vec<u8> = hex_literal::hex!(
-            "d543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee"
-        )
-        .to_vec();
+        let mut topic0: Vec<u8> =
+            hex_literal::hex!("d543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee")
+                .to_vec();
 
         let order_hash = [0x11u8; 32];
         let maker_addr: [u8; 20] = hex_literal::hex!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
@@ -686,7 +727,10 @@ mod tests {
             ..Default::default()
         };
 
-        assert!(!OrderFilled::match_log(&log), "match_log must return false for wrong topic0");
+        assert!(
+            !OrderFilled::match_log(&log),
+            "match_log must return false for wrong topic0"
+        );
     }
 
     #[test]
@@ -695,12 +739,12 @@ mod tests {
 
         // keccak256("FeeCharged(address,uint256)")
         // mirrors the generated binding's TOPIC_ID
-        let topic0: Vec<u8> = hex_literal::hex!(
-            "55bb3cade9d43b798a4fe5ffdd05024b2d7870df53920673bfc7e68047cd0ab1"
-        )
-        .to_vec();
+        let topic0: Vec<u8> =
+            hex_literal::hex!("55bb3cade9d43b798a4fe5ffdd05024b2d7870df53920673bfc7e68047cd0ab1")
+                .to_vec();
 
-        let recipient_addr: [u8; 20] = hex_literal::hex!("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
+        let recipient_addr: [u8; 20] =
+            hex_literal::hex!("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
         // indexed address is left-padded to 32 bytes in topics
         let mut recipient_topic = [0u8; 32];
         recipient_topic[12..].copy_from_slice(&recipient_addr);
@@ -717,7 +761,10 @@ mod tests {
             ..Default::default()
         };
 
-        assert!(FeeCharged::match_log(&log), "match_log must return true for valid FeeCharged log");
+        assert!(
+            FeeCharged::match_log(&log),
+            "match_log must return true for valid FeeCharged log"
+        );
 
         let decoded = FeeCharged::decode(&log).expect("decode must succeed for valid log");
         assert_eq!(decoded.recipient, recipient_addr.to_vec());
@@ -729,19 +776,67 @@ mod tests {
 mod index_tests {
     use super::*;
 
+    // keccak256("OrderFilled(bytes32,address,address,uint8,uint256,uint256,uint256,uint256,bytes32,bytes32)")
+    const ORDER_FILLED_TOPIC0: [u8; 32] =
+        hex_literal::hex!("d543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee");
+
+    fn order_filled_log(contract: [u8; 20], maker: [u8; 20], taker: [u8; 20]) -> eth::Log {
+        let mut maker_topic = [0u8; 32];
+        maker_topic[12..].copy_from_slice(&maker);
+        let mut taker_topic = [0u8; 32];
+        taker_topic[12..].copy_from_slice(&taker);
+
+        // 7 non-indexed uint256/bytes32 words of arbitrary value — decode only needs
+        // the right shape, not specific values, for the trader-key extraction.
+        let data = vec![0u8; 224];
+
+        eth::Log {
+            address: contract.to_vec(),
+            topics: vec![
+                ORDER_FILLED_TOPIC0.to_vec(),
+                [0x11u8; 32].to_vec(),
+                maker_topic.to_vec(),
+                taker_topic.to_vec(),
+            ],
+            data,
+            ..Default::default()
+        }
+    }
+
     #[test]
-    fn test_index_key_for_neg_risk_ctf_address() {
-        let addr = hex_literal::hex!("e2222d279d744050d28e00520010520000310F59");
+    fn test_trader_keys_for_our_contract_order_filled() {
+        let maker = hex_literal::hex!("00000000000000000000000000000000000000ab");
+        let taker = hex_literal::hex!("00000000000000000000000000000000000000cd");
+        let log = order_filled_log(NEG_RISK_CTF_CONTRACT_ADDRESS, maker, taker);
+
         assert_eq!(
-            index_key_for_address(&addr),
-            Some("evt_addr:0xe2222d279d744050d28e00520010520000310f59".to_string())
+            trader_keys_for_log(&log),
+            vec![
+                "trader:0x00000000000000000000000000000000000000ab".to_string(),
+                "trader:0x00000000000000000000000000000000000000cd".to_string(),
+            ]
         );
     }
 
     #[test]
-    fn test_index_key_for_unrelated_address() {
-        let addr = hex_literal::hex!("00000000000000000000000000000000000000ff");
-        assert_eq!(index_key_for_address(&addr), None);
+    fn test_trader_keys_skips_unrelated_contract() {
+        let unrelated = hex_literal::hex!("00000000000000000000000000000000000000ff");
+        let maker = hex_literal::hex!("00000000000000000000000000000000000000ab");
+        let taker = hex_literal::hex!("00000000000000000000000000000000000000cd");
+        // Same OrderFilled topic0, but emitted by a different contract: must yield no keys.
+        let log = order_filled_log(unrelated, maker, taker);
+
+        assert!(trader_keys_for_log(&log).is_empty());
+    }
+
+    #[test]
+    fn test_trader_keys_skips_non_trade_log() {
+        let log = eth::Log {
+            address: NEG_RISK_CTF_CONTRACT_ADDRESS.to_vec(),
+            topics: vec![[0x00u8; 32].to_vec()],
+            ..Default::default()
+        };
+        assert!(trader_keys_for_log(&log).is_empty());
     }
 }
 
@@ -752,13 +847,19 @@ mod user_index_tests {
     #[test]
     fn test_trader_key() {
         let addr = hex_literal::hex!("00000000000000000000000000000000000000ab");
-        assert_eq!(trader_key(&addr), "trader:0x00000000000000000000000000000000000000ab");
+        assert_eq!(
+            trader_key(&addr),
+            "trader:0x00000000000000000000000000000000000000ab"
+        );
     }
 
     #[test]
     fn test_extract_trader_addresses_single() {
         let got = extract_trader_addresses("trader:0x00000000000000000000000000000000000000ab");
-        assert_eq!(got, vec![hex_literal::hex!("00000000000000000000000000000000000000ab").to_vec()]);
+        assert_eq!(
+            got,
+            vec![hex_literal::hex!("00000000000000000000000000000000000000ab").to_vec()]
+        );
     }
 
     #[test]
@@ -780,7 +881,10 @@ mod user_index_tests {
         let got = extract_trader_addresses(
             "evt_addr:0xdeadbeef || trader:0x00000000000000000000000000000000000000ab",
         );
-        assert_eq!(got, vec![hex_literal::hex!("00000000000000000000000000000000000000ab").to_vec()]);
+        assert_eq!(
+            got,
+            vec![hex_literal::hex!("00000000000000000000000000000000000000ab").to_vec()]
+        );
     }
 
     #[test]

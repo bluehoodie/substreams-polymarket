@@ -9,6 +9,7 @@ network: polygon
 
 imports:
   ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
+  eth_common: ethereum_common@v0.3.3
 
 protobuf:
   files:
@@ -22,23 +23,11 @@ binaries:
     file: ../target/wasm32-unknown-unknown/release/polymarket_collateral.wasm
 
 modules:
-  - name: index_events
-    kind: blockIndex
-    initialBlock: 85049190
-    inputs:
-      - source: sf.ethereum.type.v2.Block
-    output:
-      type: proto:sf.substreams.index.v1.Keys
-    doc: |
-      Emits `evt_addr:<address>` for every block containing a log from any of this
-      package's collateral contracts (pUSD, CTF collateral adapter, neg-risk CTF
-      collateral adapter). Each consumer filters on the address(es) it needs.
-
   - name: map_pusd_events
     kind: map
     initialBlock: 85049190
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: "evt_addr:0xc011a7e12a19f7b1f670d46f03b03f3342e82dfb"
     inputs:
@@ -50,7 +39,7 @@ modules:
     kind: map
     initialBlock: 85049190
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: "evt_addr:0xada100db00ca00073811820692005400218fce1f"
     inputs:
@@ -62,7 +51,7 @@ modules:
     kind: map
     initialBlock: 85049190
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: "evt_addr:0xada2005600dec949baf300f4c6120000bdb6eaab"
     inputs:
@@ -74,7 +63,7 @@ modules:
     kind: map
     initialBlock: 85049190
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: >-
           evt_addr:0xc011a7e12a19f7b1f670d46f03b03f3342e82dfb ||

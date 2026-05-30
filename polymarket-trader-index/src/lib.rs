@@ -1,6 +1,13 @@
+// The `#[substreams::handlers::map]` macro generates an `extern "C"` shim that rebuilds
+// `params: String` handler inputs from a raw `*mut u8` via `String::from_raw_parts`. The
+// macro drops the annotated fn's attributes, so a fn-scoped allow cannot reach the
+// generated shim — `not_unsafe_ptr_arg_deref` must be allowed at crate scope. The unsafe
+// deref lives entirely in macro-generated code; our handlers are safe.
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
+pub mod abi;
 #[allow(dead_code, clippy::all)]
 pub mod pb;
-pub mod abi;
 
 use std::collections::HashSet;
 
@@ -18,9 +25,12 @@ const NEG_RISK_CTF: [u8; 20] = hex_literal::hex!("e2222d279d744050d28e0052001052
 const CONDITIONAL_TOKENS: [u8; 20] = hex_literal::hex!("4D97DCd97eC945f40cF65F87097ACe5EA0476045");
 const NEG_RISK_ADAPTER: [u8; 20] = hex_literal::hex!("d91E80cF2E7be2e162c6513ceD06f1dD0dA35296");
 const PUSD: [u8; 20] = hex_literal::hex!("C011a7E12a19f7B1f670d46F03B03f3342E82DFB");
-const CTF_COLLATERAL_ADAPTER: [u8; 20] = hex_literal::hex!("AdA100Db00Ca00073811820692005400218FcE1f");
-const NEG_RISK_CTF_COLLATERAL_ADAPTER: [u8; 20] = hex_literal::hex!("adA2005600Dec949baf300f4C6120000bDB6eAab");
-const DEPOSIT_WALLET_FACTORY: [u8; 20] = hex_literal::hex!("00000000000Fb5C9ADea0298D729A0CB3823Cc07");
+const CTF_COLLATERAL_ADAPTER: [u8; 20] =
+    hex_literal::hex!("AdA100Db00Ca00073811820692005400218FcE1f");
+const NEG_RISK_CTF_COLLATERAL_ADAPTER: [u8; 20] =
+    hex_literal::hex!("adA2005600Dec949baf300f4C6120000bDB6eAab");
+const DEPOSIT_WALLET_FACTORY: [u8; 20] =
+    hex_literal::hex!("00000000000Fb5C9ADea0298D729A0CB3823Cc07");
 
 /// Block-index key for a wallet that was active in the block. Consumers query
 /// this namespace, e.g. `user:0xabc… || user:0xdef…`, to skip blocks none of the
@@ -33,7 +43,7 @@ fn user_key(addr: &[u8]) -> String {
 /// `"user:0x… || user:0x…"` (the same value used by the blockFilter query).
 fn extract_user_addresses(params: &str) -> Vec<Vec<u8>> {
     params
-        .split(|c| matches!(c, ' ' | '|' | '&' | '(' | ')' | '\t' | '\n'))
+        .split([' ', '|', '&', '(', ')', '\t', '\n'])
         .filter_map(|tok| tok.trim().strip_prefix("user:"))
         .filter_map(|h| hex::decode(h.trim_start_matches("0x")).ok())
         .filter(|b| b.len() == 20)
@@ -70,7 +80,9 @@ pub fn map_user_activity(params: String, blk: eth::Block) -> Result<Keys, Error>
 /// conversions, pUSD transfers, ERC1155 transfers, and wallet deployments.
 #[substreams::handlers::map]
 pub fn index_users(blk: eth::Block) -> Result<Keys, Error> {
-    Ok(Keys { keys: collect_user_keys(&blk) })
+    Ok(Keys {
+        keys: collect_user_keys(&blk),
+    })
 }
 
 fn collect_user_keys(blk: &eth::Block) -> Vec<String> {
@@ -235,14 +247,20 @@ mod tests {
     #[test]
     fn test_user_key() {
         let addr = hex_literal::hex!("00000000000000000000000000000000000000ab");
-        assert_eq!(user_key(&addr), "user:0x00000000000000000000000000000000000000ab");
+        assert_eq!(
+            user_key(&addr),
+            "user:0x00000000000000000000000000000000000000ab"
+        );
     }
 
     #[test]
     fn test_user_key_lowercases() {
         // log addresses arrive as raw bytes; hex::encode is always lowercase
         let addr = hex_literal::hex!("E111180000d2663C0091e4f400237545B87B996B");
-        assert_eq!(user_key(&addr), "user:0xe111180000d2663c0091e4f400237545b87b996b");
+        assert_eq!(
+            user_key(&addr),
+            "user:0xe111180000d2663c0091e4f400237545b87b996b"
+        );
     }
 
     #[test]
@@ -288,7 +306,9 @@ mod user_activity_tests {
     fn test_extract_user_addresses_ignores_other_namespaces_and_empty() {
         assert!(extract_user_addresses("").is_empty());
         assert_eq!(
-            extract_user_addresses("trader:0xdead || user:0x00000000000000000000000000000000000000ab"),
+            extract_user_addresses(
+                "trader:0xdead || user:0x00000000000000000000000000000000000000ab"
+            ),
             vec![hex_literal::hex!("00000000000000000000000000000000000000ab").to_vec()]
         );
     }

@@ -9,6 +9,7 @@ network: polygon
 
 imports:
   ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
+  eth_common: ethereum_common@v0.3.3
 
 protobuf:
   files:
@@ -22,22 +23,11 @@ binaries:
     file: ../target/wasm32-unknown-unknown/release/polymarket_wallet_factory.wasm
 
 modules:
-  - name: index_events
-    kind: blockIndex
-    initialBlock: 84902000
-    inputs:
-      - source: sf.ethereum.type.v2.Block
-    output:
-      type: proto:sf.substreams.index.v1.Keys
-    doc: |
-      Emits `evt_addr:<address>` for every block containing a Deposit Wallet
-      Factory log, letting downstream modules skip blocks that never touch it.
-
   - name: map_factory_events
     kind: map
     initialBlock: 84902000
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: "evt_addr:0x00000000000fb5c9adea0298d729a0cb3823cc07"
     inputs:

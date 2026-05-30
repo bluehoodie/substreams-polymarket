@@ -44,16 +44,21 @@ All packages follow a unified design pattern:
 
 ## Block Indexes & Filtering
 
-Every package ships a **block index** so the Substreams engine can *skip blocks it never needs to read*. Polymarket activity is sparse relative to all of Polygon, so this is the biggest lever on backfill speed and cost: a contract active in 0.5% of blocks costs roughly 0.5% as much to stream, and filtering by a single wallet is far more selective still.
+Every package uses **block indexes** so the Substreams engine can *skip blocks it never needs to read*. Polymarket activity is sparse relative to all of Polygon, so this is the biggest lever on backfill speed and cost: a contract active in 0.5% of blocks costs roughly 0.5% as much to stream, and filtering by a single wallet is far more selective still.
 
 A block index emits a set of string **keys** per block (`sf.substreams.index.v1.Keys`). A downstream `map`/`store` module declares a `blockFilter` with a query over those keys; **blocks whose keys don't match are never read, decoded, or processed**.
+
+Two kinds of index are in play:
+
+- **Contract-level skipping** (`evt_addr:`) is delegated to the shared **foundational `ethereum_common` index** (`eth_common:index_events`), imported by every package. It emits `evt_addr:`/`evt_sig:` keys for every block, is computed once and reused across *all* Substreams, and is never invalidated by our releases — so there is no per-package index to hand-roll or re-warm. We don't reinvent it.
+- **Data-derived skipping** (`trader:`, `user:`) needs keys decoded from event *payloads*, which the foundational `evt_addr`/`evt_sig` index cannot produce. Only those genuinely-custom indexes stay local: `index_traders` and `index_users`.
 
 ### Key namespaces
 
 | Key | Emitted by | Meaning |
 |-----|-----------|---------|
-| `evt_addr:<address>` | every package — `index_events` | the block contains a log from this targeted contract |
-| `trader:<address>` | `polymarket-exchange`, `polymarket-neg-risk-ctf` — `index_events` | this wallet was a maker/taker in an `OrderFilled`/`OrdersMatched` in the block |
+| `evt_addr:<address>` | foundational `ethereum_common` — `eth_common:index_events` (imported by every package) | the block contains a log from this targeted contract |
+| `trader:<address>` | `polymarket-exchange`, `polymarket-neg-risk-ctf` — `index_traders` | this wallet was a maker/taker in an `OrderFilled`/`OrdersMatched` in the block |
 | `user:<address>` | `polymarket-trader-index` — `index_users` | this wallet took **any** action on Polymarket in the block (trades, splits/merges, redemptions, conversions, pUSD transfers, ERC-1155 transfers, wallet deploys), across **all** contracts |
 
 All keys are lowercase hex with a `0x` prefix.
@@ -66,7 +71,7 @@ A `blockFilter` query is a boolean expression over keys — `&&` (and), `||` (or
 
 ### Example use-cases
 
-**1. Stream a single contract's events.** Every `map_*` module is already wired to its package's `index_events` (`evt_addr:`), so backfills skip irrelevant blocks automatically:
+**1. Stream a single contract's events.** Every `map_*` module is already wired to the foundational `eth_common:index_events` (`evt_addr:`), so backfills skip irrelevant blocks automatically — with no local index to warm:
 
 ```bash
 substreams run polymarket-collateral/substreams.yaml map_pusd_events -s 85049190 -t +500000

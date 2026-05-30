@@ -1,12 +1,11 @@
+pub mod abi;
 #[allow(dead_code, clippy::all)]
 pub mod pb;
-pub mod abi;
 
 use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::resolution::v1 as proto;
-use pb::sf::substreams::index::v1::Keys;
 use polymarket_substreams_common::{bigint_to_string, build_tx_context, format_address};
 
 const UMA_ORACLE_V2_ADDRESS: [u8; 20] =
@@ -21,39 +20,6 @@ const CTF_ADAPTER_V2_ADDRESS: [u8; 20] =
 const CTF_ADAPTER_V3_ADDRESS: [u8; 20] =
     hex_literal::hex!("2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d");
 
-/// Block index module: emits an `evt_addr:<address>` key for every block containing
-/// a log from any of this package's resolution contracts (UMA Oracle V2/V3, UMA CTF
-/// Adapter V2/V3). Each downstream module declares a `blockFilter` selecting only
-/// the address(es) it consumes, so blocks that never touch the relevant contract
-/// are skipped entirely.
-#[substreams::handlers::map]
-pub fn index_events(blk: eth::Block) -> Result<Keys, Error> {
-    let mut keys = Keys::default();
-    for log in blk.logs() {
-        if let Some(key) = index_key_for_address(&log.log.address) {
-            if !keys.keys.contains(&key) {
-                keys.keys.push(key);
-            }
-        }
-    }
-    Ok(keys)
-}
-
-/// Returns the block-index key for a log address, or `None` if it is not a
-/// contract this package targets. The returned string must match the
-/// `blockFilter` query in `substreams.yaml` exactly (lowercase hex, `0x` prefix).
-fn index_key_for_address(addr: &[u8]) -> Option<String> {
-    if addr == UMA_ORACLE_V2_ADDRESS
-        || addr == UMA_ORACLE_V3_ADDRESS
-        || addr == CTF_ADAPTER_V2_ADDRESS
-        || addr == CTF_ADAPTER_V3_ADDRESS
-    {
-        Some(format!("evt_addr:{}", format_address(addr)))
-    } else {
-        None
-    }
-}
-
 fn is_adapter_address(addr: &[u8]) -> bool {
     addr == CTF_ADAPTER_V2_ADDRESS || addr == CTF_ADAPTER_V3_ADDRESS
 }
@@ -66,7 +32,10 @@ fn adapter_source(addr: &[u8]) -> &'static str {
     }
 }
 
-fn to_proto_tx(blk: &eth::Block, log: &substreams_ethereum::block_view::LogView) -> proto::TransactionContext {
+fn to_proto_tx(
+    blk: &eth::Block,
+    log: &substreams_ethereum::block_view::LogView,
+) -> proto::TransactionContext {
     let ctx = build_tx_context(blk, log);
     proto::TransactionContext {
         tx_hash: ctx.tx_hash,
@@ -214,34 +183,38 @@ fn decode_adapter_events(blk: &eth::Block) -> (proto::AdapterEvents, Vec<proto::
 
         if QuestionInitialized::match_log(log.log) {
             if let Ok(e) = QuestionInitialized::decode(log.log) {
-                adapter.question_initialized.push(proto::QuestionInitialized {
-                    question_id: e.question_id.to_vec(),
-                    request_timestamp: bigint_to_string(&e.request_timestamp),
-                    creator: format_address(&e.creator),
-                    ancillary_data: e.ancillary_data,
-                    reward_token: format_address(&e.reward_token),
-                    reward: bigint_to_string(&e.reward),
-                    proposal_bond: bigint_to_string(&e.proposal_bond),
-                    tx: Some(to_proto_tx(blk, &log)),
-                });
+                adapter
+                    .question_initialized
+                    .push(proto::QuestionInitialized {
+                        question_id: e.question_id.to_vec(),
+                        request_timestamp: bigint_to_string(&e.request_timestamp),
+                        creator: format_address(&e.creator),
+                        ancillary_data: e.ancillary_data,
+                        reward_token: format_address(&e.reward_token),
+                        reward: bigint_to_string(&e.reward),
+                        proposal_bond: bigint_to_string(&e.proposal_bond),
+                        tx: Some(to_proto_tx(blk, &log)),
+                    });
             }
         } else if QuestionResolved::match_log(log.log) {
             if let Ok(e) = QuestionResolved::decode(log.log) {
                 adapter.question_resolved.push(proto::QuestionResolved {
                     question_id: e.question_id.to_vec(),
                     settled_price: bigint_to_string(&e.settled_price),
-                    payouts: e.payouts.iter().map(|p| bigint_to_string(p)).collect(),
+                    payouts: e.payouts.iter().map(bigint_to_string).collect(),
                     tx: Some(to_proto_tx(blk, &log)),
                 });
             }
         } else if QuestionEmergencyResolved::match_log(log.log) {
             if let Ok(e) = QuestionEmergencyResolved::decode(log.log) {
-                let payouts: Vec<String> = e.payouts.iter().map(|p| bigint_to_string(p)).collect();
-                adapter.question_emergency_resolved.push(proto::QuestionEmergencyResolved {
-                    question_id: e.question_id.to_vec(),
-                    payouts: payouts.clone(),
-                    tx: Some(to_proto_tx(blk, &log)),
-                });
+                let payouts: Vec<String> = e.payouts.iter().map(bigint_to_string).collect();
+                adapter
+                    .question_emergency_resolved
+                    .push(proto::QuestionEmergencyResolved {
+                        question_id: e.question_id.to_vec(),
+                        payouts: payouts.clone(),
+                        tx: Some(to_proto_tx(blk, &log)),
+                    });
                 alerts.push(proto::DisputeAlert {
                     source: source.into(),
                     alert_type: "emergency_resolve".into(),
@@ -316,12 +289,14 @@ fn decode_adapter_events(blk: &eth::Block) -> (proto::AdapterEvents, Vec<proto::
             }
         } else if AncillaryDataUpdated::match_log(log.log) {
             if let Ok(e) = AncillaryDataUpdated::decode(log.log) {
-                adapter.ancillary_data_updated.push(proto::AncillaryDataUpdated {
-                    question_id: e.question_id.to_vec(),
-                    owner: format_address(&e.owner),
-                    update_data: e.update,
-                    tx: Some(to_proto_tx(blk, &log)),
-                });
+                adapter
+                    .ancillary_data_updated
+                    .push(proto::AncillaryDataUpdated {
+                        question_id: e.question_id.to_vec(),
+                        owner: format_address(&e.owner),
+                        update_data: e.update,
+                        tx: Some(to_proto_tx(blk, &log)),
+                    });
             }
         } else if NewAdmin::match_log(log.log) {
             if let Ok(e) = NewAdmin::decode(log.log) {
@@ -396,8 +371,16 @@ pub fn map_resolution_events(blk: eth::Block) -> Result<proto::ResolutionEvents,
     all_alerts.extend(adapter_alerts);
 
     Ok(proto::ResolutionEvents {
-        oracle: if has_oracle_events(&oracle) { Some(oracle) } else { None },
-        adapter: if has_adapter_events(&adapter) { Some(adapter) } else { None },
+        oracle: if has_oracle_events(&oracle) {
+            Some(oracle)
+        } else {
+            None
+        },
+        adapter: if has_adapter_events(&adapter) {
+            Some(adapter)
+        } else {
+            None
+        },
         dispute_alerts: if !all_alerts.is_empty() {
             Some(proto::DisputeAlerts { alerts: all_alerts })
         } else {
@@ -473,55 +456,12 @@ mod tests {
         ];
         for i in 0..addrs.len() {
             for j in (i + 1)..addrs.len() {
-                assert_ne!(addrs[i], addrs[j], "addresses at index {} and {} collide", i, j);
+                assert_ne!(
+                    addrs[i], addrs[j],
+                    "addresses at index {} and {} collide",
+                    i, j
+                );
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod index_tests {
-    use super::*;
-
-    #[test]
-    fn test_index_key_for_oracle_v2_address() {
-        let addr = hex_literal::hex!("ee3afe347d5c74317041e2618c49534daf887c24");
-        assert_eq!(
-            index_key_for_address(&addr),
-            Some("evt_addr:0xee3afe347d5c74317041e2618c49534daf887c24".to_string())
-        );
-    }
-
-    #[test]
-    fn test_index_key_for_oracle_v3_address() {
-        let addr = hex_literal::hex!("5953f2538f613e05baed8a5aefa8e6622467ad3d");
-        assert_eq!(
-            index_key_for_address(&addr),
-            Some("evt_addr:0x5953f2538f613e05baed8a5aefa8e6622467ad3d".to_string())
-        );
-    }
-
-    #[test]
-    fn test_index_key_for_adapter_v2_address() {
-        let addr = hex_literal::hex!("6a9d222616c90fca5754cd1333cfd9b7fb6a4f74");
-        assert_eq!(
-            index_key_for_address(&addr),
-            Some("evt_addr:0x6a9d222616c90fca5754cd1333cfd9b7fb6a4f74".to_string())
-        );
-    }
-
-    #[test]
-    fn test_index_key_for_adapter_v3_address() {
-        let addr = hex_literal::hex!("2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d");
-        assert_eq!(
-            index_key_for_address(&addr),
-            Some("evt_addr:0x2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d".to_string())
-        );
-    }
-
-    #[test]
-    fn test_index_key_for_unrelated_address() {
-        let addr = hex_literal::hex!("00000000000000000000000000000000000000ff");
-        assert_eq!(index_key_for_address(&addr), None);
     }
 }

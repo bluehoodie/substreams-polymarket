@@ -10,6 +10,7 @@ network: polygon
 
 imports:
   ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
+  eth_common: ethereum_common@v0.3.3
 
 protobuf:
   files:
@@ -23,23 +24,11 @@ binaries:
     file: ../target/wasm32-unknown-unknown/release/polymarket_resolution.wasm
 
 modules:
-  - name: index_events
-    kind: blockIndex
-    initialBlock: 29786052
-    inputs:
-      - source: sf.ethereum.type.v2.Block
-    output:
-      type: proto:sf.substreams.index.v1.Keys
-    doc: |
-      Emits `evt_addr:<address>` for every block containing a log from any of this
-      package's resolution contracts (UMA Oracle V2/V3, UMA CTF Adapter V2/V3).
-      Each consumer filters on the address(es) it needs.
-
   - name: map_oracle_events
     kind: map
     initialBlock: 29786052
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: >-
           evt_addr:0xee3afe347d5c74317041e2618c49534daf887c24 ||
@@ -53,7 +42,7 @@ modules:
     kind: map
     initialBlock: 29786052
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: >-
           evt_addr:0x6a9d222616c90fca5754cd1333cfd9b7fb6a4f74 ||
@@ -67,7 +56,7 @@ modules:
     kind: map
     initialBlock: 29786052
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: >-
           evt_addr:0xee3afe347d5c74317041e2618c49534daf887c24 ||
@@ -83,7 +72,7 @@ modules:
     kind: map
     initialBlock: 29786052
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: >-
           evt_addr:0xee3afe347d5c74317041e2618c49534daf887c24 ||

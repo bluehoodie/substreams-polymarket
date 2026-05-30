@@ -9,6 +9,7 @@ network: polygon
 
 imports:
   ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
+  eth_common: ethereum_common@v0.3.3
 
 protobuf:
   files:
@@ -22,7 +23,7 @@ binaries:
     file: ../target/wasm32-unknown-unknown/release/polymarket_exchange.wasm
 
 modules:
-  - name: index_events
+  - name: index_traders
     kind: blockIndex
     initialBlock: 84934480
     inputs:
@@ -30,14 +31,18 @@ modules:
     output:
       type: proto:sf.substreams.index.v1.Keys
     doc: |
-      Emits `evt_addr:<address>` for every block containing a CTF Exchange log,
-      letting downstream modules skip blocks that never touch the contract.
+      Emits `trader:<address>` for every maker/taker seen in a CTF Exchange trade
+      (OrderFilled / OrdersMatched) in the block. This is decoded from event data and
+      cannot be produced by the foundational `evt_addr:`/`evt_sig:` index, so it stays
+      local. `map_user_trades` filters on these keys to skip blocks a watched wallet
+      never traded in. Contract-level (`evt_addr:`) skipping is delegated to the
+      foundational `eth_common:index_events`.
 
   - name: map_exchange_events
     kind: map
     initialBlock: 84934480
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
@@ -49,7 +54,7 @@ modules:
     kind: map
     initialBlock: 84934480
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
@@ -61,7 +66,7 @@ modules:
     kind: map
     initialBlock: 84934480
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
@@ -73,7 +78,7 @@ modules:
     kind: map
     initialBlock: 84934480
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
@@ -85,7 +90,7 @@ modules:
     kind: map
     initialBlock: 84934480
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
@@ -97,7 +102,7 @@ modules:
     kind: map
     initialBlock: 84934480
     blockFilter:
-      module: index_events
+      module: eth_common:index_events
       query:
         string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
     inputs:
@@ -113,7 +118,7 @@ modules:
     kind: map
     initialBlock: 84934480
     blockFilter:
-      module: index_events
+      module: index_traders
       query:
         params: true
     inputs:

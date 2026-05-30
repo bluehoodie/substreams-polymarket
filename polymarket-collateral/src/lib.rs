@@ -1,49 +1,19 @@
+pub mod abi;
 #[allow(dead_code, clippy::all)]
 pub mod pb;
-pub mod abi;
 
 use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::collateral::v1 as proto;
-use pb::sf::substreams::index::v1::Keys;
 use polymarket_substreams_common::{bigint_to_string, build_tx_context, format_address};
 
-const PUSD_CONTRACT_ADDRESS: [u8; 20] = hex_literal::hex!("C011a7E12a19f7B1f670d46F03B03f3342E82DFB");
-const CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] = hex_literal::hex!("AdA100Db00Ca00073811820692005400218FcE1f");
-const NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] = hex_literal::hex!("adA2005600Dec949baf300f4C6120000bDB6eAab");
-
-/// Block index module: emits an `evt_addr:<address>` key for every block containing
-/// a log from any of this package's collateral contracts (pUSD, CTF collateral
-/// adapter, neg-risk CTF collateral adapter). Each downstream module declares a
-/// `blockFilter` selecting only the address(es) it consumes, so blocks that never
-/// touch the relevant contract are skipped entirely.
-#[substreams::handlers::map]
-pub fn index_events(blk: eth::Block) -> Result<Keys, Error> {
-    let mut keys = Keys::default();
-    for log in blk.logs() {
-        if let Some(key) = index_key_for_address(&log.log.address) {
-            if !keys.keys.contains(&key) {
-                keys.keys.push(key);
-            }
-        }
-    }
-    Ok(keys)
-}
-
-/// Returns the block-index key for a log address, or `None` if it is not a
-/// contract this package targets. The returned string must match the
-/// `blockFilter` query in `substreams.yaml` exactly (lowercase hex, `0x` prefix).
-fn index_key_for_address(addr: &[u8]) -> Option<String> {
-    if addr == PUSD_CONTRACT_ADDRESS
-        || addr == CTF_COLLATERAL_ADAPTER_ADDRESS
-        || addr == NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS
-    {
-        Some(format!("evt_addr:{}", format_address(addr)))
-    } else {
-        None
-    }
-}
+const PUSD_CONTRACT_ADDRESS: [u8; 20] =
+    hex_literal::hex!("C011a7E12a19f7B1f670d46F03B03f3342E82DFB");
+const CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] =
+    hex_literal::hex!("AdA100Db00Ca00073811820692005400218FcE1f");
+const NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] =
+    hex_literal::hex!("adA2005600Dec949baf300f4C6120000bDB6eAab");
 
 #[substreams::handlers::map]
 pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
@@ -137,7 +107,9 @@ pub fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents
 }
 
 #[substreams::handlers::map]
-pub fn map_neg_risk_ctf_adapter_events(blk: eth::Block) -> Result<proto::NegRiskCtfAdapterEvents, Error> {
+pub fn map_neg_risk_ctf_adapter_events(
+    blk: eth::Block,
+) -> Result<proto::NegRiskCtfAdapterEvents, Error> {
     use abi::neg_risk_ctf_collateral_adapter::events::*;
 
     let mut events = proto::NegRiskCtfAdapterEvents::default();
@@ -194,9 +166,9 @@ pub fn map_neg_risk_ctf_adapter_events(blk: eth::Block) -> Result<proto::NegRisk
 
 #[substreams::handlers::map]
 pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
-    use abi::p_usd::events as pusd_events;
     use abi::ctf_collateral_adapter::events as ctf_events;
     use abi::neg_risk_ctf_collateral_adapter::events as neg_risk_events;
+    use abi::p_usd::events as pusd_events;
 
     let mut pusd = proto::PusdEvents::default();
     let mut ctf = proto::CtfAdapterEvents::default();
@@ -300,14 +272,16 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 }
             } else if neg_risk_events::PositionsConverted::match_log(log.log) {
                 if let Ok(event) = neg_risk_events::PositionsConverted::decode(log.log) {
-                    neg_risk.positions_converted.push(proto::PositionsConverted {
-                        initiator: format_address(&event.initiator),
-                        market_id: event.market_id.to_vec(),
-                        index_set: bigint_to_string(&event.index_set),
-                        amount: bigint_to_string(&event.amount),
-                        amount_out: bigint_to_string(&event.amount_out),
-                        tx: Some(build_transaction_context(&blk, &log)),
-                    });
+                    neg_risk
+                        .positions_converted
+                        .push(proto::PositionsConverted {
+                            initiator: format_address(&event.initiator),
+                            market_id: event.market_id.to_vec(),
+                            index_set: bigint_to_string(&event.index_set),
+                            amount: bigint_to_string(&event.amount),
+                            amount_out: bigint_to_string(&event.amount_out),
+                            tx: Some(build_transaction_context(&blk, &log)),
+                        });
                 }
             }
         }
@@ -358,7 +332,10 @@ fn is_neg_risk_ctf_adapter_contract(log: &eth::Log) -> bool {
 }
 
 #[inline]
-fn build_transaction_context(blk: &eth::Block, log: &substreams_ethereum::block_view::LogView) -> proto::TransactionContext {
+fn build_transaction_context(
+    blk: &eth::Block,
+    log: &substreams_ethereum::block_view::LogView,
+) -> proto::TransactionContext {
     let ctx = build_tx_context(blk, log);
     proto::TransactionContext {
         tx_hash: ctx.tx_hash,
@@ -447,43 +424,5 @@ mod tests {
         let bytes = hex_literal::hex!("C011a7E12a19f7B1f670d46F03B03f3342E82DFB");
         let result = format_address(&bytes);
         assert_eq!(result, "0xc011a7e12a19f7b1f670d46f03b03f3342e82dfb");
-    }
-}
-
-#[cfg(test)]
-mod index_tests {
-    use super::*;
-
-    #[test]
-    fn test_index_key_for_pusd_address() {
-        let addr = hex_literal::hex!("C011a7E12a19f7B1f670d46F03B03f3342E82DFB");
-        assert_eq!(
-            index_key_for_address(&addr),
-            Some("evt_addr:0xc011a7e12a19f7b1f670d46f03b03f3342e82dfb".to_string())
-        );
-    }
-
-    #[test]
-    fn test_index_key_for_ctf_adapter_address() {
-        let addr = hex_literal::hex!("AdA100Db00Ca00073811820692005400218FcE1f");
-        assert_eq!(
-            index_key_for_address(&addr),
-            Some("evt_addr:0xada100db00ca00073811820692005400218fce1f".to_string())
-        );
-    }
-
-    #[test]
-    fn test_index_key_for_neg_risk_adapter_address() {
-        let addr = hex_literal::hex!("adA2005600Dec949baf300f4C6120000bDB6eAab");
-        assert_eq!(
-            index_key_for_address(&addr),
-            Some("evt_addr:0xada2005600dec949baf300f4c6120000bdb6eaab".to_string())
-        );
-    }
-
-    #[test]
-    fn test_index_key_for_unrelated_address() {
-        let addr = hex_literal::hex!("00000000000000000000000000000000000000ff");
-        assert_eq!(index_key_for_address(&addr), None);
     }
 }
