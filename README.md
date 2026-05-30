@@ -125,6 +125,67 @@ substreams run my-package/substreams.yaml map_wallet_activity \
 
 > **Warm the index first.** `index_users` is versioned, so the first `--production-mode` full-range pass *computes* the index (and returns nothing). Once warm, filtered runs skip straight to the wallet's active blocks. See the `warming-substreams-indexes` workflow.
 
+**3. Compute a trader's running PnL.** A trader's PnL is a reduction over their collateral cash-flows and outcome-token positions — and every input you need is already decoded by these packages. Gate on `user:` so you read only the trader's blocks, then fold the relevant events into a `store`. The events and their PnL effect:
+
+| Event — package · map | PnL effect |
+|---|---|
+| `OrderFilled` / `OrdersMatched` — `exchange`, `neg-risk-ctf` · `map_all_events` | a buy spends collateral and adds outcome tokens; a sell is the reverse. The cash-flow and cost basis per `token_id`, plus the **last traded price** used to mark open positions. |
+| `PositionSplit` / `PositionsMerge` — `ctf` · `map_all_events` | a split locks *N* collateral → *N* of **each** outcome token (cash out, tokens in); a merge is the reverse. Moves position and cash with no market price. |
+| `PayoutRedemption` — `ctf` · `map_all_events` | after resolution, winning tokens burn for collateral — **realizes** that position at its payout. |
+| `ConditionResolution` — `resolution` · `map_resolution_events` | sets each outcome's final payout (0 or 1) — the **mark price** for valuing any still-open position. |
+
+Wire one `store` keyed by the trader, gated by the user index, fed the decoded events. Accumulate **realized cash** and **net position per `token_id`** (both additive); a small downstream `map` then reads the store and emits the PnL number = `realized_cash + Σ(position[token_id] × mark[token_id])`:
+
+```yaml
+imports:
+  pmusers:    ../polymarket-trader-index/polymarket-trader-index-v0.10.0.spkg
+  exchange:   ../polymarket-exchange/polymarket-exchange-v0.10.0.spkg
+  negctf:     ../polymarket-neg-risk-ctf/polymarket-neg-risk-ctf-v0.10.0.spkg
+  ctf:        ../polymarket-ctf/polymarket-ctf-v0.10.0.spkg
+  resolution: ../polymarket-resolution/polymarket-resolution-v0.10.0.spkg
+
+modules:
+  - name: store_trader_pnl
+    kind: store
+    updatePolicy: add
+    valueType: bigdecimal
+    blockFilter:
+      module: pmusers:index_users        # only the trader's blocks run
+      query: { params: true }            # "user:0x<trader>"
+    inputs:
+      - params: string
+      - map: exchange:map_all_events
+      - map: negctf:map_all_events
+      - map: ctf:map_all_events
+      - map: resolution:map_resolution_events
+```
+```rust
+// Runs ONLY on the trader's active blocks. Keep events where the trader is the
+// maker/taker (fills) or the stakeholder (split/merge/redeem); ignore the rest.
+#[substreams::handlers::store]
+fn store_trader_pnl(
+    params: String,
+    exchange: exchange_pb::AllEvents,
+    negctf:   negctf_pb::AllEvents,
+    ctf:      ctf_pb::AllEvents,
+    resolution: resolution_pb::ResolutionEvents,
+    store: StoreAddBigDecimal,
+) {
+    let trader = parse_user(&params);
+    // For each kept event, accumulate two additive ledgers:
+    //   cash:  +collateral received (sells, merges, redemptions)
+    //          −collateral paid     (buys, splits)
+    //   pos:   net outcome tokens held, per token_id
+    // store.add(format!("cash:{trader}"), cash_delta);
+    // store.add(format!("pos:{trader}:{token_id}"), qty_delta);
+    // Track each token_id's mark: last fill price, or its ConditionResolution payout once resolved.
+    // store.set(...) the mark in a sibling `set`-policy store, then a downstream map computes:
+    //   pnl = cash + Σ(pos[token_id] × mark[token_id])
+}
+```
+
+Because `store_trader_pnl` runs only on the wallet's active blocks — typically a few hundred of Polygon's ~88M — a full-history PnL backfill reads a vanishingly small slice of the chain, once `index_users` is warm. Swap the single `user:0x…` for an `||` list to track a whole cohort's PnL in one stream.
+
 ## Quick Start
 
 ### Prerequisites
