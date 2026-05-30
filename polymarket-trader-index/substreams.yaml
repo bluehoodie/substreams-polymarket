@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-trader-index
-  version: v0.9.0
+  version: v0.10.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: >-
     Foundational block index of Polymarket user activity. Emits a `user:<address>`
