@@ -813,7 +813,11 @@ dependencies = [
 name = "polymarket-substreams-common"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "ethabi 18.0.0",
  "hex",
+ "hex-literal 0.4.1",
+ "num-bigint",
  "substreams",
  "substreams-ethereum",
 ]
@@ -822,11 +826,8 @@ dependencies = [
 name = "polymarket-trader-index"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "ethabi 18.0.0",
  "hex",
  "hex-literal 0.4.1",
- "num-bigint",
  "polymarket-substreams-common",
  "prost 0.13.5",
  "prost-types 0.13.5",
