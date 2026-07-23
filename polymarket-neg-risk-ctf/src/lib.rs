@@ -635,3 +635,80 @@ mod tests {
         assert_eq!(decoded.amount, substreams::scalar::BigInt::from(amount));
     }
 }
+
+#[cfg(test)]
+mod handler_tests {
+    use super::*;
+    use substreams_ethereum::pb::eth::v2 as eth;
+
+    fn block_with_log(log: eth::Log) -> eth::Block {
+        use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
+        eth::Block {
+            number: 42,
+            header: Some(BlockHeader {
+                timestamp: Some(prost_types::Timestamp {
+                    seconds: 1_700_000_000,
+                    nanos: 0,
+                }),
+                ..Default::default()
+            }),
+            transaction_traces: vec![TransactionTrace {
+                hash: vec![0xabu8; 32],
+                status: 1,
+                receipt: Some(TransactionReceipt {
+                    logs: vec![log],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    fn topic_addr(addr: &[u8; 20]) -> Vec<u8> {
+        let mut t = vec![0u8; 12];
+        t.extend_from_slice(addr);
+        t
+    }
+
+    fn fee_charged_log() -> eth::Log {
+        let topic0 =
+            hex_literal::hex!("55bb3cade9d43b798a4fe5ffdd05024b2d7870df53920673bfc7e68047cd0ab1")
+                .to_vec();
+        let recipient = [0xccu8; 20];
+        let mut amount = [0u8; 32];
+        amount[24..].copy_from_slice(&81_580u64.to_be_bytes());
+        eth::Log {
+            address: NEG_RISK_CTF_CONTRACT_ADDRESS.to_vec(),
+            topics: vec![topic0, topic_addr(&recipient)],
+            data: amount.to_vec(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn map_all_events_classifies_fee_charged() {
+        let out = __impl_map_all_events(block_with_log(fee_charged_log())).expect("handler must not err");
+        let fees = out
+            .fee_events
+            .expect("FeeCharged must land in fee_events");
+        assert_eq!(fees.fee_charged.len(), 1);
+        assert_eq!(
+            fees.fee_charged[0].recipient,
+            "0xcccccccccccccccccccccccccccccccccccccccc"
+        );
+        // A fee event must not be classified as an exchange/admin event.
+        assert!(out.trading_events.is_none());
+        assert!(out.admin_events.is_none());
+    }
+
+    #[test]
+    fn map_all_events_empty_block_ok() {
+        let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
+        assert!(out.trading_events.is_none());
+        assert!(out.fee_events.is_none());
+        assert!(out.admin_events.is_none());
+        assert!(out.pause_events.is_none());
+        assert!(out.order_approval_events.is_none());
+    }
+}

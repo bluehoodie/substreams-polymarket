@@ -480,3 +480,74 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod handler_tests {
+    use super::*;
+    use substreams_ethereum::pb::eth::v2 as eth;
+
+    fn block_with_log(log: eth::Log) -> eth::Block {
+        use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
+        eth::Block {
+            number: 42,
+            header: Some(BlockHeader {
+                timestamp: Some(prost_types::Timestamp {
+                    seconds: 1_700_000_000,
+                    nanos: 0,
+                }),
+                ..Default::default()
+            }),
+            transaction_traces: vec![TransactionTrace {
+                hash: vec![0xabu8; 32],
+                status: 1,
+                receipt: Some(TransactionReceipt {
+                    logs: vec![log],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    fn question_flagged_log() -> eth::Log {
+        // keccak256("QuestionFlagged(bytes32)") — one indexed bytes32, no data.
+        let topic0 =
+            hex_literal::hex!("2435a0347185933b12027c6f394a5fd9c03646dba233e956f50658719dfc0b35")
+                .to_vec();
+        let question_id = [0x77u8; 32];
+        eth::Log {
+            address: CTF_ADAPTER_V2_ADDRESS.to_vec(),
+            topics: vec![topic0, question_id.to_vec()],
+            data: Vec::new(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn map_resolution_events_classifies_question_flagged() {
+        let out = __impl_map_resolution_events(block_with_log(question_flagged_log()))
+            .expect("handler must not err");
+        // A QuestionFlagged from a CTF adapter lands in adapter events, not oracle.
+        assert!(out.oracle.is_none());
+        let adapter = out.adapter.expect("QuestionFlagged must land in adapter events");
+        assert_eq!(adapter.question_flagged.len(), 1);
+        assert_eq!(adapter.question_flagged[0].question_id, [0x77u8; 32].to_vec());
+        // A flag must also emit exactly one dispute alert, sourced to adapter_v2.
+        let alerts = out
+            .dispute_alerts
+            .expect("QuestionFlagged must emit a dispute alert");
+        assert_eq!(alerts.alerts.len(), 1);
+        assert_eq!(alerts.alerts[0].alert_type, "flag");
+        assert_eq!(alerts.alerts[0].source, "adapter_v2");
+    }
+
+    #[test]
+    fn map_resolution_events_empty_block_ok() {
+        let out =
+            __impl_map_resolution_events(eth::Block::default()).expect("empty block must not panic");
+        assert!(out.oracle.is_none());
+        assert!(out.adapter.is_none());
+        assert!(out.dispute_alerts.is_none());
+    }
+}

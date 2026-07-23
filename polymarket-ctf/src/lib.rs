@@ -395,3 +395,82 @@ mod tests {
         assert_eq!(result, "0x");
     }
 }
+
+#[cfg(test)]
+mod handler_tests {
+    use super::*;
+    use substreams_ethereum::pb::eth::v2 as eth;
+
+    fn block_with_log(log: eth::Log) -> eth::Block {
+        use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
+        eth::Block {
+            number: 42,
+            header: Some(BlockHeader {
+                timestamp: Some(prost_types::Timestamp {
+                    seconds: 1_700_000_000,
+                    nanos: 0,
+                }),
+                ..Default::default()
+            }),
+            transaction_traces: vec![TransactionTrace {
+                hash: vec![0xabu8; 32],
+                status: 1,
+                receipt: Some(TransactionReceipt {
+                    logs: vec![log],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    fn topic_addr(addr: &[u8; 20]) -> Vec<u8> {
+        let mut t = vec![0u8; 12];
+        t.extend_from_slice(addr);
+        t
+    }
+
+    fn transfer_single_log() -> eth::Log {
+        let topic0 =
+            hex_literal::hex!("c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62")
+                .to_vec();
+        let operator = [0x11u8; 20];
+        let from = [0x22u8; 20];
+        let to = [0x33u8; 20];
+        eth::Log {
+            address: CTF_CONTRACT_ADDRESS.to_vec(),
+            topics: vec![
+                topic0,
+                topic_addr(&operator),
+                topic_addr(&from),
+                topic_addr(&to),
+            ],
+            data: vec![0u8; 64], // id (uint256) || value (uint256)
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn map_all_events_classifies_transfer_single() {
+        let out =
+            __impl_map_all_events(block_with_log(transfer_single_log())).expect("handler must not err");
+        let erc = out
+            .erc1155_events
+            .expect("TransferSingle from the CTF contract must land in erc1155_events");
+        assert_eq!(erc.transfer_single.len(), 1);
+        assert_eq!(
+            erc.transfer_single[0].from,
+            "0x2222222222222222222222222222222222222222"
+        );
+        // Must not be misclassified as a CTF (condition/position) event.
+        assert!(out.ctf_events.is_none());
+    }
+
+    #[test]
+    fn map_all_events_empty_block_ok() {
+        let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
+        assert!(out.ctf_events.is_none());
+        assert!(out.erc1155_events.is_none());
+    }
+}
