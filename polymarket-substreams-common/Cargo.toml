@@ -8,7 +8,7 @@ substreams = "0.7"
 substreams-ethereum = "0.11"
 hex = "0.4"
 hex-literal = "0.4"
-ethabi = "18"
+ethabi = "17"
 num-bigint = "0.4"
 
 [build-dependencies]

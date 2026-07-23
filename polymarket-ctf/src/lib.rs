@@ -6,15 +6,10 @@ use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::ctf::v1 as proto;
-
-/// Ethereum address of the Polymarket Conditional Tokens Framework (CTF) contract on Polygon.
-///
-/// This is stored as a raw 20-byte array to enable direct byte-level comparison against
-/// log addresses, avoiding the overhead of string parsing and heap allocation on every log entry.
-///
-/// See: <https://polygonscan.com/address/0x4D97DCd97eC945f40cF65F87097ACe5EA0476045>
-const CTF_CONTRACT_ADDRESS: [u8; 20] =
-    hex_literal::hex!("4D97DCd97eC945f40cF65F87097ACe5EA0476045");
+use polymarket_substreams_common::{
+    bigint_to_string, bigint_to_u32, build_tx_context, format_address,
+    CONDITIONAL_TOKENS as CTF_CONTRACT_ADDRESS,
+};
 
 /// Map module that extracts CTF-specific events from blocks
 #[substreams::handlers::map]
@@ -39,11 +34,7 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                         condition_id: event.condition_id.to_vec(),
                         oracle: format_address(&event.oracle),
                         question_id: event.question_id.to_vec(),
-                        outcome_slot_count: event
-                            .outcome_slot_count
-                            .to_string()
-                            .parse()
-                            .unwrap_or(0),
+                        outcome_slot_count: bigint_to_u32(&event.outcome_slot_count),
                         tx: Some(build_transaction_context(&blk, &log)),
                     });
             }
@@ -55,15 +46,11 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                         condition_id: event.condition_id.to_vec(),
                         oracle: format_address(&event.oracle),
                         question_id: event.question_id.to_vec(),
-                        outcome_slot_count: event
-                            .outcome_slot_count
-                            .to_string()
-                            .parse()
-                            .unwrap_or(0),
+                        outcome_slot_count: bigint_to_u32(&event.outcome_slot_count),
                         payout_numerators: event
                             .payout_numerators
                             .iter()
-                            .map(|n| n.to_string())
+                            .map(bigint_to_string)
                             .collect(),
                         tx: Some(build_transaction_context(&blk, &log)),
                     });
@@ -75,8 +62,8 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                     collateral_token: format_address(&event.collateral_token),
                     parent_collection_id: event.parent_collection_id.to_vec(),
                     condition_id: event.condition_id.to_vec(),
-                    partition: event.partition.iter().map(|n| n.to_string()).collect(),
-                    amount: event.amount.to_string(),
+                    partition: event.partition.iter().map(bigint_to_string).collect(),
+                    amount: bigint_to_string(&event.amount),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
             }
@@ -87,8 +74,8 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                     collateral_token: format_address(&event.collateral_token),
                     parent_collection_id: event.parent_collection_id.to_vec(),
                     condition_id: event.condition_id.to_vec(),
-                    partition: event.partition.iter().map(|n| n.to_string()).collect(),
-                    amount: event.amount.to_string(),
+                    partition: event.partition.iter().map(bigint_to_string).collect(),
+                    amount: bigint_to_string(&event.amount),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
             }
@@ -99,8 +86,8 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                     collateral_token: format_address(&event.collateral_token),
                     parent_collection_id: event.parent_collection_id.to_vec(),
                     condition_id: event.condition_id.to_vec(),
-                    index_sets: event.index_sets.iter().map(|n| n.to_string()).collect(),
-                    payout: event.payout.to_string(),
+                    index_sets: event.index_sets.iter().map(bigint_to_string).collect(),
+                    payout: bigint_to_string(&event.payout),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
             }
@@ -132,8 +119,8 @@ pub fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error
                     operator: format_address(&event.operator),
                     from: format_address(&event.from),
                     to: format_address(&event.to),
-                    id: event.id.to_string(),
-                    value: event.value.to_string(),
+                    id: bigint_to_string(&event.id),
+                    value: bigint_to_string(&event.value),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
             }
@@ -143,8 +130,8 @@ pub fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error
                     operator: format_address(&event.operator),
                     from: format_address(&event.from),
                     to: format_address(&event.to),
-                    ids: event.ids.iter().map(|id| id.to_string()).collect(),
-                    values: event.values.iter().map(|v| v.to_string()).collect(),
+                    ids: event.ids.iter().map(bigint_to_string).collect(),
+                    values: event.values.iter().map(bigint_to_string).collect(),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
             }
@@ -202,11 +189,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         condition_id: event.condition_id.to_vec(),
                         oracle: format_address(&event.oracle),
                         question_id: event.question_id.to_vec(),
-                        outcome_slot_count: event
-                            .outcome_slot_count
-                            .to_string()
-                            .parse()
-                            .unwrap_or(0),
+                        outcome_slot_count: bigint_to_u32(&event.outcome_slot_count),
                         tx: Some(build_transaction_context(&blk, &log)),
                     });
             }
@@ -218,15 +201,11 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         condition_id: event.condition_id.to_vec(),
                         oracle: format_address(&event.oracle),
                         question_id: event.question_id.to_vec(),
-                        outcome_slot_count: event
-                            .outcome_slot_count
-                            .to_string()
-                            .parse()
-                            .unwrap_or(0),
+                        outcome_slot_count: bigint_to_u32(&event.outcome_slot_count),
                         payout_numerators: event
                             .payout_numerators
                             .iter()
-                            .map(|n| n.to_string())
+                            .map(bigint_to_string)
                             .collect(),
                         tx: Some(build_transaction_context(&blk, &log)),
                     });
@@ -238,8 +217,8 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     collateral_token: format_address(&event.collateral_token),
                     parent_collection_id: event.parent_collection_id.to_vec(),
                     condition_id: event.condition_id.to_vec(),
-                    partition: event.partition.iter().map(|n| n.to_string()).collect(),
-                    amount: event.amount.to_string(),
+                    partition: event.partition.iter().map(bigint_to_string).collect(),
+                    amount: bigint_to_string(&event.amount),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
             }
@@ -250,8 +229,8 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     collateral_token: format_address(&event.collateral_token),
                     parent_collection_id: event.parent_collection_id.to_vec(),
                     condition_id: event.condition_id.to_vec(),
-                    partition: event.partition.iter().map(|n| n.to_string()).collect(),
-                    amount: event.amount.to_string(),
+                    partition: event.partition.iter().map(bigint_to_string).collect(),
+                    amount: bigint_to_string(&event.amount),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
             }
@@ -262,8 +241,8 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     collateral_token: format_address(&event.collateral_token),
                     parent_collection_id: event.parent_collection_id.to_vec(),
                     condition_id: event.condition_id.to_vec(),
-                    index_sets: event.index_sets.iter().map(|n| n.to_string()).collect(),
-                    payout: event.payout.to_string(),
+                    index_sets: event.index_sets.iter().map(bigint_to_string).collect(),
+                    payout: bigint_to_string(&event.payout),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
             }
@@ -275,8 +254,8 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     operator: format_address(&event.operator),
                     from: format_address(&event.from),
                     to: format_address(&event.to),
-                    id: event.id.to_string(),
-                    value: event.value.to_string(),
+                    id: bigint_to_string(&event.id),
+                    value: bigint_to_string(&event.value),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
             }
@@ -286,8 +265,8 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     operator: format_address(&event.operator),
                     from: format_address(&event.from),
                     to: format_address(&event.to),
-                    ids: event.ids.iter().map(|id| id.to_string()).collect(),
-                    values: event.values.iter().map(|v| v.to_string()).collect(),
+                    ids: event.ids.iter().map(bigint_to_string).collect(),
+                    values: event.values.iter().map(bigint_to_string).collect(),
                     tx: Some(build_transaction_context(&blk, &log)),
                 });
             }
@@ -339,42 +318,20 @@ fn is_ctf_contract(log: &eth::Log) -> bool {
     log.address == CTF_CONTRACT_ADDRESS
 }
 
-/// Formats raw bytes as a lowercase hex address string with `0x` prefix.
-///
-/// Converts an arbitrary byte slice (typically a 20-byte Ethereum address) into its
-/// hex-encoded string representation. The output is always lowercase.
-///
-/// # Examples
-///
-/// ```ignore
-/// let addr = hex_literal::hex!("4D97DCd97eC945f40cF65F87097ACe5EA0476045");
-/// assert_eq!(format_address(&addr), "0x4d97dcd97ec945f40cf65f87097ace5ea0476045");
-/// ```
-#[inline]
-fn format_address(bytes: &[u8]) -> String {
-    format!("0x{}", hex::encode(bytes))
-}
-
-/// Builds a [`proto::TransactionContext`] from block and log data.
-///
-/// Extracts transaction metadata needed to identify and locate an on-chain event:
-/// - `tx_hash`: The transaction hash, hex-encoded with `0x` prefix.
-/// - `log_index`: The log's position within the block (derived from `block_index`).
-/// - `block_number`: The block height.
-/// - `timestamp`: The block's Unix timestamp in seconds.
-///
-/// This context is attached to every emitted event to enable downstream consumers
-/// to trace events back to their originating transactions.
+/// Builds a [`proto::TransactionContext`] from block and log data via the shared
+/// `build_tx_context` helper, wrapping its package-agnostic fields into this
+/// package's proto type.
 #[inline]
 fn build_transaction_context(
     blk: &eth::Block,
     log: &substreams_ethereum::block_view::LogView,
 ) -> proto::TransactionContext {
+    let ctx = build_tx_context(blk, log);
     proto::TransactionContext {
-        tx_hash: format_address(&log.receipt.transaction.hash),
-        log_index: log.log.block_index as u64,
-        block_number: blk.number,
-        timestamp: blk.timestamp_seconds(),
+        tx_hash: ctx.tx_hash,
+        log_index: ctx.log_index,
+        block_number: ctx.block_number,
+        timestamp: ctx.timestamp,
     }
 }
 
@@ -436,5 +393,84 @@ mod tests {
         let bytes: [u8; 0] = [];
         let result = format_address(&bytes);
         assert_eq!(result, "0x");
+    }
+}
+
+#[cfg(test)]
+mod handler_tests {
+    use super::*;
+    use substreams_ethereum::pb::eth::v2 as eth;
+
+    fn block_with_log(log: eth::Log) -> eth::Block {
+        use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
+        eth::Block {
+            number: 42,
+            header: Some(BlockHeader {
+                timestamp: Some(prost_types::Timestamp {
+                    seconds: 1_700_000_000,
+                    nanos: 0,
+                }),
+                ..Default::default()
+            }),
+            transaction_traces: vec![TransactionTrace {
+                hash: vec![0xabu8; 32],
+                status: 1,
+                receipt: Some(TransactionReceipt {
+                    logs: vec![log],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    fn topic_addr(addr: &[u8; 20]) -> Vec<u8> {
+        let mut t = vec![0u8; 12];
+        t.extend_from_slice(addr);
+        t
+    }
+
+    fn transfer_single_log() -> eth::Log {
+        let topic0 =
+            hex_literal::hex!("c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62")
+                .to_vec();
+        let operator = [0x11u8; 20];
+        let from = [0x22u8; 20];
+        let to = [0x33u8; 20];
+        eth::Log {
+            address: CTF_CONTRACT_ADDRESS.to_vec(),
+            topics: vec![
+                topic0,
+                topic_addr(&operator),
+                topic_addr(&from),
+                topic_addr(&to),
+            ],
+            data: vec![0u8; 64], // id (uint256) || value (uint256)
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn map_all_events_classifies_transfer_single() {
+        let out =
+            __impl_map_all_events(block_with_log(transfer_single_log())).expect("handler must not err");
+        let erc = out
+            .erc1155_events
+            .expect("TransferSingle from the CTF contract must land in erc1155_events");
+        assert_eq!(erc.transfer_single.len(), 1);
+        assert_eq!(
+            erc.transfer_single[0].from,
+            "0x2222222222222222222222222222222222222222"
+        );
+        // Must not be misclassified as a CTF (condition/position) event.
+        assert!(out.ctf_events.is_none());
+    }
+
+    #[test]
+    fn map_all_events_empty_block_ok() {
+        let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
+        assert!(out.ctf_events.is_none());
+        assert!(out.erc1155_events.is_none());
     }
 }

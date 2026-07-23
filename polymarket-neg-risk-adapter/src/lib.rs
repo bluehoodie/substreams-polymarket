@@ -6,10 +6,10 @@ use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::neg_risk_adapter::v1 as proto;
-use polymarket_substreams_common::{bigint_to_string, build_tx_context, format_address};
-
-const NEG_RISK_ADAPTER_CONTRACT_ADDRESS: [u8; 20] =
-    hex_literal::hex!("d91E80cF2E7be2e162c6513ceD06f1dD0dA35296");
+use polymarket_substreams_common::{
+    bigint_to_string, build_tx_context, format_address,
+    NEG_RISK_ADAPTER as NEG_RISK_ADAPTER_CONTRACT_ADDRESS,
+};
 
 #[substreams::handlers::map]
 pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> {
@@ -330,5 +330,74 @@ mod tests {
         let bytes = hex_literal::hex!("d91E80cF2E7be2e162c6513ceD06f1dD0dA35296");
         let result = format_address(&bytes);
         assert_eq!(result, "0xd91e80cf2e7be2e162c6513ced06f1dd0da35296");
+    }
+}
+
+#[cfg(test)]
+mod handler_tests {
+    use super::*;
+    use substreams_ethereum::pb::eth::v2 as eth;
+
+    fn block_with_log(log: eth::Log) -> eth::Block {
+        use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
+        eth::Block {
+            number: 42,
+            header: Some(BlockHeader {
+                timestamp: Some(prost_types::Timestamp {
+                    seconds: 1_700_000_000,
+                    nanos: 0,
+                }),
+                ..Default::default()
+            }),
+            transaction_traces: vec![TransactionTrace {
+                hash: vec![0xabu8; 32],
+                status: 1,
+                receipt: Some(TransactionReceipt {
+                    logs: vec![log],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    fn outcome_reported_log() -> eth::Log {
+        let topic0 =
+            hex_literal::hex!("9e9fa7fd355160bd4cd3f22d4333519354beff1f5689bde87f2c5e63d8d484b2")
+                .to_vec();
+        let market_id = [0x77u8; 32];
+        let question_id = [0x88u8; 32];
+        let mut outcome = [0u8; 32];
+        outcome[31] = 1; // bool true
+        eth::Log {
+            address: NEG_RISK_ADAPTER_CONTRACT_ADDRESS.to_vec(),
+            topics: vec![topic0, market_id.to_vec(), question_id.to_vec()],
+            data: outcome.to_vec(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn map_all_events_classifies_outcome_reported() {
+        let out =
+            __impl_map_all_events(block_with_log(outcome_reported_log())).expect("handler must not err");
+        let market = out
+            .market_events
+            .expect("OutcomeReported must land in market_events");
+        assert_eq!(market.outcome_reported.len(), 1);
+        assert!(market.outcome_reported[0].outcome, "outcome bool must decode true");
+        assert_eq!(market.outcome_reported[0].market_id, [0x77u8; 32].to_vec());
+        // A market event must not be classified as trading/admin.
+        assert!(out.trading_events.is_none());
+        assert!(out.admin_events.is_none());
+    }
+
+    #[test]
+    fn map_all_events_empty_block_ok() {
+        let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
+        assert!(out.market_events.is_none());
+        assert!(out.trading_events.is_none());
+        assert!(out.admin_events.is_none());
     }
 }
