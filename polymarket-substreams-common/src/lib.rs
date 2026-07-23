@@ -22,7 +22,10 @@ pub fn bigint_to_string(bigint: &BigInt) -> String {
 
 #[inline]
 pub fn bigint_to_u32(bigint: &BigInt) -> u32 {
-    bigint.to_u64() as u32
+    // `BigInt::to_u64()` panics on out-of-range values, so parse the decimal
+    // string instead: any value that doesn't fit a u32 (or is negative) yields
+    // 0 via `unwrap_or`, which cannot panic in a handler.
+    bigint.to_string().parse::<u32>().unwrap_or(0)
 }
 
 #[inline]
@@ -310,6 +313,14 @@ mod tests {
     fn test_bigint_to_u32_max() {
         let val = BigInt::from(u32::MAX as u64);
         assert_eq!(bigint_to_u32(&val), u32::MAX);
+    }
+
+    #[test]
+    fn test_bigint_to_u32_overflow_saturates_to_zero() {
+        // A uint256 beyond u32::MAX must not panic — it maps to 0 rather than
+        // truncating or aborting the handler.
+        let val = BigInt::from(u32::MAX as u64 + 1);
+        assert_eq!(bigint_to_u32(&val), 0);
     }
 }
 
