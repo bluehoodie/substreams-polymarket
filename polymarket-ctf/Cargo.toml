@@ -15,6 +15,7 @@ hex-literal = "0.4"
 hex = "0.4"
 ethabi = "17"
 num-bigint = "0.4"
+polymarket-substreams-common = { path = "../polymarket-substreams-common" }
 
 [build-dependencies]
 anyhow = "1.0"

@@ -678,6 +678,7 @@ dependencies = [
  "hex",
  "hex-literal 0.4.1",
  "num-bigint",
+ "polymarket-substreams-common",
  "prost 0.13.5",
  "prost-types 0.13.5",
  "substreams",
