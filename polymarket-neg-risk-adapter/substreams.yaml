@@ -3,6 +3,7 @@ package:
   name: polymarket-neg-risk-adapter
   version: v0.11.0
   url: https://github.com/bluehoodie/substreams-polymarket
+  description: Polymarket NegRiskAdapter events — market preparation, trading (convert/split/merge/redeem), and admin actions
   image: ./polymarket.png
 
 network: polygon

@@ -3,7 +3,8 @@ package:
   name: polymarket-ctf
   version: v0.11.0
   url: https://github.com/bluehoodie/substreams-polymarket
-  image: ./polymarket.png  
+  description: Polymarket Conditional Tokens Framework events — position split/merge/redeem and ERC-1155 transfers
+  image: ./polymarket.png
 
 network: polygon
 
