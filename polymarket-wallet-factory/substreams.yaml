@@ -9,7 +9,7 @@ network: polygon
 
 imports:
   ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
-  eth_common: ethereum_common@v0.3.3
+  eth_common: https://spkg.io/v1/packages/ethereum-common/v0.3.3
 
 protobuf:
   files:
