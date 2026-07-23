@@ -83,9 +83,9 @@ The powerful pattern is **composition**: use `index_users` as the block-skip *ga
 
 ```yaml
 imports:
-  pmusers:   ../polymarket-trader-index/polymarket-trader-index-v0.10.0.spkg
-  exchange:  ../polymarket-exchange/polymarket-exchange-v0.10.0.spkg
-  ctf:       ../polymarket-ctf/polymarket-ctf-v0.10.0.spkg
+  pmusers:   ../polymarket-trader-index/polymarket-trader-index-v0.11.0.spkg
+  exchange:  ../polymarket-exchange/polymarket-exchange-v0.11.0.spkg
+  ctf:       ../polymarket-ctf/polymarket-ctf-v0.11.0.spkg
   # …import whichever contract packages you care about
 
 modules:
@@ -138,11 +138,11 @@ Wire one `store` keyed by the trader, gated by the user index, fed the decoded e
 
 ```yaml
 imports:
-  pmusers:    ../polymarket-trader-index/polymarket-trader-index-v0.10.0.spkg
-  exchange:   ../polymarket-exchange/polymarket-exchange-v0.10.0.spkg
-  negctf:     ../polymarket-neg-risk-ctf/polymarket-neg-risk-ctf-v0.10.0.spkg
-  ctf:        ../polymarket-ctf/polymarket-ctf-v0.10.0.spkg
-  resolution: ../polymarket-resolution/polymarket-resolution-v0.10.0.spkg
+  pmusers:    ../polymarket-trader-index/polymarket-trader-index-v0.11.0.spkg
+  exchange:   ../polymarket-exchange/polymarket-exchange-v0.11.0.spkg
+  negctf:     ../polymarket-neg-risk-ctf/polymarket-neg-risk-ctf-v0.11.0.spkg
+  ctf:        ../polymarket-ctf/polymarket-ctf-v0.11.0.spkg
+  resolution: ../polymarket-resolution/polymarket-resolution-v0.11.0.spkg
 
 modules:
   - name: store_trader_pnl
@@ -209,6 +209,7 @@ make build-neg-risk-adapter
 make build-collateral
 make build-resolution
 make build-wallet-factory
+make build-trader-index
 ```
 
 ### Run
@@ -233,6 +234,11 @@ substreams run polymarket-resolution/substreams.yaml map_resolution_events \
 # Wallet deployments
 substreams run polymarket-wallet-factory/substreams.yaml map_factory_events \
   -s 84902000 -t +10000
+
+# One wallet's full Polymarket activity (user: index — pass the wallet as a param)
+substreams run polymarket-trader-index/substreams.yaml map_user_activity \
+  -p map_user_activity="user:0xefe62ed1df3f4afcc8a2afe2e4e8fcde965c9520" \
+  -s 4023686 -t +1000000
 ```
 
 ## V2 Event Changes (exchange packages)
