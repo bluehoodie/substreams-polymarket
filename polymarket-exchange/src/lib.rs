@@ -8,10 +8,8 @@ use substreams_ethereum::pb::eth::v2 as eth;
 use pb::polymarket::exchange::v1 as proto;
 use polymarket_substreams_common::{
     bigint_to_string, bigint_to_u32, build_tx_context, format_address,
+    CTF_EXCHANGE as CTF_EXCHANGE_CONTRACT_ADDRESS,
 };
-
-const CTF_EXCHANGE_CONTRACT_ADDRESS: [u8; 20] =
-    hex_literal::hex!("E111180000d2663C0091e4f400237545B87B996B");
 
 #[substreams::handlers::map]
 pub fn map_exchange_events(blk: eth::Block) -> Result<proto::ExchangeEvents, Error> {

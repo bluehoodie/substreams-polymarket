@@ -6,10 +6,10 @@ use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::neg_risk_adapter::v1 as proto;
-use polymarket_substreams_common::{bigint_to_string, build_tx_context, format_address};
-
-const NEG_RISK_ADAPTER_CONTRACT_ADDRESS: [u8; 20] =
-    hex_literal::hex!("d91E80cF2E7be2e162c6513ceD06f1dD0dA35296");
+use polymarket_substreams_common::{
+    bigint_to_string, build_tx_context, format_address,
+    NEG_RISK_ADAPTER as NEG_RISK_ADAPTER_CONTRACT_ADDRESS,
+};
 
 #[substreams::handlers::map]
 pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> {

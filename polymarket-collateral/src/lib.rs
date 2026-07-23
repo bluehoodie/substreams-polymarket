@@ -6,14 +6,12 @@ use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::collateral::v1 as proto;
-use polymarket_substreams_common::{bigint_to_string, build_tx_context, format_address};
-
-const PUSD_CONTRACT_ADDRESS: [u8; 20] =
-    hex_literal::hex!("C011a7E12a19f7B1f670d46F03B03f3342E82DFB");
-const CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] =
-    hex_literal::hex!("AdA100Db00Ca00073811820692005400218FcE1f");
-const NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] =
-    hex_literal::hex!("adA2005600Dec949baf300f4C6120000bDB6eAab");
+use polymarket_substreams_common::{
+    bigint_to_string, build_tx_context, format_address,
+    CTF_COLLATERAL_ADAPTER as CTF_COLLATERAL_ADAPTER_ADDRESS,
+    NEG_RISK_CTF_COLLATERAL_ADAPTER as NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS,
+    PUSD as PUSD_CONTRACT_ADDRESS,
+};
 
 #[substreams::handlers::map]
 pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {

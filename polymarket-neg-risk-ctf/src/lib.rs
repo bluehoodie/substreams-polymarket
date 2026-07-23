@@ -8,10 +8,8 @@ use substreams_ethereum::pb::eth::v2 as eth;
 use pb::polymarket::neg_risk_ctf::v1 as proto;
 use polymarket_substreams_common::{
     bigint_to_string, bigint_to_u32, build_tx_context, format_address,
+    NEG_RISK_CTF as NEG_RISK_CTF_CONTRACT_ADDRESS,
 };
-
-const NEG_RISK_CTF_CONTRACT_ADDRESS: [u8; 20] =
-    hex_literal::hex!("e2222d279d744050d28e00520010520000310F59");
 
 #[substreams::handlers::map]
 pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {

@@ -6,10 +6,9 @@ use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::wallet_factory::v1 as proto;
-use polymarket_substreams_common::{build_tx_context, format_address};
-
-const DEPOSIT_WALLET_FACTORY_ADDRESS: [u8; 20] =
-    hex_literal::hex!("00000000000Fb5C9ADea0298D729A0CB3823Cc07");
+use polymarket_substreams_common::{
+    build_tx_context, format_address, DEPOSIT_WALLET_FACTORY as DEPOSIT_WALLET_FACTORY_ADDRESS,
+};
 
 #[substreams::handlers::map]
 pub fn map_factory_events(blk: eth::Block) -> Result<proto::FactoryEvents, Error> {

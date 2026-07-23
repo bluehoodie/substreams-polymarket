@@ -8,16 +8,8 @@ use substreams_ethereum::pb::eth::v2 as eth;
 use pb::polymarket::ctf::v1 as proto;
 use polymarket_substreams_common::{
     bigint_to_string, bigint_to_u32, build_tx_context, format_address,
+    CONDITIONAL_TOKENS as CTF_CONTRACT_ADDRESS,
 };
-
-/// Ethereum address of the Polymarket Conditional Tokens Framework (CTF) contract on Polygon.
-///
-/// This is stored as a raw 20-byte array to enable direct byte-level comparison against
-/// log addresses, avoiding the overhead of string parsing and heap allocation on every log entry.
-///
-/// See: <https://polygonscan.com/address/0x4D97DCd97eC945f40cF65F87097ACe5EA0476045>
-const CTF_CONTRACT_ADDRESS: [u8; 20] =
-    hex_literal::hex!("4D97DCd97eC945f40cF65F87097ACe5EA0476045");
 
 /// Map module that extracts CTF-specific events from blocks
 #[substreams::handlers::map]
