@@ -73,7 +73,7 @@ A `blockFilter` query is a boolean expression over keys — `&&` (and), `||` (or
 **1. Stream a single contract's events.** Every `map_*` module is already wired to the foundational `eth_common:index_events` (`evt_addr:`), so backfills skip irrelevant blocks automatically — with no local index to warm:
 
 ```bash
-substreams run polymarket-collateral/substreams.yaml map_pusd_events -s 85049190 -t +500000
+substreams run polymarket-collateral/substreams.yaml map_pusd_events -s 84902320 -t +500000
 # only blocks containing a pUSD log are processed
 ```
 

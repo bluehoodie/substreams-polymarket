@@ -5,7 +5,7 @@ Substreams package for extracting pUSD collateral-token and CTF collateral-adapt
 ## Contract Information
 
 - **Network**: Polygon
-- **Initial Block**: 85049190
+- **Initial Block**: 84902320
 
 | Contract | Address |
 |----------|---------|
@@ -43,7 +43,7 @@ cd polymarket-collateral && substreams pack
 ```bash
 substreams run substreams.yaml map_all_events \
   --network polygon \
-  --start-block 85049190 \
+  --start-block 84902320 \
   --stop-block +1000
 ```
 
