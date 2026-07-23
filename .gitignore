@@ -2,3 +2,4 @@ replay.log
 *.spkg
 .worktrees/
 **/target/
+.DS_Store
