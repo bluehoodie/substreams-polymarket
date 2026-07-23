@@ -13,7 +13,7 @@ prost = "0.13"
 prost-types = "0.13"
 hex-literal = "0.4"
 hex = "0.4"
-ethabi = "18"
+ethabi = "17"
 num-bigint = "0.4"
 
 [build-dependencies]
