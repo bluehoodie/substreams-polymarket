@@ -29,16 +29,12 @@ cd polymarket-ctf && substreams build
 ### Create the Substreams package:
 
 ```bash
-make package-ctf
-# or
 cd polymarket-ctf && substreams pack
 ```
 
 ### Run the Substreams:
 
 ```bash
-make run-ctf
-# or
 substreams run substreams.yaml map_all_events \
   --network polygon \
   --start-block -1000

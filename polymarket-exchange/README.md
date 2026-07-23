@@ -32,16 +32,12 @@ cd polymarket-exchange && substreams build
 ### Create the Substreams package:
 
 ```bash
-make package-exchange
-# or
 cd polymarket-exchange && substreams pack
 ```
 
 ### Run the Substreams:
 
 ```bash
-make run-exchange
-# or
 substreams run substreams.yaml map_all_events \
   --network polygon \
   --start-block -1000
