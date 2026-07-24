@@ -74,7 +74,7 @@ supply the decoded events:
 
 ```yaml
 imports:
-  pmusers: ../polymarket-trader-index/polymarket-trader-index-v0.11.0.spkg
+  pmusers: ../polymarket-trader-index/polymarket-trader-index-v0.12.0.spkg
 
 modules:
   - name: map_wallet_activity

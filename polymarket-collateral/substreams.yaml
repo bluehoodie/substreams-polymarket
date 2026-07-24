@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-collateral
-  version: v0.11.0
+  version: v0.12.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: Polymarket collateral events — pUSD token plus the CTF and Neg Risk CTF collateral adapters
   image: ./polymarket.png

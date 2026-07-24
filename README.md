@@ -83,9 +83,9 @@ The powerful pattern is **composition**: use `index_users` as the block-skip *ga
 
 ```yaml
 imports:
-  pmusers:   ../polymarket-trader-index/polymarket-trader-index-v0.11.0.spkg
-  exchange:  ../polymarket-exchange/polymarket-exchange-v0.11.0.spkg
-  ctf:       ../polymarket-ctf/polymarket-ctf-v0.11.0.spkg
+  pmusers:   ../polymarket-trader-index/polymarket-trader-index-v0.12.0.spkg
+  exchange:  ../polymarket-exchange/polymarket-exchange-v0.12.0.spkg
+  ctf:       ../polymarket-ctf/polymarket-ctf-v0.12.0.spkg
   # …import whichever contract packages you care about
 
 modules:
@@ -138,11 +138,11 @@ Wire one `store` keyed by the trader, gated by the user index, fed the decoded e
 
 ```yaml
 imports:
-  pmusers:    ../polymarket-trader-index/polymarket-trader-index-v0.11.0.spkg
-  exchange:   ../polymarket-exchange/polymarket-exchange-v0.11.0.spkg
-  negctf:     ../polymarket-neg-risk-ctf/polymarket-neg-risk-ctf-v0.11.0.spkg
-  ctf:        ../polymarket-ctf/polymarket-ctf-v0.11.0.spkg
-  resolution: ../polymarket-resolution/polymarket-resolution-v0.11.0.spkg
+  pmusers:    ../polymarket-trader-index/polymarket-trader-index-v0.12.0.spkg
+  exchange:   ../polymarket-exchange/polymarket-exchange-v0.12.0.spkg
+  negctf:     ../polymarket-neg-risk-ctf/polymarket-neg-risk-ctf-v0.12.0.spkg
+  ctf:        ../polymarket-ctf/polymarket-ctf-v0.12.0.spkg
+  resolution: ../polymarket-resolution/polymarket-resolution-v0.12.0.spkg
 
 modules:
   - name: store_trader_pnl
