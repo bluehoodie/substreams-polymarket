@@ -6,14 +6,12 @@ use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::collateral::v1 as proto;
-use polymarket_substreams_common::{bigint_to_string, build_tx_context, format_address};
-
-const PUSD_CONTRACT_ADDRESS: [u8; 20] =
-    hex_literal::hex!("C011a7E12a19f7B1f670d46F03B03f3342E82DFB");
-const CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] =
-    hex_literal::hex!("AdA100Db00Ca00073811820692005400218FcE1f");
-const NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS: [u8; 20] =
-    hex_literal::hex!("adA2005600Dec949baf300f4C6120000bDB6eAab");
+use polymarket_substreams_common::{
+    bigint_to_string, build_tx_context, format_address,
+    CTF_COLLATERAL_ADAPTER as CTF_COLLATERAL_ADAPTER_ADDRESS,
+    NEG_RISK_CTF_COLLATERAL_ADAPTER as NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS,
+    PUSD as PUSD_CONTRACT_ADDRESS,
+};
 
 #[substreams::handlers::map]
 pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
@@ -424,5 +422,81 @@ mod tests {
         let bytes = hex_literal::hex!("C011a7E12a19f7B1f670d46F03B03f3342E82DFB");
         let result = format_address(&bytes);
         assert_eq!(result, "0xc011a7e12a19f7b1f670d46f03b03f3342e82dfb");
+    }
+}
+
+#[cfg(test)]
+mod handler_tests {
+    use super::*;
+    use substreams_ethereum::pb::eth::v2 as eth;
+
+    fn block_with_log(log: eth::Log) -> eth::Block {
+        use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
+        eth::Block {
+            number: 42,
+            header: Some(BlockHeader {
+                timestamp: Some(prost_types::Timestamp {
+                    seconds: 1_700_000_000,
+                    nanos: 0,
+                }),
+                ..Default::default()
+            }),
+            transaction_traces: vec![TransactionTrace {
+                hash: vec![0xabu8; 32],
+                status: 1,
+                receipt: Some(TransactionReceipt {
+                    logs: vec![log],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    fn topic_addr(addr: &[u8; 20]) -> Vec<u8> {
+        let mut t = vec![0u8; 12];
+        t.extend_from_slice(addr);
+        t
+    }
+
+    fn pusd_transfer_log() -> eth::Log {
+        let topic0 =
+            hex_literal::hex!("ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
+                .to_vec();
+        let from = [0x22u8; 20];
+        let to = [0x33u8; 20];
+        let mut value = [0u8; 32];
+        value[24..].copy_from_slice(&1_000_000u64.to_be_bytes());
+        eth::Log {
+            address: PUSD_CONTRACT_ADDRESS.to_vec(),
+            topics: vec![topic0, topic_addr(&from), topic_addr(&to)],
+            data: value.to_vec(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn map_all_events_classifies_pusd_transfer() {
+        let out = __impl_map_all_events(block_with_log(pusd_transfer_log())).expect("handler must not err");
+        let pusd = out
+            .pusd_events
+            .expect("Transfer from the pUSD contract must land in pusd_events");
+        assert_eq!(pusd.transfer.len(), 1);
+        assert_eq!(
+            pusd.transfer[0].from,
+            "0x2222222222222222222222222222222222222222"
+        );
+        // A pUSD event must not be classified as an adapter event.
+        assert!(out.ctf_adapter_events.is_none());
+        assert!(out.neg_risk_ctf_adapter_events.is_none());
+    }
+
+    #[test]
+    fn map_all_events_empty_block_ok() {
+        let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
+        assert!(out.pusd_events.is_none());
+        assert!(out.ctf_adapter_events.is_none());
+        assert!(out.neg_risk_ctf_adapter_events.is_none());
     }
 }

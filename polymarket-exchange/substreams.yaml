@@ -1,15 +1,15 @@
 specVersion: v0.1.0
 package:
   name: polymarket-exchange
-  version: v0.11.0
+  version: v0.12.0
   url: https://github.com/bluehoodie/substreams-polymarket
+  description: Polymarket CTF Exchange V2 events — order fills, fees, admin, pause, and order approvals
   image: ./polymarket.png
 
 network: polygon
 
 imports:
-  ethereum: https://github.com/streamingfast/substreams-ethereum/releases/download/v0.11.1/substreams-ethereum-v0.11.1.spkg
-  eth_common: ethereum_common@v0.3.3
+  eth_common: https://spkg.io/v1/packages/ethereum-common/v0.3.3
 
 protobuf:
   files:
@@ -25,7 +25,7 @@ binaries:
 modules:
   - name: map_exchange_events
     kind: map
-    initialBlock: 84934480
+    initialBlock: 84902353
     blockFilter:
       module: eth_common:index_events
       query:
@@ -37,7 +37,7 @@ modules:
 
   - name: map_fee_events
     kind: map
-    initialBlock: 84934480
+    initialBlock: 84902353
     blockFilter:
       module: eth_common:index_events
       query:
@@ -49,7 +49,7 @@ modules:
 
   - name: map_admin_events
     kind: map
-    initialBlock: 84934480
+    initialBlock: 84902353
     blockFilter:
       module: eth_common:index_events
       query:
@@ -61,7 +61,7 @@ modules:
 
   - name: map_pause_events
     kind: map
-    initialBlock: 84934480
+    initialBlock: 84902353
     blockFilter:
       module: eth_common:index_events
       query:
@@ -73,7 +73,7 @@ modules:
 
   - name: map_approval_events
     kind: map
-    initialBlock: 84934480
+    initialBlock: 84902353
     blockFilter:
       module: eth_common:index_events
       query:
@@ -85,7 +85,7 @@ modules:
 
   - name: map_all_events
     kind: map
-    initialBlock: 84934480
+    initialBlock: 84902353
     blockFilter:
       module: eth_common:index_events
       query:

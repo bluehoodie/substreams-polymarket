@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    name: clippy, test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No explicit toolchain install: rustup (preinstalled on the runner) reads
+      # rust-toolchain.toml and auto-installs the pinned channel, components, and target
+      # on the first cargo invocation below.
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # No `cargo fmt --all -- --check` gate: build.rs regenerates src/abi/ (and buf
+      # regenerates src/pb/) as non-rustfmt-formatted code on every build, so a
+      # workspace-wide fmt check can never stay green. Clippy + tests are the gates.
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace

@@ -24,7 +24,7 @@ Substreams package for extracting events from the Polymarket Negative Risk Condi
 ### Build the WASM binary:
 
 ```bash
-make build-neg-risk
+make build-neg-risk-ctf
 # or
 cd polymarket-neg-risk-ctf && substreams build
 ```
@@ -32,16 +32,12 @@ cd polymarket-neg-risk-ctf && substreams build
 ### Create the Substreams package:
 
 ```bash
-make package-neg-risk
-# or
 cd polymarket-neg-risk-ctf && substreams pack
 ```
 
 ### Run the Substreams:
 
 ```bash
-make run-neg-risk
-# or
 substreams run substreams.yaml map_all_events \
   --network polygon \
   --start-block -1000

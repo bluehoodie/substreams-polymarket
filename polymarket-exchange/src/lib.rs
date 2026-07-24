@@ -8,10 +8,8 @@ use substreams_ethereum::pb::eth::v2 as eth;
 use pb::polymarket::exchange::v1 as proto;
 use polymarket_substreams_common::{
     bigint_to_string, bigint_to_u32, build_tx_context, format_address,
+    CTF_EXCHANGE as CTF_EXCHANGE_CONTRACT_ADDRESS,
 };
-
-const CTF_EXCHANGE_CONTRACT_ADDRESS: [u8; 20] =
-    hex_literal::hex!("E111180000d2663C0091e4f400237545B87B996B");
 
 #[substreams::handlers::map]
 pub fn map_exchange_events(blk: eth::Block) -> Result<proto::ExchangeEvents, Error> {
@@ -641,5 +639,98 @@ mod tests {
         let decoded = FeeCharged::decode(&log).expect("decode must succeed for valid log");
         assert_eq!(decoded.recipient, recipient_addr.to_vec());
         assert_eq!(decoded.amount, substreams::scalar::BigInt::from(amount));
+    }
+}
+
+#[cfg(test)]
+mod handler_tests {
+    use super::*;
+    use substreams_ethereum::pb::eth::v2 as eth;
+
+    /// Wraps a single log in a minimal successful-transaction block whose header
+    /// carries a timestamp, so `map_all_events` can build a transaction context
+    /// (which unwraps `blk.header.timestamp`) without panicking.
+    fn block_with_log(log: eth::Log) -> eth::Block {
+        use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
+        eth::Block {
+            number: 42,
+            header: Some(BlockHeader {
+                timestamp: Some(prost_types::Timestamp {
+                    seconds: 1_700_000_000,
+                    nanos: 0,
+                }),
+                ..Default::default()
+            }),
+            transaction_traces: vec![TransactionTrace {
+                hash: vec![0xabu8; 32],
+                status: 1,
+                receipt: Some(TransactionReceipt {
+                    logs: vec![log],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    fn order_filled_log() -> eth::Log {
+        let topic0 =
+            hex_literal::hex!("d543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee")
+                .to_vec();
+        let order_hash = [0x11u8; 32];
+        let maker = hex_literal::hex!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        let taker = hex_literal::hex!("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+        let mut maker_t = [0u8; 32];
+        maker_t[12..].copy_from_slice(&maker);
+        let mut taker_t = [0u8; 32];
+        taker_t[12..].copy_from_slice(&taker);
+        let word = |v: u64| {
+            let mut w = [0u8; 32];
+            w[24..].copy_from_slice(&v.to_be_bytes());
+            w
+        };
+        let mut data = Vec::new();
+        data.extend_from_slice(&word(1)); // side
+        data.extend_from_slice(&word(0x1234)); // token_id
+        data.extend_from_slice(&word(1_000_000)); // maker_amount_filled
+        data.extend_from_slice(&word(2_000_000)); // taker_amount_filled
+        data.extend_from_slice(&word(500)); // fee
+        data.extend_from_slice(&[0xAAu8; 32]); // builder
+        data.extend_from_slice(&[0xBBu8; 32]); // metadata
+        eth::Log {
+            address: CTF_EXCHANGE_CONTRACT_ADDRESS.to_vec(),
+            topics: vec![topic0, order_hash.to_vec(), maker_t.to_vec(), taker_t.to_vec()],
+            data,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn map_all_events_classifies_order_filled() {
+        let out = __impl_map_all_events(block_with_log(order_filled_log())).expect("handler must not err");
+        let ex = out
+            .exchange_events
+            .expect("OrderFilled from the exchange contract must land in exchange_events");
+        assert_eq!(ex.order_filled.len(), 1, "exactly one OrderFilled expected");
+        assert_eq!(
+            ex.order_filled[0].maker,
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        );
+        // Classification is exclusive: an OrderFilled must not leak into other buckets.
+        assert!(out.fee_events.is_none());
+        assert!(out.admin_events.is_none());
+        assert!(out.pause_events.is_none());
+        assert!(out.order_approval_events.is_none());
+    }
+
+    #[test]
+    fn map_all_events_empty_block_ok() {
+        let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
+        assert!(out.exchange_events.is_none());
+        assert!(out.fee_events.is_none());
+        assert!(out.admin_events.is_none());
+        assert!(out.pause_events.is_none());
+        assert!(out.order_approval_events.is_none());
     }
 }
