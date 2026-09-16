@@ -1,4 +1,3 @@
-pub mod abi;
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
@@ -13,7 +12,7 @@ use polymarket_substreams_common::{
 
 #[substreams::handlers::map]
 pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
-    use abi::neg_risk_ctf::events::*;
+    use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::TradingEvents::default();
 
@@ -58,7 +57,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
 
 #[substreams::handlers::map]
 pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
-    use abi::neg_risk_ctf::events::*;
+    use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::FeeEvents::default();
 
@@ -97,7 +96,7 @@ pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
-    use abi::neg_risk_ctf::events::*;
+    use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::AdminEvents::default();
 
@@ -146,7 +145,7 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
-    use abi::neg_risk_ctf::events::*;
+    use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::PauseEvents::default();
 
@@ -188,7 +187,7 @@ pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents, Error> {
-    use abi::neg_risk_ctf::events::*;
+    use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::OrderApprovalEvents::default();
 
@@ -221,7 +220,7 @@ pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents
 
 #[substreams::handlers::map]
 pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
-    use abi::neg_risk_ctf::events::*;
+    use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut trading_events = proto::TradingEvents::default();
     let mut fee_events = proto::FeeEvents::default();
@@ -465,7 +464,7 @@ mod tests {
 
     #[test]
     fn test_order_filled_decodes_valid_log() {
-        use crate::abi::neg_risk_ctf::events::OrderFilled;
+        use polymarket_substreams_common::abi::neg_risk_ctf::events::OrderFilled;
 
         // keccak256("OrderFilled(bytes32,address,address,uint8,uint256,uint256,uint256,uint256,bytes32,bytes32)")
         // mirrors the generated binding's TOPIC_ID
@@ -545,7 +544,7 @@ mod tests {
 
     #[test]
     fn test_order_filled_rejects_wrong_topic() {
-        use crate::abi::neg_risk_ctf::events::OrderFilled;
+        use polymarket_substreams_common::abi::neg_risk_ctf::events::OrderFilled;
 
         // keccak256("OrderFilled(bytes32,address,address,uint8,uint256,uint256,uint256,uint256,bytes32,bytes32)")
         // mirrors the generated binding's TOPIC_ID
@@ -599,7 +598,7 @@ mod tests {
 
     #[test]
     fn test_fee_charged_decodes_valid_log() {
-        use crate::abi::neg_risk_ctf::events::FeeCharged;
+        use polymarket_substreams_common::abi::neg_risk_ctf::events::FeeCharged;
 
         // keccak256("FeeCharged(address,uint256)")
         // mirrors the generated binding's TOPIC_ID
@@ -688,10 +687,9 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_classifies_fee_charged() {
-        let out = __impl_map_all_events(block_with_log(fee_charged_log())).expect("handler must not err");
-        let fees = out
-            .fee_events
-            .expect("FeeCharged must land in fee_events");
+        let out =
+            __impl_map_all_events(block_with_log(fee_charged_log())).expect("handler must not err");
+        let fees = out.fee_events.expect("FeeCharged must land in fee_events");
         assert_eq!(fees.fee_charged.len(), 1);
         assert_eq!(
             fees.fee_charged[0].recipient,
