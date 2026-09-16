@@ -1,4 +1,3 @@
-pub mod abi;
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
@@ -14,7 +13,7 @@ use polymarket_substreams_common::{
 /// Map module that extracts CTF-specific events from blocks
 #[substreams::handlers::map]
 pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
-    use abi::conditional_tokens::events::*;
+    use polymarket_substreams_common::abi::conditional_tokens::events::*;
 
     let mut events = proto::CtfEvents::default();
 
@@ -101,7 +100,7 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
 /// Map module that extracts ERC1155 events from blocks
 #[substreams::handlers::map]
 pub fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error> {
-    use abi::conditional_tokens::events::*;
+    use polymarket_substreams_common::abi::conditional_tokens::events::*;
 
     let mut events = proto::Erc1155Events::default();
 
@@ -167,7 +166,7 @@ pub fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error
 /// AllEvents message containing all extracted event types with optional fields
 #[substreams::handlers::map]
 pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
-    use abi::conditional_tokens::events::*;
+    use polymarket_substreams_common::abi::conditional_tokens::events::*;
 
     // Initialize all event collectors
     let mut ctf_events = proto::CtfEvents::default();
@@ -453,8 +452,8 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_classifies_transfer_single() {
-        let out =
-            __impl_map_all_events(block_with_log(transfer_single_log())).expect("handler must not err");
+        let out = __impl_map_all_events(block_with_log(transfer_single_log()))
+            .expect("handler must not err");
         let erc = out
             .erc1155_events
             .expect("TransferSingle from the CTF contract must land in erc1155_events");

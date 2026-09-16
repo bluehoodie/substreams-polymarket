@@ -1,4 +1,3 @@
-pub mod abi;
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
@@ -13,7 +12,7 @@ use polymarket_substreams_common::{
 
 #[substreams::handlers::map]
 pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> {
-    use abi::neg_risk_adapter::events::*;
+    use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut events = proto::MarketEvents::default();
 
@@ -59,7 +58,7 @@ pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> 
 
 #[substreams::handlers::map]
 pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
-    use abi::neg_risk_adapter::events::*;
+    use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut events = proto::TradingEvents::default();
 
@@ -114,7 +113,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
 
 #[substreams::handlers::map]
 pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
-    use abi::neg_risk_adapter::events::*;
+    use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut events = proto::AdminEvents::default();
 
@@ -147,7 +146,7 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
-    use abi::neg_risk_adapter::events::*;
+    use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut market_events = proto::MarketEvents::default();
     let mut trading_events = proto::TradingEvents::default();
@@ -380,13 +379,16 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_classifies_outcome_reported() {
-        let out =
-            __impl_map_all_events(block_with_log(outcome_reported_log())).expect("handler must not err");
+        let out = __impl_map_all_events(block_with_log(outcome_reported_log()))
+            .expect("handler must not err");
         let market = out
             .market_events
             .expect("OutcomeReported must land in market_events");
         assert_eq!(market.outcome_reported.len(), 1);
-        assert!(market.outcome_reported[0].outcome, "outcome bool must decode true");
+        assert!(
+            market.outcome_reported[0].outcome,
+            "outcome bool must decode true"
+        );
         assert_eq!(market.outcome_reported[0].market_id, [0x77u8; 32].to_vec());
         // A market event must not be classified as trading/admin.
         assert!(out.trading_events.is_none());

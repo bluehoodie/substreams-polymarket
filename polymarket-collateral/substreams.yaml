@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-collateral
-  version: v0.12.0
+  version: v0.13.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: Polymarket collateral events — pUSD token plus the CTF and Neg Risk CTF collateral adapters
   image: ./polymarket.png
@@ -34,6 +34,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.collateral.v1.PusdEvents
+    doc: |
+      Extracts pUSD collateral-token events (Transfer, Wrapped, Unwrapped)
+      from the pUSD contract.
 
   - name: map_ctf_adapter_events
     kind: map
@@ -46,6 +49,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.collateral.v1.CtfAdapterEvents
+    doc: |
+      Extracts CtfCollateralAdapter events (PositionSplit, PositionsMerged,
+      PositionsRedeemed).
 
   - name: map_neg_risk_ctf_adapter_events
     kind: map
@@ -58,6 +64,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.collateral.v1.NegRiskCtfAdapterEvents
+    doc: |
+      Extracts NegRiskCtfCollateralAdapter events (PositionSplit,
+      PositionsMerged, PositionsRedeemed, PositionsConverted).
 
   - name: map_all_events
     kind: map
@@ -73,3 +82,7 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.collateral.v1.AllEvents
+    doc: |
+      Extracts all collateral events (pUSD token + CTF and Neg-Risk-CTF
+      collateral adapters) decoded from a single pass over the three
+      contract addresses.

@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-neg-risk-adapter
-  version: v0.12.0
+  version: v0.13.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: Polymarket NegRiskAdapter events — market preparation, trading (convert/split/merge/redeem), and admin actions
   image: ./polymarket.png
@@ -34,6 +34,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_adapter.v1.MarketEvents
+    doc: |
+      Extracts market/question lifecycle events (MarketPrepared,
+      QuestionPrepared, OutcomeReported) from the NegRiskAdapter contract.
 
   - name: map_trading_events
     kind: map
@@ -46,6 +49,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_adapter.v1.TradingEvents
+    doc: |
+      Extracts position and redemption events (PositionSplit, PositionsMerge,
+      PositionsConverted, PayoutRedemption) from the NegRiskAdapter contract.
 
   - name: map_admin_events
     kind: map
@@ -58,6 +64,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_adapter.v1.AdminEvents
+    doc: |
+      Extracts admin role events (NewAdmin, RemovedAdmin) from the
+      NegRiskAdapter contract.
 
   - name: map_all_events
     kind: map
@@ -70,3 +79,6 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_adapter.v1.AllEvents
+    doc: |
+      Extracts all NegRiskAdapter events (market lifecycle, trading,
+      admin) from a single pass over the NegRiskAdapter contract.

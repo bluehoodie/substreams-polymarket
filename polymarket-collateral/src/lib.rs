@@ -1,4 +1,3 @@
-pub mod abi;
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
@@ -15,7 +14,7 @@ use polymarket_substreams_common::{
 
 #[substreams::handlers::map]
 pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
-    use abi::p_usd::events::*;
+    use polymarket_substreams_common::abi::p_usd::events::*;
 
     let mut events = proto::PusdEvents::default();
 
@@ -61,7 +60,7 @@ pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents, Error> {
-    use abi::ctf_collateral_adapter::events::*;
+    use polymarket_substreams_common::abi::ctf_collateral_adapter::events::*;
 
     let mut events = proto::CtfAdapterEvents::default();
 
@@ -108,7 +107,7 @@ pub fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents
 pub fn map_neg_risk_ctf_adapter_events(
     blk: eth::Block,
 ) -> Result<proto::NegRiskCtfAdapterEvents, Error> {
-    use abi::neg_risk_ctf_collateral_adapter::events::*;
+    use polymarket_substreams_common::abi::neg_risk_ctf_collateral_adapter::events::*;
 
     let mut events = proto::NegRiskCtfAdapterEvents::default();
 
@@ -164,9 +163,9 @@ pub fn map_neg_risk_ctf_adapter_events(
 
 #[substreams::handlers::map]
 pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
-    use abi::ctf_collateral_adapter::events as ctf_events;
-    use abi::neg_risk_ctf_collateral_adapter::events as neg_risk_events;
-    use abi::p_usd::events as pusd_events;
+    use polymarket_substreams_common::abi::ctf_collateral_adapter::events as ctf_events;
+    use polymarket_substreams_common::abi::neg_risk_ctf_collateral_adapter::events as neg_risk_events;
+    use polymarket_substreams_common::abi::p_usd::events as pusd_events;
 
     let mut pusd = proto::PusdEvents::default();
     let mut ctf = proto::CtfAdapterEvents::default();
@@ -478,7 +477,8 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_classifies_pusd_transfer() {
-        let out = __impl_map_all_events(block_with_log(pusd_transfer_log())).expect("handler must not err");
+        let out = __impl_map_all_events(block_with_log(pusd_transfer_log()))
+            .expect("handler must not err");
         let pusd = out
             .pusd_events
             .expect("Transfer from the pUSD contract must land in pusd_events");

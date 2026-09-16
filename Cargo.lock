@@ -658,8 +658,6 @@ dependencies = [
 name = "polymarket-collateral"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "ethabi",
  "hex",
  "hex-literal 0.4.1",
  "polymarket-substreams-common",
@@ -673,11 +671,8 @@ dependencies = [
 name = "polymarket-ctf"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "ethabi",
  "hex",
  "hex-literal 0.4.1",
- "num-bigint",
  "polymarket-substreams-common",
  "prost 0.13.5",
  "prost-types 0.13.5",
@@ -689,8 +684,6 @@ dependencies = [
 name = "polymarket-exchange"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "ethabi",
  "hex",
  "hex-literal 0.4.1",
  "polymarket-substreams-common",
@@ -704,8 +697,6 @@ dependencies = [
 name = "polymarket-neg-risk-adapter"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "ethabi",
  "hex",
  "hex-literal 0.4.1",
  "polymarket-substreams-common",
@@ -719,8 +710,6 @@ dependencies = [
 name = "polymarket-neg-risk-ctf"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "ethabi",
  "hex",
  "hex-literal 0.4.1",
  "polymarket-substreams-common",
@@ -775,8 +764,6 @@ dependencies = [
 name = "polymarket-wallet-factory"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "ethabi",
  "hex",
  "hex-literal 0.4.1",
  "polymarket-substreams-common",

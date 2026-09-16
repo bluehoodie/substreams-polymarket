@@ -1,4 +1,3 @@
-pub mod abi;
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
@@ -13,7 +12,7 @@ use polymarket_substreams_common::{
 
 #[substreams::handlers::map]
 pub fn map_exchange_events(blk: eth::Block) -> Result<proto::ExchangeEvents, Error> {
-    use abi::ctf_exchange::events::*;
+    use polymarket_substreams_common::abi::ctf_exchange::events::*;
 
     let mut events = proto::ExchangeEvents::default();
 
@@ -58,7 +57,7 @@ pub fn map_exchange_events(blk: eth::Block) -> Result<proto::ExchangeEvents, Err
 
 #[substreams::handlers::map]
 pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
-    use abi::ctf_exchange::events::*;
+    use polymarket_substreams_common::abi::ctf_exchange::events::*;
 
     let mut events = proto::FeeEvents::default();
 
@@ -97,7 +96,7 @@ pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
-    use abi::ctf_exchange::events::*;
+    use polymarket_substreams_common::abi::ctf_exchange::events::*;
 
     let mut events = proto::AdminEvents::default();
 
@@ -146,7 +145,7 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
-    use abi::ctf_exchange::events::*;
+    use polymarket_substreams_common::abi::ctf_exchange::events::*;
 
     let mut events = proto::PauseEvents::default();
 
@@ -188,7 +187,7 @@ pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents, Error> {
-    use abi::ctf_exchange::events::*;
+    use polymarket_substreams_common::abi::ctf_exchange::events::*;
 
     let mut events = proto::OrderApprovalEvents::default();
 
@@ -221,7 +220,7 @@ pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents
 
 #[substreams::handlers::map]
 pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
-    use abi::ctf_exchange::events::*;
+    use polymarket_substreams_common::abi::ctf_exchange::events::*;
 
     let mut exchange_events = proto::ExchangeEvents::default();
     let mut fee_events = proto::FeeEvents::default();
@@ -471,7 +470,7 @@ mod tests {
 
     #[test]
     fn test_order_filled_decodes_valid_log() {
-        use crate::abi::ctf_exchange::events::OrderFilled;
+        use polymarket_substreams_common::abi::ctf_exchange::events::OrderFilled;
 
         // keccak256("OrderFilled(bytes32,address,address,uint8,uint256,uint256,uint256,uint256,bytes32,bytes32)")
         // mirrors the generated binding's TOPIC_ID
@@ -551,7 +550,7 @@ mod tests {
 
     #[test]
     fn test_order_filled_rejects_wrong_topic() {
-        use crate::abi::ctf_exchange::events::OrderFilled;
+        use polymarket_substreams_common::abi::ctf_exchange::events::OrderFilled;
 
         // keccak256("OrderFilled(bytes32,address,address,uint8,uint256,uint256,uint256,uint256,bytes32,bytes32)")
         // mirrors the generated binding's TOPIC_ID
@@ -605,7 +604,7 @@ mod tests {
 
     #[test]
     fn test_fee_charged_decodes_valid_log() {
-        use crate::abi::ctf_exchange::events::FeeCharged;
+        use polymarket_substreams_common::abi::ctf_exchange::events::FeeCharged;
 
         // keccak256("FeeCharged(address,uint256)")
         // mirrors the generated binding's TOPIC_ID
@@ -700,7 +699,12 @@ mod handler_tests {
         data.extend_from_slice(&[0xBBu8; 32]); // metadata
         eth::Log {
             address: CTF_EXCHANGE_CONTRACT_ADDRESS.to_vec(),
-            topics: vec![topic0, order_hash.to_vec(), maker_t.to_vec(), taker_t.to_vec()],
+            topics: vec![
+                topic0,
+                order_hash.to_vec(),
+                maker_t.to_vec(),
+                taker_t.to_vec(),
+            ],
             data,
             ..Default::default()
         }
@@ -708,7 +712,8 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_classifies_order_filled() {
-        let out = __impl_map_all_events(block_with_log(order_filled_log())).expect("handler must not err");
+        let out = __impl_map_all_events(block_with_log(order_filled_log()))
+            .expect("handler must not err");
         let ex = out
             .exchange_events
             .expect("OrderFilled from the exchange contract must land in exchange_events");

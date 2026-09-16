@@ -1,4 +1,3 @@
-pub mod abi;
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
@@ -12,7 +11,7 @@ use polymarket_substreams_common::{
 
 #[substreams::handlers::map]
 pub fn map_factory_events(blk: eth::Block) -> Result<proto::FactoryEvents, Error> {
-    use abi::deposit_wallet_factory::events::*;
+    use polymarket_substreams_common::abi::deposit_wallet_factory::events::*;
 
     let mut events = proto::FactoryEvents::default();
 
@@ -156,8 +155,8 @@ mod handler_tests {
 
     #[test]
     fn map_factory_events_classifies_wallet_deployed() {
-        let out =
-            __impl_map_factory_events(block_with_log(wallet_deployed_log())).expect("handler must not err");
+        let out = __impl_map_factory_events(block_with_log(wallet_deployed_log()))
+            .expect("handler must not err");
         assert_eq!(out.wallet_deployed.len(), 1);
         assert_eq!(
             out.wallet_deployed[0].wallet,
@@ -168,7 +167,8 @@ mod handler_tests {
 
     #[test]
     fn map_factory_events_empty_block_ok() {
-        let out = __impl_map_factory_events(eth::Block::default()).expect("empty block must not panic");
+        let out =
+            __impl_map_factory_events(eth::Block::default()).expect("empty block must not panic");
         assert!(out.wallet_deployed.is_empty());
         assert!(out.implementation_authorized.is_empty());
     }

@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-ctf
-  version: v0.12.0
+  version: v0.13.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: Polymarket Conditional Tokens Framework events — position split/merge/redeem and ERC-1155 transfers
   image: ./polymarket.png
@@ -34,6 +34,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.ctf.v1.CtfEvents
+    doc: |
+      Extracts CTF-specific events (ConditionPreparation, ConditionResolution,
+      PositionSplit, PositionsMerge, PayoutRedemption).
 
   - name: map_erc1155_events
     kind: map
@@ -46,6 +49,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.ctf.v1.Erc1155Events
+    doc: |
+      Extracts ERC-1155 token events (TransferSingle, TransferBatch,
+      ApprovalForAll) from the CTF contract.
 
   - name: map_all_events
     kind: map
@@ -58,3 +64,6 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.ctf.v1.AllEvents
+    doc: |
+      Extracts all CTF and ERC-1155 events from a single pass over the
+      CTF contract.

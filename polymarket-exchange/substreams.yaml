@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-exchange
-  version: v0.12.0
+  version: v0.13.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: Polymarket CTF Exchange V2 events — order fills, fees, admin, pause, and order approvals
   image: ./polymarket.png
@@ -34,6 +34,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.exchange.v1.ExchangeEvents
+    doc: |
+      Extracts exchange trading events (OrderFilled, OrdersMatched) from the
+      CTF Exchange V2 contract.
 
   - name: map_fee_events
     kind: map
@@ -46,6 +49,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.exchange.v1.FeeEvents
+    doc: |
+      Extracts fee-related events (FeeCharged, FeeReceiverUpdated,
+      MaxFeeRateUpdated) from the CTF Exchange V2 contract.
 
   - name: map_admin_events
     kind: map
@@ -58,6 +64,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.exchange.v1.AdminEvents
+    doc: |
+      Extracts admin role events (NewAdmin, NewOperator, RemovedAdmin,
+      RemovedOperator) from the CTF Exchange V2 contract.
 
   - name: map_pause_events
     kind: map
@@ -70,6 +79,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.exchange.v1.PauseEvents
+    doc: |
+      Extracts user pause events (UserPaused, UserUnpaused,
+      UserPauseBlockIntervalUpdated) from the CTF Exchange V2 contract.
 
   - name: map_approval_events
     kind: map
@@ -82,6 +94,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.exchange.v1.OrderApprovalEvents
+    doc: |
+      Extracts order approval events (OrderPreapproved,
+      OrderPreapprovalInvalidated) from the CTF Exchange V2 contract.
 
   - name: map_all_events
     kind: map
@@ -94,3 +109,6 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.exchange.v1.AllEvents
+    doc: |
+      Extracts all exchange events (trading, fees, admin, pause, approvals)
+      from a single pass over the CTF Exchange V2 contract.

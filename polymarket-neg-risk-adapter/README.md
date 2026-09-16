@@ -66,7 +66,7 @@ The package extracts the following event categories:
 
 - `substreams`: ^0.7
 - `substreams-ethereum`: ^0.11
-- `ethabi`: ^18
+- `ethabi`: 17
 
 ## Binary Output
 

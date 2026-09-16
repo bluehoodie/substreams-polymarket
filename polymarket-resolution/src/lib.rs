@@ -6,7 +6,9 @@ use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::resolution::v1 as proto;
-use polymarket_substreams_common::{bigint_to_string, build_tx_context, format_address};
+use polymarket_substreams_common::{
+    bigint_to_string, bigint_to_u64, build_tx_context, format_address,
+};
 
 const UMA_ORACLE_V2_ADDRESS: [u8; 20] =
     hex_literal::hex!("ee3afe347d5c74317041e2618c49534daf887c24");
@@ -82,7 +84,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         question_data: e.ancillary_data,
                         proposed_price: bigint_to_string(&e.proposed_price),
                         currency: format_address(&e.currency),
-                        expiration: e.expiration_timestamp.to_u64(),
+                        expiration: bigint_to_u64(&e.expiration_timestamp),
                         requester: format_address(&e.requester),
                         assertion_id: Vec::new(),
                         bond: String::new(),
@@ -140,7 +142,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         question_data: e.claim,
                         proposed_price: String::new(),
                         currency: format_address(&e.currency),
-                        expiration: e.expiration_time.to_u64(),
+                        expiration: bigint_to_u64(&e.expiration_time),
                         requester: String::new(),
                         assertion_id: e.assertion_id.to_vec(),
                         bond: bigint_to_string(&e.bond),
@@ -530,9 +532,14 @@ mod handler_tests {
             .expect("handler must not err");
         // A QuestionFlagged from a CTF adapter lands in adapter events, not oracle.
         assert!(out.oracle.is_none());
-        let adapter = out.adapter.expect("QuestionFlagged must land in adapter events");
+        let adapter = out
+            .adapter
+            .expect("QuestionFlagged must land in adapter events");
         assert_eq!(adapter.question_flagged.len(), 1);
-        assert_eq!(adapter.question_flagged[0].question_id, [0x77u8; 32].to_vec());
+        assert_eq!(
+            adapter.question_flagged[0].question_id,
+            [0x77u8; 32].to_vec()
+        );
         // A flag must also emit exactly one dispute alert, sourced to adapter_v2.
         let alerts = out
             .dispute_alerts
@@ -544,8 +551,8 @@ mod handler_tests {
 
     #[test]
     fn map_resolution_events_empty_block_ok() {
-        let out =
-            __impl_map_resolution_events(eth::Block::default()).expect("empty block must not panic");
+        let out = __impl_map_resolution_events(eth::Block::default())
+            .expect("empty block must not panic");
         assert!(out.oracle.is_none());
         assert!(out.adapter.is_none());
         assert!(out.dispute_alerts.is_none());

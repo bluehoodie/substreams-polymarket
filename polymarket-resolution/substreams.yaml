@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-resolution
-  version: v0.12.0
+  version: v0.13.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: Full Polymarket resolution pipeline — UMA Oracle disputes + CTF Adapter question lifecycle
   image: ./polymarket.png
@@ -36,6 +36,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.resolution.v1.OracleEvents
+    doc: |
+      Extracts UMA Oracle proposals, disputes, and settlements (V2 + V3)
+      from the UMA Optimistic Oracle contracts.
 
   - name: map_adapter_events
     kind: map
@@ -50,6 +53,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.resolution.v1.AdapterEvents
+    doc: |
+      Extracts CTF Adapter question lifecycle events (V2 + V3) —
+      initialization, resolution, flags, pauses, resets, and admin changes.
 
   - name: map_dispute_alerts
     kind: map
@@ -66,6 +72,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.resolution.v1.DisputeAlerts
+    doc: |
+      Extracts a unified alert stream of disputes, emergency resolutions,
+      flags, pauses, and resets across both oracle and adapter contracts.
 
   - name: map_resolution_events
     kind: map
@@ -82,3 +91,6 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.resolution.v1.ResolutionEvents
+    doc: |
+      Extracts the full combined resolution pipeline — oracle and adapter
+      events from all four contracts in a single pass.

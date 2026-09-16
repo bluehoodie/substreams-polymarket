@@ -29,6 +29,14 @@ pub fn bigint_to_u32(bigint: &BigInt) -> u32 {
 }
 
 #[inline]
+pub fn bigint_to_u64(bigint: &BigInt) -> u64 {
+    // `BigInt::to_u64()` panics on out-of-range values, so parse the decimal
+    // string instead: any value that doesn't fit a u64 (or is negative) yields
+    // 0 via `unwrap_or`, which cannot panic in a handler.
+    bigint.to_string().parse::<u64>().unwrap_or(0)
+}
+
+#[inline]
 pub fn format_address(bytes: &[u8]) -> String {
     format!("0x{}", hex::encode(bytes))
 }
@@ -321,6 +329,24 @@ mod tests {
         // truncating or aborting the handler.
         let val = BigInt::from(u32::MAX as u64 + 1);
         assert_eq!(bigint_to_u32(&val), 0);
+    }
+
+    #[test]
+    fn test_bigint_to_u64_normal() {
+        assert_eq!(bigint_to_u64(&BigInt::from(12345u64)), 12345u64);
+    }
+
+    #[test]
+    fn test_bigint_to_u64_max() {
+        assert_eq!(bigint_to_u64(&BigInt::from(u64::MAX)), u64::MAX);
+    }
+
+    #[test]
+    fn test_bigint_to_u64_overflow_saturates_to_zero() {
+        use std::str::FromStr;
+        // 2^64 — beyond u64::MAX. Must saturate to 0, never panic.
+        let big = BigInt::from_str("18446744073709551616").expect("valid bigint literal");
+        assert_eq!(bigint_to_u64(&big), 0);
     }
 }
 
