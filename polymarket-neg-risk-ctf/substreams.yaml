@@ -34,6 +34,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_ctf.v1.TradingEvents
+    doc: |
+      Extracts trading events (OrderFilled, OrdersMatched) from the
+      Neg Risk CTF Exchange V2 contract.
 
   - name: map_fee_events
     kind: map
@@ -46,6 +49,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_ctf.v1.FeeEvents
+    doc: |
+      Extracts fee-related events (FeeCharged, FeeReceiverUpdated,
+      MaxFeeRateUpdated) from the Neg Risk CTF Exchange V2 contract.
 
   - name: map_admin_events
     kind: map
@@ -58,6 +64,9 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_ctf.v1.AdminEvents
+    doc: |
+      Extracts admin role events (NewAdmin, NewOperator, RemovedAdmin,
+      RemovedOperator) from the Neg Risk CTF Exchange V2 contract.
 
   - name: map_pause_events
     kind: map
@@ -70,6 +79,10 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_ctf.v1.PauseEvents
+    doc: |
+      Extracts user pause events (UserPaused, UserUnpaused,
+      UserPauseBlockIntervalUpdated) from the Neg Risk CTF Exchange V2
+      contract.
 
   - name: map_approval_events
     kind: map
@@ -82,6 +95,10 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_ctf.v1.OrderApprovalEvents
+    doc: |
+      Extracts order approval events (OrderPreapproved,
+      OrderPreapprovalInvalidated) from the Neg Risk CTF Exchange V2
+      contract.
 
   - name: map_all_events
     kind: map
@@ -94,3 +111,7 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.neg_risk_ctf.v1.AllEvents
+    doc: |
+      Extracts all negative risk CTF events (trading, fees, admin, pause,
+      approvals) from a single pass over the Neg Risk CTF Exchange V2
+      contract.

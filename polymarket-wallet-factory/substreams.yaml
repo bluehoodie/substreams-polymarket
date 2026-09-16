@@ -34,3 +34,6 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.wallet_factory.v1.FactoryEvents
+    doc: |
+      Extracts wallet-factory events (WalletDeployed,
+      ImplementationAuthorized) from the DepositWalletFactory contract.
