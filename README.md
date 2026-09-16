@@ -6,7 +6,7 @@ A collection of Substreams packages for extracting and processing events from Po
 
 | Package | Contract | Address | Deploy Block |
 |---------|----------|---------|--------------|
-| [polymarket-ctf](./polymarket-ctf) | Conditional Tokens Framework | `0x4D97DCd97eC945f40cF65F87097ACe5EA0476045` | — |
+| [polymarket-ctf](./polymarket-ctf) | Conditional Tokens Framework | `0x4D97DCd97eC945f40cF65F87097ACe5EA0476045` | 4023686 |
 | [polymarket-exchange](./polymarket-exchange) | CTF Exchange V2 | `0xE111180000d2663C0091e4f400237545B87B996B` | 84902353 |
 | [polymarket-neg-risk-ctf](./polymarket-neg-risk-ctf) | Neg Risk CTF Exchange V2 | `0xe2222d279d744050d28e00520010520000310F59` | 85058176 |
 | [polymarket-neg-risk-adapter](./polymarket-neg-risk-adapter) | NegRiskAdapter | `0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296` | 50505403 |
@@ -20,7 +20,6 @@ A collection of Substreams packages for extracting and processing events from Po
 | Contract | Address |
 |----------|---------|
 | pUSD | `0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB` |
-| CollateralOnramp | `0x93070a847efEf7F70739046A929D47a521F5B8ee` |
 | CtfCollateralAdapter | `0xAdA100Db00Ca00073811820692005400218FcE1f` |
 | NegRiskCtfCollateralAdapter | `0xadA2005600Dec949baf300f4C6120000bDB6eAab` |
 
@@ -41,6 +40,10 @@ All packages follow a unified design pattern:
 - **Byte-level address comparison** — 20-byte array for fast contract filtering (~25x faster than string)
 - **Consistent protobuf schema** — all events include `TransactionContext` metadata
 - **Modular outputs** — separate modules for different event categories
+
+### Field Encoding
+
+Addresses are emitted as `0x`-prefixed lowercase hex strings. Identifiers and hashes (`condition_id`, `question_id`, `order_hash`, etc.) are emitted as raw protobuf `bytes` — SQL sinks and other consumers must hex-encode these fields themselves.
 
 ## Block Indexes & Filtering
 
