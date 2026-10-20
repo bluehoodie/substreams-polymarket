@@ -27,7 +27,7 @@ pub fn map_factory_events(blk: eth::Block) -> Result<proto::FactoryEvents, Error
                     owner: format_address(&event.owner),
                     id: format!("0x{}", hex::encode(event.id)),
                     implementation: format_address(&event.implementation),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if ImplementationAuthorized::match_log(log.log) {
@@ -36,7 +36,7 @@ pub fn map_factory_events(blk: eth::Block) -> Result<proto::FactoryEvents, Error
                     .implementation_authorized
                     .push(proto::ImplementationAuthorized {
                         implementation: format_address(&event.implementation),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         }
@@ -106,23 +106,29 @@ mod handler_tests {
     use substreams_ethereum::pb::eth::v2 as eth;
 
     fn block_with_log(log: eth::Log) -> eth::Block {
-        use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
+        use substreams_ethereum::pb::eth::v2::{
+            BlockHeader, TransactionReceipt, TransactionTrace, TransactionTraceStatus,
+        };
         eth::Block {
             number: 42,
-            header: Some(BlockHeader {
-                timestamp: Some(prost_types::Timestamp {
+            header: BlockHeader {
+                timestamp: buffa_types::google::protobuf::Timestamp {
                     seconds: 1_700_000_000,
                     nanos: 0,
-                }),
+                    ..Default::default()
+                }
+                .into(),
                 ..Default::default()
-            }),
+            }
+            .into(),
             transaction_traces: vec![TransactionTrace {
                 hash: vec![0xabu8; 32],
-                status: 1,
-                receipt: Some(TransactionReceipt {
+                status: TransactionTraceStatus::Succeeded.into(),
+                receipt: TransactionReceipt {
                     logs: vec![log],
                     ..Default::default()
-                }),
+                }
+                .into(),
                 ..Default::default()
             }],
             ..Default::default()

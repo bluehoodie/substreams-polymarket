@@ -88,7 +88,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         requester: format_address(&e.requester),
                         assertion_id: Vec::new(),
                         bond: String::new(),
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if v2::DisputePrice::match_log(log.log) {
@@ -102,7 +102,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         question_data: e.ancillary_data.clone(),
                         proposer: format_address(&e.proposer),
                         proposed_price: bigint_to_string(&e.proposed_price),
-                        tx: Some(tx.clone()),
+                        tx: tx.clone().into(),
                     });
                     d.oracle_alerts.push(proto::DisputeAlert {
                         source: "oracle_v2".into(),
@@ -111,7 +111,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         identifier: e.identifier.to_vec(),
                         ancillary_data: e.ancillary_data,
                         payouts: Vec::new(),
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if v2::Settle::match_log(log.log) {
@@ -127,7 +127,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         assertion_id: Vec::new(),
                         payout: bigint_to_string(&e.payout),
                         question_data: e.ancillary_data,
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             }
@@ -146,7 +146,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         requester: String::new(),
                         assertion_id: e.assertion_id.to_vec(),
                         bond: bigint_to_string(&e.bond),
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if v3::AssertionDisputed::match_log(log.log) {
@@ -160,7 +160,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         question_data: Vec::new(),
                         proposer: String::new(),
                         proposed_price: String::new(),
-                        tx: Some(tx.clone()),
+                        tx: tx.clone().into(),
                     });
                     d.oracle_alerts.push(proto::DisputeAlert {
                         source: "oracle_v3".into(),
@@ -169,7 +169,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         identifier: e.assertion_id.to_vec(),
                         ancillary_data: Vec::new(),
                         payouts: Vec::new(),
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if v3::AssertionSettled::match_log(log.log) {
@@ -185,7 +185,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         assertion_id: e.assertion_id.to_vec(),
                         payout: String::new(),
                         question_data: Vec::new(),
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             }
@@ -205,7 +205,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                             reward_token: format_address(&e.reward_token),
                             reward: bigint_to_string(&e.reward),
                             proposal_bond: bigint_to_string(&e.proposal_bond),
-                            tx: Some(tx),
+                            tx: tx.into(),
                         });
                 }
             } else if QuestionResolved::match_log(log.log) {
@@ -215,7 +215,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         question_id: e.question_id.to_vec(),
                         settled_price: bigint_to_string(&e.settled_price),
                         payouts: e.payouts.iter().map(bigint_to_string).collect(),
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if QuestionEmergencyResolved::match_log(log.log) {
@@ -227,7 +227,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         .push(proto::QuestionEmergencyResolved {
                             question_id: e.question_id.to_vec(),
                             payouts: payouts.clone(),
-                            tx: Some(tx.clone()),
+                            tx: tx.clone().into(),
                         });
                     d.adapter_alerts.push(proto::DisputeAlert {
                         source: source.into(),
@@ -236,7 +236,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         identifier: e.question_id.to_vec(),
                         ancillary_data: Vec::new(),
                         payouts,
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if QuestionFlagged::match_log(log.log) {
@@ -244,7 +244,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                     let tx = to_proto_tx(blk, &log);
                     d.adapter.question_flagged.push(proto::QuestionFlagged {
                         question_id: e.question_id.to_vec(),
-                        tx: Some(tx.clone()),
+                        tx: tx.clone().into(),
                     });
                     d.adapter_alerts.push(proto::DisputeAlert {
                         source: source.into(),
@@ -253,7 +253,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         identifier: e.question_id.to_vec(),
                         ancillary_data: Vec::new(),
                         payouts: Vec::new(),
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if QuestionUnflagged::match_log(log.log) {
@@ -261,7 +261,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                     let tx = to_proto_tx(blk, &log);
                     d.adapter.question_unflagged.push(proto::QuestionUnflagged {
                         question_id: e.question_id.to_vec(),
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if QuestionPaused::match_log(log.log) {
@@ -269,7 +269,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                     let tx = to_proto_tx(blk, &log);
                     d.adapter.question_paused.push(proto::QuestionPaused {
                         question_id: e.question_id.to_vec(),
-                        tx: Some(tx.clone()),
+                        tx: tx.clone().into(),
                     });
                     d.adapter_alerts.push(proto::DisputeAlert {
                         source: source.into(),
@@ -278,7 +278,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         identifier: e.question_id.to_vec(),
                         ancillary_data: Vec::new(),
                         payouts: Vec::new(),
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if QuestionUnpaused::match_log(log.log) {
@@ -286,7 +286,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                     let tx = to_proto_tx(blk, &log);
                     d.adapter.question_unpaused.push(proto::QuestionUnpaused {
                         question_id: e.question_id.to_vec(),
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if QuestionReset::match_log(log.log) {
@@ -294,7 +294,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                     let tx = to_proto_tx(blk, &log);
                     d.adapter.question_reset.push(proto::QuestionReset {
                         question_id: e.question_id.to_vec(),
-                        tx: Some(tx.clone()),
+                        tx: tx.clone().into(),
                     });
                     d.adapter_alerts.push(proto::DisputeAlert {
                         source: source.into(),
@@ -303,7 +303,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         identifier: e.question_id.to_vec(),
                         ancillary_data: Vec::new(),
                         payouts: Vec::new(),
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if AncillaryDataUpdated::match_log(log.log) {
@@ -315,7 +315,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                             question_id: e.question_id.to_vec(),
                             owner: format_address(&e.owner),
                             update_data: e.update,
-                            tx: Some(tx),
+                            tx: tx.into(),
                         });
                 }
             } else if NewAdmin::match_log(log.log) {
@@ -325,7 +325,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         admin: format_address(&e.admin),
                         target_admin: format_address(&e.new_admin_address),
                         is_addition: true,
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             } else if RemovedAdmin::match_log(log.log) {
@@ -335,7 +335,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         admin: format_address(&e.admin),
                         target_admin: format_address(&e.removed_admin),
                         is_addition: false,
-                        tx: Some(tx),
+                        tx: tx.into(),
                     });
                 }
             }
@@ -389,19 +389,19 @@ pub fn map_resolution_events(blk: eth::Block) -> Result<proto::ResolutionEvents,
 
     Ok(proto::ResolutionEvents {
         oracle: if has_oracle_events(&d.oracle) {
-            Some(d.oracle)
+            d.oracle.into()
         } else {
-            None
+            Default::default()
         },
         adapter: if has_adapter_events(&d.adapter) {
-            Some(d.adapter)
+            d.adapter.into()
         } else {
-            None
+            Default::default()
         },
         dispute_alerts: if !all_alerts.is_empty() {
-            Some(proto::DisputeAlerts { alerts: all_alerts })
+            proto::DisputeAlerts { alerts: all_alerts }.into()
         } else {
-            None
+            Default::default()
         },
     })
 }
@@ -492,20 +492,24 @@ mod handler_tests {
         use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
         eth::Block {
             number: 42,
-            header: Some(BlockHeader {
-                timestamp: Some(prost_types::Timestamp {
+            header: BlockHeader {
+                timestamp: buffa_types::google::protobuf::Timestamp {
                     seconds: 1_700_000_000,
                     nanos: 0,
-                }),
+                    ..Default::default()
+                }
+                .into(),
                 ..Default::default()
-            }),
+            }
+            .into(),
             transaction_traces: vec![TransactionTrace {
                 hash: vec![0xabu8; 32],
-                status: 1,
-                receipt: Some(TransactionReceipt {
+                status: eth::TransactionTraceStatus::Succeeded.into(),
+                receipt: TransactionReceipt {
                     logs: vec![log],
                     ..Default::default()
-                }),
+                }
+                .into(),
                 ..Default::default()
             }],
             ..Default::default()
@@ -531,9 +535,10 @@ mod handler_tests {
         let out = __impl_map_resolution_events(block_with_log(question_flagged_log()))
             .expect("handler must not err");
         // A QuestionFlagged from a CTF adapter lands in adapter events, not oracle.
-        assert!(out.oracle.is_none());
+        assert!(!out.oracle.is_set());
         let adapter = out
             .adapter
+            .as_option()
             .expect("QuestionFlagged must land in adapter events");
         assert_eq!(adapter.question_flagged.len(), 1);
         assert_eq!(
@@ -543,6 +548,7 @@ mod handler_tests {
         // A flag must also emit exactly one dispute alert, sourced to adapter_v2.
         let alerts = out
             .dispute_alerts
+            .as_option()
             .expect("QuestionFlagged must emit a dispute alert");
         assert_eq!(alerts.alerts.len(), 1);
         assert_eq!(alerts.alerts[0].alert_type, "flag");
@@ -553,8 +559,8 @@ mod handler_tests {
     fn map_resolution_events_empty_block_ok() {
         let out = __impl_map_resolution_events(eth::Block::default())
             .expect("empty block must not panic");
-        assert!(out.oracle.is_none());
-        assert!(out.adapter.is_none());
-        assert!(out.dispute_alerts.is_none());
+        assert!(!out.oracle.is_set());
+        assert!(!out.adapter.is_set());
+        assert!(!out.dispute_alerts.is_set());
     }
 }

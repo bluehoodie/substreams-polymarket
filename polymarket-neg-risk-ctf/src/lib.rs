@@ -34,7 +34,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
                     fee: bigint_to_string(&event.fee),
                     builder: event.builder.to_vec(),
                     metadata: event.metadata.to_vec(),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if OrdersMatched::match_log(log.log) {
@@ -46,7 +46,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
                     token_id: bigint_to_string(&event.token_id),
                     maker_amount_filled: bigint_to_string(&event.maker_amount_filled),
                     taker_amount_filled: bigint_to_string(&event.taker_amount_filled),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -71,21 +71,21 @@ pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
                 events.fee_charged.push(proto::FeeCharged {
                     recipient: format_address(&event.recipient),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if FeeReceiverUpdated::match_log(log.log) {
             if let Ok(event) = FeeReceiverUpdated::decode(log.log) {
                 events.fee_receiver_updated.push(proto::FeeReceiverUpdated {
                     fee_receiver: format_address(&event.fee_receiver),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if MaxFeeRateUpdated::match_log(log.log) {
             if let Ok(event) = MaxFeeRateUpdated::decode(log.log) {
                 events.max_fee_rate_updated.push(proto::MaxFeeRateUpdated {
                     max_fee_rate: bigint_to_string(&event.max_fee_rate),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -110,7 +110,7 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
                 events.new_admin.push(proto::NewAdmin {
                     new_admin_address: format_address(&event.new_admin_address),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if NewOperator::match_log(log.log) {
@@ -118,7 +118,7 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
                 events.new_operator.push(proto::NewOperator {
                     new_operator_address: format_address(&event.new_operator_address),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if RemovedAdmin::match_log(log.log) {
@@ -126,7 +126,7 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
                 events.removed_admin.push(proto::RemovedAdmin {
                     removed_admin: format_address(&event.removed_admin),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if RemovedOperator::match_log(log.log) {
@@ -134,7 +134,7 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
                 events.removed_operator.push(proto::RemovedOperator {
                     removed_operator: format_address(&event.removed_operator),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -159,14 +159,14 @@ pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
                 events.user_paused.push(proto::UserPaused {
                     user: format_address(&event.user),
                     effective_pause_block: bigint_to_string(&event.effective_pause_block),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if UserUnpaused::match_log(log.log) {
             if let Ok(event) = UserUnpaused::decode(log.log) {
                 events.user_unpaused.push(proto::UserUnpaused {
                     user: format_address(&event.user),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if UserPauseBlockIntervalUpdated::match_log(log.log) {
@@ -175,7 +175,7 @@ pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
                     proto::UserPauseBlockIntervalUpdated {
                         old_interval: bigint_to_string(&event.old_interval),
                         new_interval: bigint_to_string(&event.new_interval),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     },
                 );
             }
@@ -200,7 +200,7 @@ pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents
             if let Ok(event) = OrderPreapproved::decode(log.log) {
                 events.order_preapproved.push(proto::OrderPreapproved {
                     order_hash: event.order_hash.to_vec(),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if OrderPreapprovalInvalidated::match_log(log.log) {
@@ -209,7 +209,7 @@ pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents
                     .order_preapproval_invalidated
                     .push(proto::OrderPreapprovalInvalidated {
                         order_hash: event.order_hash.to_vec(),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         }
@@ -246,7 +246,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     fee: bigint_to_string(&event.fee),
                     builder: event.builder.to_vec(),
                     metadata: event.metadata.to_vec(),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if OrdersMatched::match_log(log.log) {
@@ -258,7 +258,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     token_id: bigint_to_string(&event.token_id),
                     maker_amount_filled: bigint_to_string(&event.maker_amount_filled),
                     taker_amount_filled: bigint_to_string(&event.taker_amount_filled),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if FeeCharged::match_log(log.log) {
@@ -266,7 +266,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 fee_events.fee_charged.push(proto::FeeCharged {
                     recipient: format_address(&event.recipient),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if FeeReceiverUpdated::match_log(log.log) {
@@ -275,7 +275,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     .fee_receiver_updated
                     .push(proto::FeeReceiverUpdated {
                         fee_receiver: format_address(&event.fee_receiver),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         } else if MaxFeeRateUpdated::match_log(log.log) {
@@ -284,7 +284,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     .max_fee_rate_updated
                     .push(proto::MaxFeeRateUpdated {
                         max_fee_rate: bigint_to_string(&event.max_fee_rate),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         } else if NewAdmin::match_log(log.log) {
@@ -292,7 +292,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 admin_events.new_admin.push(proto::NewAdmin {
                     new_admin_address: format_address(&event.new_admin_address),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if NewOperator::match_log(log.log) {
@@ -300,7 +300,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 admin_events.new_operator.push(proto::NewOperator {
                     new_operator_address: format_address(&event.new_operator_address),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if RemovedAdmin::match_log(log.log) {
@@ -308,7 +308,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 admin_events.removed_admin.push(proto::RemovedAdmin {
                     removed_admin: format_address(&event.removed_admin),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if RemovedOperator::match_log(log.log) {
@@ -316,7 +316,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 admin_events.removed_operator.push(proto::RemovedOperator {
                     removed_operator: format_address(&event.removed_operator),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if UserPaused::match_log(log.log) {
@@ -324,14 +324,14 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 pause_events.user_paused.push(proto::UserPaused {
                     user: format_address(&event.user),
                     effective_pause_block: bigint_to_string(&event.effective_pause_block),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if UserUnpaused::match_log(log.log) {
             if let Ok(event) = UserUnpaused::decode(log.log) {
                 pause_events.user_unpaused.push(proto::UserUnpaused {
                     user: format_address(&event.user),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if UserPauseBlockIntervalUpdated::match_log(log.log) {
@@ -340,7 +340,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     proto::UserPauseBlockIntervalUpdated {
                         old_interval: bigint_to_string(&event.old_interval),
                         new_interval: bigint_to_string(&event.new_interval),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     },
                 );
             }
@@ -350,7 +350,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     .order_preapproved
                     .push(proto::OrderPreapproved {
                         order_hash: event.order_hash.to_vec(),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         } else if OrderPreapprovalInvalidated::match_log(log.log) {
@@ -358,7 +358,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 approval_events.order_preapproval_invalidated.push(
                     proto::OrderPreapprovalInvalidated {
                         order_hash: event.order_hash.to_vec(),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     },
                 );
             }
@@ -369,41 +369,41 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
         trading_events: if !trading_events.order_filled.is_empty()
             || !trading_events.orders_matched.is_empty()
         {
-            Some(trading_events)
+            buffa::MessageField::some(trading_events)
         } else {
-            None
+            buffa::MessageField::none()
         },
         fee_events: if !fee_events.fee_charged.is_empty()
             || !fee_events.fee_receiver_updated.is_empty()
             || !fee_events.max_fee_rate_updated.is_empty()
         {
-            Some(fee_events)
+            buffa::MessageField::some(fee_events)
         } else {
-            None
+            buffa::MessageField::none()
         },
         admin_events: if !admin_events.new_admin.is_empty()
             || !admin_events.new_operator.is_empty()
             || !admin_events.removed_admin.is_empty()
             || !admin_events.removed_operator.is_empty()
         {
-            Some(admin_events)
+            buffa::MessageField::some(admin_events)
         } else {
-            None
+            buffa::MessageField::none()
         },
         pause_events: if !pause_events.user_paused.is_empty()
             || !pause_events.user_unpaused.is_empty()
             || !pause_events.user_pause_block_interval_updated.is_empty()
         {
-            Some(pause_events)
+            buffa::MessageField::some(pause_events)
         } else {
-            None
+            buffa::MessageField::none()
         },
         order_approval_events: if !approval_events.order_preapproved.is_empty()
             || !approval_events.order_preapproval_invalidated.is_empty()
         {
-            Some(approval_events)
+            buffa::MessageField::some(approval_events)
         } else {
-            None
+            buffa::MessageField::none()
         },
     })
 }
@@ -641,23 +641,29 @@ mod handler_tests {
     use substreams_ethereum::pb::eth::v2 as eth;
 
     fn block_with_log(log: eth::Log) -> eth::Block {
-        use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
+        use substreams_ethereum::pb::eth::v2::{
+            BlockHeader, TransactionReceipt, TransactionTrace, TransactionTraceStatus,
+        };
         eth::Block {
             number: 42,
-            header: Some(BlockHeader {
-                timestamp: Some(prost_types::Timestamp {
+            header: BlockHeader {
+                timestamp: buffa_types::google::protobuf::Timestamp {
                     seconds: 1_700_000_000,
                     nanos: 0,
-                }),
+                    ..Default::default()
+                }
+                .into(),
                 ..Default::default()
-            }),
+            }
+            .into(),
             transaction_traces: vec![TransactionTrace {
                 hash: vec![0xabu8; 32],
-                status: 1,
-                receipt: Some(TransactionReceipt {
+                status: TransactionTraceStatus::Succeeded.into(),
+                receipt: TransactionReceipt {
                     logs: vec![log],
                     ..Default::default()
-                }),
+                }
+                .into(),
                 ..Default::default()
             }],
             ..Default::default()
@@ -689,24 +695,27 @@ mod handler_tests {
     fn map_all_events_classifies_fee_charged() {
         let out =
             __impl_map_all_events(block_with_log(fee_charged_log())).expect("handler must not err");
-        let fees = out.fee_events.expect("FeeCharged must land in fee_events");
+        let fees = out
+            .fee_events
+            .as_option()
+            .expect("FeeCharged must land in fee_events");
         assert_eq!(fees.fee_charged.len(), 1);
         assert_eq!(
             fees.fee_charged[0].recipient,
             "0xcccccccccccccccccccccccccccccccccccccccc"
         );
         // A fee event must not be classified as an exchange/admin event.
-        assert!(out.trading_events.is_none());
-        assert!(out.admin_events.is_none());
+        assert!(!out.trading_events.is_set());
+        assert!(!out.admin_events.is_set());
     }
 
     #[test]
     fn map_all_events_empty_block_ok() {
         let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
-        assert!(out.trading_events.is_none());
-        assert!(out.fee_events.is_none());
-        assert!(out.admin_events.is_none());
-        assert!(out.pause_events.is_none());
-        assert!(out.order_approval_events.is_none());
+        assert!(!out.trading_events.is_set());
+        assert!(!out.fee_events.is_set());
+        assert!(!out.admin_events.is_set());
+        assert!(!out.pause_events.is_set());
+        assert!(!out.order_approval_events.is_set());
     }
 }

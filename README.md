@@ -86,9 +86,9 @@ The powerful pattern is **composition**: use `index_users` as the block-skip *ga
 
 ```yaml
 imports:
-  pmusers:   ../polymarket-trader-index/polymarket-trader-index-v0.13.0.spkg
-  exchange:  ../polymarket-exchange/polymarket-exchange-v0.13.0.spkg
-  ctf:       ../polymarket-ctf/polymarket-ctf-v0.13.0.spkg
+  pmusers:   ../polymarket-trader-index/polymarket-trader-index-v1.0.0.spkg
+  exchange:  ../polymarket-exchange/polymarket-exchange-v1.0.0.spkg
+  ctf:       ../polymarket-ctf/polymarket-ctf-v1.0.0.spkg
   # …import whichever contract packages you care about
 
 modules:
@@ -141,11 +141,11 @@ Wire one `store` keyed by the trader, gated by the user index, fed the decoded e
 
 ```yaml
 imports:
-  pmusers:    ../polymarket-trader-index/polymarket-trader-index-v0.13.0.spkg
-  exchange:   ../polymarket-exchange/polymarket-exchange-v0.13.0.spkg
-  negctf:     ../polymarket-neg-risk-ctf/polymarket-neg-risk-ctf-v0.13.0.spkg
-  ctf:        ../polymarket-ctf/polymarket-ctf-v0.13.0.spkg
-  resolution: ../polymarket-resolution/polymarket-resolution-v0.13.0.spkg
+  pmusers:    ../polymarket-trader-index/polymarket-trader-index-v1.0.0.spkg
+  exchange:   ../polymarket-exchange/polymarket-exchange-v1.0.0.spkg
+  negctf:     ../polymarket-neg-risk-ctf/polymarket-neg-risk-ctf-v1.0.0.spkg
+  ctf:        ../polymarket-ctf/polymarket-ctf-v1.0.0.spkg
+  resolution: ../polymarket-resolution/polymarket-resolution-v1.0.0.spkg
 
 modules:
   - name: store_trader_pnl
@@ -293,9 +293,9 @@ Polymarket launched V2 contracts in April 2026 with a redesigned order struct:
 
 ## Dependencies
 
-- `substreams`: ^0.7
-- `substreams-ethereum`: ^0.11
-- `ethabi`: 17
+- `substreams`: ^0.8
+- `substreams-ethereum`: ^0.12
+- `buffa`: 0.9
 
 ## Resources
 
