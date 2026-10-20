@@ -7,15 +7,14 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-substreams = "0.7"
-substreams-ethereum = "0.11"
-prost = "0.13"
-prost-types = "0.13"
+substreams = "0.8.0"
+substreams-ethereum = "0.12.0"
+buffa = { version = "0.9.2", default-features = false, features = ["std", "fast-utf8"] }
+buffa-types = { version = "0.9.2", default-features = false }
 hex-literal = "0.4"
 hex = "0.4"
-ethabi = "17"
 polymarket-substreams-common = { path = "../polymarket-substreams-common" }
 
 [build-dependencies]
 anyhow = "1.0"
-substreams-ethereum = "0.11"
+substreams-ethereum = "0.12.0"

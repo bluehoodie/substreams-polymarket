@@ -28,7 +28,7 @@ pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> 
                     oracle: format_address(&event.oracle),
                     fee_bips: bigint_to_string(&event.fee_bips),
                     data: event.data,
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if QuestionPrepared::match_log(log.log) {
@@ -38,7 +38,7 @@ pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> 
                     question_id: event.question_id.to_vec(),
                     index: bigint_to_string(&event.index),
                     data: event.data,
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if OutcomeReported::match_log(log.log) {
@@ -47,7 +47,7 @@ pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> 
                     market_id: event.market_id.to_vec(),
                     question_id: event.question_id.to_vec(),
                     outcome: event.outcome,
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -73,7 +73,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
                     stakeholder: format_address(&event.stakeholder),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionsMerge::match_log(log.log) {
@@ -82,7 +82,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
                     stakeholder: format_address(&event.stakeholder),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionsConverted::match_log(log.log) {
@@ -92,7 +92,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
                     market_id: event.market_id.to_vec(),
                     index_set: bigint_to_string(&event.index_set),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PayoutRedemption::match_log(log.log) {
@@ -102,7 +102,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
                     condition_id: event.condition_id.to_vec(),
                     amounts: event.amounts.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -127,7 +127,7 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
                 events.new_admin.push(proto::NewAdmin {
                     new_admin_address: format_address(&event.new_admin_address),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if RemovedAdmin::match_log(log.log) {
@@ -135,7 +135,7 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
                 events.removed_admin.push(proto::RemovedAdmin {
                     removed_admin: format_address(&event.removed_admin),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -164,7 +164,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     oracle: format_address(&event.oracle),
                     fee_bips: bigint_to_string(&event.fee_bips),
                     data: event.data,
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if QuestionPrepared::match_log(log.log) {
@@ -176,7 +176,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         question_id: event.question_id.to_vec(),
                         index: bigint_to_string(&event.index),
                         data: event.data,
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         } else if OutcomeReported::match_log(log.log) {
@@ -185,7 +185,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     market_id: event.market_id.to_vec(),
                     question_id: event.question_id.to_vec(),
                     outcome: event.outcome,
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionSplit::match_log(log.log) {
@@ -194,7 +194,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     stakeholder: format_address(&event.stakeholder),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionsMerge::match_log(log.log) {
@@ -203,7 +203,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     stakeholder: format_address(&event.stakeholder),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionsConverted::match_log(log.log) {
@@ -215,7 +215,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         market_id: event.market_id.to_vec(),
                         index_set: bigint_to_string(&event.index_set),
                         amount: bigint_to_string(&event.amount),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         } else if PayoutRedemption::match_log(log.log) {
@@ -227,7 +227,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         condition_id: event.condition_id.to_vec(),
                         amounts: event.amounts.iter().map(bigint_to_string).collect(),
                         payout: bigint_to_string(&event.payout),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         } else if NewAdmin::match_log(log.log) {
@@ -235,7 +235,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 admin_events.new_admin.push(proto::NewAdmin {
                     new_admin_address: format_address(&event.new_admin_address),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if RemovedAdmin::match_log(log.log) {
@@ -243,7 +243,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                 admin_events.removed_admin.push(proto::RemovedAdmin {
                     removed_admin: format_address(&event.removed_admin),
                     admin: format_address(&event.admin),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -257,7 +257,8 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
             Some(market_events)
         } else {
             None
-        },
+        }
+        .into(),
         trading_events: if !trading_events.position_split.is_empty()
             || !trading_events.positions_merge.is_empty()
             || !trading_events.positions_converted.is_empty()
@@ -266,14 +267,16 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
             Some(trading_events)
         } else {
             None
-        },
+        }
+        .into(),
         admin_events: if !admin_events.new_admin.is_empty()
             || !admin_events.removed_admin.is_empty()
         {
             Some(admin_events)
         } else {
             None
-        },
+        }
+        .into(),
     })
 }
 
@@ -338,23 +341,29 @@ mod handler_tests {
     use substreams_ethereum::pb::eth::v2 as eth;
 
     fn block_with_log(log: eth::Log) -> eth::Block {
-        use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
+        use substreams_ethereum::pb::eth::v2::{
+            BlockHeader, TransactionReceipt, TransactionTrace, TransactionTraceStatus,
+        };
         eth::Block {
             number: 42,
-            header: Some(BlockHeader {
-                timestamp: Some(prost_types::Timestamp {
+            header: BlockHeader {
+                timestamp: buffa_types::google::protobuf::Timestamp {
                     seconds: 1_700_000_000,
                     nanos: 0,
-                }),
+                    ..Default::default()
+                }
+                .into(),
                 ..Default::default()
-            }),
+            }
+            .into(),
             transaction_traces: vec![TransactionTrace {
                 hash: vec![0xabu8; 32],
-                status: 1,
-                receipt: Some(TransactionReceipt {
+                status: TransactionTraceStatus::Succeeded.into(),
+                receipt: TransactionReceipt {
                     logs: vec![log],
                     ..Default::default()
-                }),
+                }
+                .into(),
                 ..Default::default()
             }],
             ..Default::default()
@@ -383,6 +392,7 @@ mod handler_tests {
             .expect("handler must not err");
         let market = out
             .market_events
+            .as_option()
             .expect("OutcomeReported must land in market_events");
         assert_eq!(market.outcome_reported.len(), 1);
         assert!(
@@ -391,15 +401,15 @@ mod handler_tests {
         );
         assert_eq!(market.outcome_reported[0].market_id, [0x77u8; 32].to_vec());
         // A market event must not be classified as trading/admin.
-        assert!(out.trading_events.is_none());
-        assert!(out.admin_events.is_none());
+        assert!(out.trading_events.is_unset());
+        assert!(out.admin_events.is_unset());
     }
 
     #[test]
     fn map_all_events_empty_block_ok() {
         let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
-        assert!(out.market_events.is_none());
-        assert!(out.trading_events.is_none());
-        assert!(out.admin_events.is_none());
+        assert!(out.market_events.is_unset());
+        assert!(out.trading_events.is_unset());
+        assert!(out.admin_events.is_unset());
     }
 }

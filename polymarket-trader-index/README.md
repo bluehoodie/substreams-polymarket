@@ -74,7 +74,7 @@ supply the decoded events:
 
 ```yaml
 imports:
-  pmusers: ../polymarket-trader-index/polymarket-trader-index-v0.13.0.spkg
+  pmusers: ../polymarket-trader-index/polymarket-trader-index-v1.0.0.spkg
 
 modules:
   - name: map_wallet_activity
@@ -86,8 +86,9 @@ modules:
 
 ## Dependencies
 
-- `substreams`: ^0.7
-- `substreams-ethereum`: ^0.11
+- `substreams`: ^0.8
+- `substreams-ethereum`: ^0.12
+- `buffa`: 0.9
 
 ## Binary Output
 

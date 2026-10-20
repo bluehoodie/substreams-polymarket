@@ -3,3 +3,4 @@ replay.log
 .worktrees/
 **/target/
 .DS_Store
+**/.last_generated_hash

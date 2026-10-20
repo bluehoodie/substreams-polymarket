@@ -1,6 +1,7 @@
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
+use buffa::MessageField;
 use substreams::errors::Error;
 use substreams_ethereum::pb::eth::v2 as eth;
 
@@ -29,7 +30,7 @@ pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
                     from: format_address(&event.from),
                     to: format_address(&event.to),
                     amount: bigint_to_string(&event.value),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if Wrapped::match_log(log.log) {
@@ -39,7 +40,7 @@ pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
                     asset: format_address(&event.asset),
                     to: format_address(&event.to),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if Unwrapped::match_log(log.log) {
@@ -49,7 +50,7 @@ pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
                     asset: format_address(&event.asset),
                     to: format_address(&event.to),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -75,7 +76,7 @@ pub fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents
                     initiator: format_address(&event.initiator),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionsMerged::match_log(log.log) {
@@ -84,7 +85,7 @@ pub fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents
                     initiator: format_address(&event.initiator),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionsRedeemed::match_log(log.log) {
@@ -94,7 +95,7 @@ pub fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents
                     condition_id: event.condition_id.to_vec(),
                     amounts: event.amounts.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -122,7 +123,7 @@ pub fn map_neg_risk_ctf_adapter_events(
                     initiator: format_address(&event.initiator),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionsMerged::match_log(log.log) {
@@ -131,7 +132,7 @@ pub fn map_neg_risk_ctf_adapter_events(
                     initiator: format_address(&event.initiator),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionsRedeemed::match_log(log.log) {
@@ -141,7 +142,7 @@ pub fn map_neg_risk_ctf_adapter_events(
                     condition_id: event.condition_id.to_vec(),
                     amounts: event.amounts.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionsConverted::match_log(log.log) {
@@ -152,7 +153,7 @@ pub fn map_neg_risk_ctf_adapter_events(
                     index_set: bigint_to_string(&event.index_set),
                     amount: bigint_to_string(&event.amount),
                     amount_out: bigint_to_string(&event.amount_out),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -184,7 +185,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         from: format_address(&event.from),
                         to: format_address(&event.to),
                         amount: bigint_to_string(&event.value),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
                 }
             } else if pusd_events::Wrapped::match_log(log.log) {
@@ -194,7 +195,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         asset: format_address(&event.asset),
                         to: format_address(&event.to),
                         amount: bigint_to_string(&event.amount),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
                 }
             } else if pusd_events::Unwrapped::match_log(log.log) {
@@ -204,7 +205,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         asset: format_address(&event.asset),
                         to: format_address(&event.to),
                         amount: bigint_to_string(&event.amount),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
                 }
             }
@@ -215,7 +216,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         initiator: format_address(&event.initiator),
                         condition_id: event.condition_id.to_vec(),
                         amount: bigint_to_string(&event.amount),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
                 }
             } else if ctf_events::PositionsMerged::match_log(log.log) {
@@ -224,7 +225,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         initiator: format_address(&event.initiator),
                         condition_id: event.condition_id.to_vec(),
                         amount: bigint_to_string(&event.amount),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
                 }
             } else if ctf_events::PositionsRedeemed::match_log(log.log) {
@@ -234,7 +235,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         condition_id: event.condition_id.to_vec(),
                         amounts: event.amounts.iter().map(bigint_to_string).collect(),
                         payout: bigint_to_string(&event.payout),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
                 }
             }
@@ -245,7 +246,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         initiator: format_address(&event.initiator),
                         condition_id: event.condition_id.to_vec(),
                         amount: bigint_to_string(&event.amount),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
                 }
             } else if neg_risk_events::PositionsMerged::match_log(log.log) {
@@ -254,7 +255,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         initiator: format_address(&event.initiator),
                         condition_id: event.condition_id.to_vec(),
                         amount: bigint_to_string(&event.amount),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
                 }
             } else if neg_risk_events::PositionsRedeemed::match_log(log.log) {
@@ -264,7 +265,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         condition_id: event.condition_id.to_vec(),
                         amounts: event.amounts.iter().map(bigint_to_string).collect(),
                         payout: bigint_to_string(&event.payout),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
                 }
             } else if neg_risk_events::PositionsConverted::match_log(log.log) {
@@ -277,7 +278,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                             index_set: bigint_to_string(&event.index_set),
                             amount: bigint_to_string(&event.amount),
                             amount_out: bigint_to_string(&event.amount_out),
-                            tx: Some(build_transaction_context(&blk, &log)),
+                            tx: build_transaction_context(&blk, &log).into(),
                         });
                 }
             }
@@ -289,26 +290,26 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
             || !pusd.wrapped.is_empty()
             || !pusd.unwrapped.is_empty()
         {
-            Some(pusd)
+            pusd.into()
         } else {
-            None
+            MessageField::none()
         },
         ctf_adapter_events: if !ctf.position_split.is_empty()
             || !ctf.positions_merged.is_empty()
             || !ctf.positions_redeemed.is_empty()
         {
-            Some(ctf)
+            ctf.into()
         } else {
-            None
+            MessageField::none()
         },
         neg_risk_ctf_adapter_events: if !neg_risk.position_split.is_empty()
             || !neg_risk.positions_merged.is_empty()
             || !neg_risk.positions_redeemed.is_empty()
             || !neg_risk.positions_converted.is_empty()
         {
-            Some(neg_risk)
+            neg_risk.into()
         } else {
-            None
+            MessageField::none()
         },
     })
 }
@@ -430,23 +431,29 @@ mod handler_tests {
     use substreams_ethereum::pb::eth::v2 as eth;
 
     fn block_with_log(log: eth::Log) -> eth::Block {
-        use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
+        use substreams_ethereum::pb::eth::v2::{
+            BlockHeader, TransactionReceipt, TransactionTrace, TransactionTraceStatus,
+        };
         eth::Block {
             number: 42,
-            header: Some(BlockHeader {
-                timestamp: Some(prost_types::Timestamp {
+            header: BlockHeader {
+                timestamp: buffa_types::google::protobuf::Timestamp {
                     seconds: 1_700_000_000,
                     nanos: 0,
-                }),
+                    ..Default::default()
+                }
+                .into(),
                 ..Default::default()
-            }),
+            }
+            .into(),
             transaction_traces: vec![TransactionTrace {
                 hash: vec![0xabu8; 32],
-                status: 1,
-                receipt: Some(TransactionReceipt {
+                status: TransactionTraceStatus::Succeeded.into(),
+                receipt: TransactionReceipt {
                     logs: vec![log],
                     ..Default::default()
-                }),
+                }
+                .into(),
                 ..Default::default()
             }],
             ..Default::default()
@@ -481,6 +488,7 @@ mod handler_tests {
             .expect("handler must not err");
         let pusd = out
             .pusd_events
+            .as_option()
             .expect("Transfer from the pUSD contract must land in pusd_events");
         assert_eq!(pusd.transfer.len(), 1);
         assert_eq!(
@@ -488,15 +496,15 @@ mod handler_tests {
             "0x2222222222222222222222222222222222222222"
         );
         // A pUSD event must not be classified as an adapter event.
-        assert!(out.ctf_adapter_events.is_none());
-        assert!(out.neg_risk_ctf_adapter_events.is_none());
+        assert!(!out.ctf_adapter_events.is_set());
+        assert!(!out.neg_risk_ctf_adapter_events.is_set());
     }
 
     #[test]
     fn map_all_events_empty_block_ok() {
         let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
-        assert!(out.pusd_events.is_none());
-        assert!(out.ctf_adapter_events.is_none());
-        assert!(out.neg_risk_ctf_adapter_events.is_none());
+        assert!(!out.pusd_events.is_set());
+        assert!(!out.ctf_adapter_events.is_set());
+        assert!(!out.neg_risk_ctf_adapter_events.is_set());
     }
 }

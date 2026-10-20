@@ -34,7 +34,7 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                         oracle: format_address(&event.oracle),
                         question_id: event.question_id.to_vec(),
                         outcome_slot_count: bigint_to_u32(&event.outcome_slot_count),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         } else if ConditionResolution::match_log(log.log) {
@@ -51,7 +51,7 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                             .iter()
                             .map(bigint_to_string)
                             .collect(),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         } else if PositionSplit::match_log(log.log) {
@@ -63,7 +63,7 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     partition: event.partition.iter().map(bigint_to_string).collect(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionsMerge::match_log(log.log) {
@@ -75,7 +75,7 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     partition: event.partition.iter().map(bigint_to_string).collect(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PayoutRedemption::match_log(log.log) {
@@ -87,7 +87,7 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     index_sets: event.index_sets.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -120,7 +120,7 @@ pub fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error
                     to: format_address(&event.to),
                     id: bigint_to_string(&event.id),
                     value: bigint_to_string(&event.value),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if TransferBatch::match_log(log.log) {
@@ -131,7 +131,7 @@ pub fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error
                     to: format_address(&event.to),
                     ids: event.ids.iter().map(bigint_to_string).collect(),
                     values: event.values.iter().map(bigint_to_string).collect(),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if ApprovalForAll::match_log(log.log) {
@@ -140,7 +140,7 @@ pub fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error
                     account: format_address(&event.owner),
                     operator: format_address(&event.operator),
                     approved: event.approved,
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -189,7 +189,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         oracle: format_address(&event.oracle),
                         question_id: event.question_id.to_vec(),
                         outcome_slot_count: bigint_to_u32(&event.outcome_slot_count),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         } else if ConditionResolution::match_log(log.log) {
@@ -206,7 +206,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                             .iter()
                             .map(bigint_to_string)
                             .collect(),
-                        tx: Some(build_transaction_context(&blk, &log)),
+                        tx: build_transaction_context(&blk, &log).into(),
                     });
             }
         } else if PositionSplit::match_log(log.log) {
@@ -218,7 +218,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     partition: event.partition.iter().map(bigint_to_string).collect(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PositionsMerge::match_log(log.log) {
@@ -230,7 +230,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     partition: event.partition.iter().map(bigint_to_string).collect(),
                     amount: bigint_to_string(&event.amount),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if PayoutRedemption::match_log(log.log) {
@@ -242,7 +242,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     index_sets: event.index_sets.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -255,7 +255,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     to: format_address(&event.to),
                     id: bigint_to_string(&event.id),
                     value: bigint_to_string(&event.value),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if TransferBatch::match_log(log.log) {
@@ -266,7 +266,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     to: format_address(&event.to),
                     ids: event.ids.iter().map(bigint_to_string).collect(),
                     values: event.values.iter().map(bigint_to_string).collect(),
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         } else if ApprovalForAll::match_log(log.log) {
@@ -275,7 +275,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     account: format_address(&event.owner),
                     operator: format_address(&event.operator),
                     approved: event.approved,
-                    tx: Some(build_transaction_context(&blk, &log)),
+                    tx: build_transaction_context(&blk, &log).into(),
                 });
             }
         }
@@ -290,17 +290,17 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
             || !ctf_events.positions_merge.is_empty()
             || !ctf_events.payout_redemption.is_empty()
         {
-            Some(ctf_events)
+            ctf_events.into()
         } else {
-            None
+            Default::default()
         },
         erc1155_events: if !erc1155_events.transfer_single.is_empty()
             || !erc1155_events.transfer_batch.is_empty()
             || !erc1155_events.approval_for_all.is_empty()
         {
-            Some(erc1155_events)
+            erc1155_events.into()
         } else {
-            None
+            Default::default()
         },
     })
 }
@@ -404,20 +404,24 @@ mod handler_tests {
         use substreams_ethereum::pb::eth::v2::{BlockHeader, TransactionReceipt, TransactionTrace};
         eth::Block {
             number: 42,
-            header: Some(BlockHeader {
-                timestamp: Some(prost_types::Timestamp {
+            header: BlockHeader {
+                timestamp: buffa_types::google::protobuf::Timestamp {
                     seconds: 1_700_000_000,
                     nanos: 0,
-                }),
+                    ..Default::default()
+                }
+                .into(),
                 ..Default::default()
-            }),
+            }
+            .into(),
             transaction_traces: vec![TransactionTrace {
                 hash: vec![0xabu8; 32],
-                status: 1,
-                receipt: Some(TransactionReceipt {
+                status: eth::TransactionTraceStatus::Succeeded.into(),
+                receipt: TransactionReceipt {
                     logs: vec![log],
                     ..Default::default()
-                }),
+                }
+                .into(),
                 ..Default::default()
             }],
             ..Default::default()
@@ -456,6 +460,7 @@ mod handler_tests {
             .expect("handler must not err");
         let erc = out
             .erc1155_events
+            .as_option()
             .expect("TransferSingle from the CTF contract must land in erc1155_events");
         assert_eq!(erc.transfer_single.len(), 1);
         assert_eq!(
@@ -463,13 +468,13 @@ mod handler_tests {
             "0x2222222222222222222222222222222222222222"
         );
         // Must not be misclassified as a CTF (condition/position) event.
-        assert!(out.ctf_events.is_none());
+        assert!(!out.ctf_events.is_set());
     }
 
     #[test]
     fn map_all_events_empty_block_ok() {
         let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
-        assert!(out.ctf_events.is_none());
-        assert!(out.erc1155_events.is_none());
+        assert!(!out.ctf_events.is_set());
+        assert!(!out.erc1155_events.is_set());
     }
 }

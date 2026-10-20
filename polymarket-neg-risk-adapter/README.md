@@ -64,9 +64,9 @@ The package extracts the following event categories:
 
 ## Dependencies
 
-- `substreams`: ^0.7
-- `substreams-ethereum`: ^0.11
-- `ethabi`: 17
+- `substreams`: ^0.8
+- `substreams-ethereum`: ^0.12
+- `buffa`: 0.9
 
 ## Binary Output
 
