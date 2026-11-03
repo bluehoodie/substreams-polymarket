@@ -1,4 +1,4 @@
-.PHONY: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory build-resolution build-trader-index build-all
+.PHONY: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory build-resolution build-trader-index build-trades build-all
 
 build-exchange:
 	cd polymarket-exchange && substreams build
@@ -24,4 +24,8 @@ build-resolution:
 build-trader-index:
 	cd polymarket-trader-index && substreams build
 
-build-all: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory build-resolution build-trader-index
+# Imports the exchange and neg-risk-ctf manifests, whose wasm must be built first.
+build-trades: build-exchange build-neg-risk-ctf build-resolution
+	cd polymarket-trades && substreams build
+
+build-all: build-exchange build-ctf build-neg-risk-ctf build-neg-risk-adapter build-collateral build-wallet-factory build-resolution build-trader-index build-trades

@@ -14,6 +14,7 @@ A collection of Substreams packages for extracting and processing events from Po
 | [polymarket-resolution](./polymarket-resolution) | UMA Oracle + CTF Adapter | Multiple (see below) | 29786052 |
 | [polymarket-wallet-factory](./polymarket-wallet-factory) | DepositWalletFactory | `0x00000000000Fb5C9ADea0298D729A0CB3823Cc07` | 84902000 |
 | [polymarket-trader-index](./polymarket-trader-index) | All contracts (foundational user-activity index) | — | 4023686 |
+| [polymarket-trades](./polymarket-trades) | Trade tape over CTF Exchange V2, Neg Risk CTF Exchange V2 and ExchangeV3 (built on the exchange packages' outputs) | — | 84902353 |
 
 ### Collateral Package Addresses
 
@@ -86,9 +87,9 @@ The powerful pattern is **composition**: use `index_users` as the block-skip *ga
 
 ```yaml
 imports:
-  pmusers:   ../polymarket-trader-index/polymarket-trader-index-v1.1.0.spkg
-  exchange:  ../polymarket-exchange/polymarket-exchange-v1.1.0.spkg
-  ctf:       ../polymarket-ctf/polymarket-ctf-v1.1.0.spkg
+  pmusers:   ../polymarket-trader-index/polymarket-trader-index-v1.2.0.spkg
+  exchange:  ../polymarket-exchange/polymarket-exchange-v1.2.0.spkg
+  ctf:       ../polymarket-ctf/polymarket-ctf-v1.2.0.spkg
   # …import whichever contract packages you care about
 
 modules:
@@ -141,11 +142,11 @@ Wire one `store` keyed by the trader, gated by the user index, fed the decoded e
 
 ```yaml
 imports:
-  pmusers:    ../polymarket-trader-index/polymarket-trader-index-v1.1.0.spkg
-  exchange:   ../polymarket-exchange/polymarket-exchange-v1.1.0.spkg
-  negctf:     ../polymarket-neg-risk-ctf/polymarket-neg-risk-ctf-v1.1.0.spkg
-  ctf:        ../polymarket-ctf/polymarket-ctf-v1.1.0.spkg
-  resolution: ../polymarket-resolution/polymarket-resolution-v1.1.0.spkg
+  pmusers:    ../polymarket-trader-index/polymarket-trader-index-v1.2.0.spkg
+  exchange:   ../polymarket-exchange/polymarket-exchange-v1.2.0.spkg
+  negctf:     ../polymarket-neg-risk-ctf/polymarket-neg-risk-ctf-v1.2.0.spkg
+  ctf:        ../polymarket-ctf/polymarket-ctf-v1.2.0.spkg
+  resolution: ../polymarket-resolution/polymarket-resolution-v1.2.0.spkg
 
 modules:
   - name: store_trader_pnl
@@ -213,6 +214,7 @@ make build-collateral
 make build-resolution
 make build-wallet-factory
 make build-trader-index
+make build-trades   # builds polymarket-exchange and polymarket-neg-risk-ctf first
 ```
 
 ### Run
@@ -237,6 +239,10 @@ substreams run polymarket-resolution/substreams.yaml map_resolution_events \
 # Wallet deployments
 substreams run polymarket-wallet-factory/substreams.yaml map_factory_events \
   -s 84902000 -t +10000
+
+# Trade tape: every fill on all three exchanges, with fee-aware price
+substreams run polymarket-trades/substreams.yaml map_trades \
+  -s 96600000 -t +100
 
 # One wallet's full Polymarket activity (user: index — pass the wallet as a param)
 substreams run polymarket-trader-index/substreams.yaml map_user_activity \

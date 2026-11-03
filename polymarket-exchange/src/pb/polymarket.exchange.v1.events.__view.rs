@@ -302,6 +302,10 @@ pub struct OrderFilledView<'a> {
     pub builder: &'a [u8],
     /// Field 11: `metadata`
     pub metadata: &'a [u8],
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 12: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for OrderFilledView<'a> {
     type Owned = super::super::OrderFilled;
@@ -424,6 +428,13 @@ impl<'a> ::buffa::MessageView<'a> for OrderFilledView<'a> {
                 )?;
                 view.metadata = ::buffa::types::borrow_bytes(&mut cur)?;
             }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -463,6 +474,7 @@ impl<'a> ::buffa::MessageView<'a> for OrderFilledView<'a> {
             },
             builder: (self.builder).to_vec(),
             metadata: (self.metadata).to_vec(),
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -517,6 +529,9 @@ impl<'a> ::buffa::ViewEncode<'a> for OrderFilledView<'a> {
         if !self.metadata.is_empty() {
             size += 1u64 + ::buffa::types::bytes_encoded_len(&self.metadata) as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -564,6 +579,9 @@ impl<'a> ::buffa::ViewEncode<'a> for OrderFilledView<'a> {
         }
         if !self.metadata.is_empty() {
             ::buffa::types::put_shared_bytes_field(11u32, &self.metadata, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(12u32, &self.exchange, buf);
         }
     }
 }
@@ -714,6 +732,13 @@ impl OrderFilledOwnedView {
     pub fn metadata(&self) -> &'_ [u8] {
         self.0.reborrow().metadata
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 12: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<OrderFilledView<'static>>>
 for OrderFilledOwnedView {
@@ -756,6 +781,10 @@ pub struct OrdersMatchedView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 8: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for OrdersMatchedView<'a> {
     type Owned = super::super::OrdersMatched;
@@ -850,6 +879,13 @@ impl<'a> ::buffa::MessageView<'a> for OrdersMatchedView<'a> {
                     }
                 }
             }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -885,6 +921,7 @@ impl<'a> ::buffa::MessageView<'a> for OrdersMatchedView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -931,6 +968,9 @@ impl<'a> ::buffa::ViewEncode<'a> for OrdersMatchedView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -966,6 +1006,9 @@ impl<'a> ::buffa::ViewEncode<'a> for OrdersMatchedView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(8u32, &self.exchange, buf);
         }
     }
 }
@@ -1096,6 +1139,13 @@ impl OrdersMatchedOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 8: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<OrdersMatchedView<'static>>>
 for OrdersMatchedOwnedView {
@@ -1127,6 +1177,10 @@ pub struct OrderPreapprovedView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for OrderPreapprovedView<'a> {
     type Owned = super::super::OrderPreapproved;
@@ -1186,6 +1240,13 @@ impl<'a> ::buffa::MessageView<'a> for OrderPreapprovedView<'a> {
                     }
                 }
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -1216,6 +1277,7 @@ impl<'a> ::buffa::MessageView<'a> for OrderPreapprovedView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -1237,6 +1299,9 @@ impl<'a> ::buffa::ViewEncode<'a> for OrderPreapprovedView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -1257,6 +1322,9 @@ impl<'a> ::buffa::ViewEncode<'a> for OrderPreapprovedView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
 }
@@ -1364,6 +1432,13 @@ impl OrderPreapprovedOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<OrderPreapprovedView<'static>>>
 for OrderPreapprovedOwnedView {
@@ -1395,6 +1470,10 @@ pub struct OrderPreapprovalInvalidatedView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for OrderPreapprovalInvalidatedView<'a> {
     type Owned = super::super::OrderPreapprovalInvalidated;
@@ -1454,6 +1533,13 @@ impl<'a> ::buffa::MessageView<'a> for OrderPreapprovalInvalidatedView<'a> {
                     }
                 }
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -1490,6 +1576,7 @@ impl<'a> ::buffa::MessageView<'a> for OrderPreapprovalInvalidatedView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -1511,6 +1598,9 @@ impl<'a> ::buffa::ViewEncode<'a> for OrderPreapprovalInvalidatedView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -1531,6 +1621,9 @@ impl<'a> ::buffa::ViewEncode<'a> for OrderPreapprovalInvalidatedView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
 }
@@ -1640,6 +1733,13 @@ impl OrderPreapprovalInvalidatedOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<OrderPreapprovalInvalidatedView<'static>>>
 for OrderPreapprovalInvalidatedOwnedView {
@@ -1675,6 +1775,10 @@ pub struct FeeChargedView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for FeeChargedView<'a> {
     type Owned = super::super::FeeCharged;
@@ -1741,6 +1845,13 @@ impl<'a> ::buffa::MessageView<'a> for FeeChargedView<'a> {
                     }
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -1772,6 +1883,7 @@ impl<'a> ::buffa::MessageView<'a> for FeeChargedView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -1796,6 +1908,9 @@ impl<'a> ::buffa::ViewEncode<'a> for FeeChargedView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -1819,6 +1934,9 @@ impl<'a> ::buffa::ViewEncode<'a> for FeeChargedView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
 }
@@ -1929,6 +2047,13 @@ impl FeeChargedOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<FeeChargedView<'static>>>
 for FeeChargedOwnedView {
@@ -1960,6 +2085,10 @@ pub struct FeeReceiverUpdatedView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for FeeReceiverUpdatedView<'a> {
     type Owned = super::super::FeeReceiverUpdated;
@@ -2019,6 +2148,13 @@ impl<'a> ::buffa::MessageView<'a> for FeeReceiverUpdatedView<'a> {
                     }
                 }
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -2049,6 +2185,7 @@ impl<'a> ::buffa::MessageView<'a> for FeeReceiverUpdatedView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -2070,6 +2207,9 @@ impl<'a> ::buffa::ViewEncode<'a> for FeeReceiverUpdatedView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -2090,6 +2230,9 @@ impl<'a> ::buffa::ViewEncode<'a> for FeeReceiverUpdatedView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
 }
@@ -2199,6 +2342,13 @@ impl FeeReceiverUpdatedOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<FeeReceiverUpdatedView<'static>>>
 for FeeReceiverUpdatedOwnedView {
@@ -2230,6 +2380,10 @@ pub struct MaxFeeRateUpdatedView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for MaxFeeRateUpdatedView<'a> {
     type Owned = super::super::MaxFeeRateUpdated;
@@ -2289,6 +2443,13 @@ impl<'a> ::buffa::MessageView<'a> for MaxFeeRateUpdatedView<'a> {
                     }
                 }
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -2319,6 +2480,7 @@ impl<'a> ::buffa::MessageView<'a> for MaxFeeRateUpdatedView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -2340,6 +2502,9 @@ impl<'a> ::buffa::ViewEncode<'a> for MaxFeeRateUpdatedView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -2360,6 +2525,9 @@ impl<'a> ::buffa::ViewEncode<'a> for MaxFeeRateUpdatedView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
 }
@@ -2469,6 +2637,13 @@ impl MaxFeeRateUpdatedOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<MaxFeeRateUpdatedView<'static>>>
 for MaxFeeRateUpdatedOwnedView {
@@ -2502,6 +2677,10 @@ pub struct NewAdminView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for NewAdminView<'a> {
     type Owned = super::super::NewAdmin;
@@ -2568,6 +2747,13 @@ impl<'a> ::buffa::MessageView<'a> for NewAdminView<'a> {
                     }
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -2599,6 +2785,7 @@ impl<'a> ::buffa::MessageView<'a> for NewAdminView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -2625,6 +2812,9 @@ impl<'a> ::buffa::ViewEncode<'a> for NewAdminView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -2648,6 +2838,9 @@ impl<'a> ::buffa::ViewEncode<'a> for NewAdminView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
 }
@@ -2756,6 +2949,13 @@ impl NewAdminOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<NewAdminView<'static>>>
 for NewAdminOwnedView {
@@ -2789,6 +2989,10 @@ pub struct NewOperatorView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for NewOperatorView<'a> {
     type Owned = super::super::NewOperator;
@@ -2855,6 +3059,13 @@ impl<'a> ::buffa::MessageView<'a> for NewOperatorView<'a> {
                     }
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -2886,6 +3097,7 @@ impl<'a> ::buffa::MessageView<'a> for NewOperatorView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -2913,6 +3125,9 @@ impl<'a> ::buffa::ViewEncode<'a> for NewOperatorView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -2936,6 +3151,9 @@ impl<'a> ::buffa::ViewEncode<'a> for NewOperatorView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
 }
@@ -3046,6 +3264,13 @@ impl NewOperatorOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<NewOperatorView<'static>>>
 for NewOperatorOwnedView {
@@ -3079,6 +3304,10 @@ pub struct RemovedAdminView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for RemovedAdminView<'a> {
     type Owned = super::super::RemovedAdmin;
@@ -3145,6 +3374,13 @@ impl<'a> ::buffa::MessageView<'a> for RemovedAdminView<'a> {
                     }
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -3176,6 +3412,7 @@ impl<'a> ::buffa::MessageView<'a> for RemovedAdminView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -3201,6 +3438,9 @@ impl<'a> ::buffa::ViewEncode<'a> for RemovedAdminView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -3224,6 +3464,9 @@ impl<'a> ::buffa::ViewEncode<'a> for RemovedAdminView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
 }
@@ -3334,6 +3577,13 @@ impl RemovedAdminOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<RemovedAdminView<'static>>>
 for RemovedAdminOwnedView {
@@ -3367,6 +3617,10 @@ pub struct RemovedOperatorView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for RemovedOperatorView<'a> {
     type Owned = super::super::RemovedOperator;
@@ -3433,6 +3687,13 @@ impl<'a> ::buffa::MessageView<'a> for RemovedOperatorView<'a> {
                     }
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -3464,6 +3725,7 @@ impl<'a> ::buffa::MessageView<'a> for RemovedOperatorView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -3490,6 +3752,9 @@ impl<'a> ::buffa::ViewEncode<'a> for RemovedOperatorView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -3513,6 +3778,9 @@ impl<'a> ::buffa::ViewEncode<'a> for RemovedOperatorView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
 }
@@ -3625,6 +3893,13 @@ impl RemovedOperatorOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<RemovedOperatorView<'static>>>
 for RemovedOperatorOwnedView {
@@ -3658,6 +3933,10 @@ pub struct UserPausedView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for UserPausedView<'a> {
     type Owned = super::super::UserPaused;
@@ -3724,6 +4003,13 @@ impl<'a> ::buffa::MessageView<'a> for UserPausedView<'a> {
                     }
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -3755,6 +4041,7 @@ impl<'a> ::buffa::MessageView<'a> for UserPausedView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -3782,6 +4069,9 @@ impl<'a> ::buffa::ViewEncode<'a> for UserPausedView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -3805,6 +4095,9 @@ impl<'a> ::buffa::ViewEncode<'a> for UserPausedView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
 }
@@ -3915,6 +4208,13 @@ impl UserPausedOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<UserPausedView<'static>>>
 for UserPausedOwnedView {
@@ -3946,6 +4246,10 @@ pub struct UserUnpausedView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for UserUnpausedView<'a> {
     type Owned = super::super::UserUnpaused;
@@ -4005,6 +4309,13 @@ impl<'a> ::buffa::MessageView<'a> for UserUnpausedView<'a> {
                     }
                 }
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -4035,6 +4346,7 @@ impl<'a> ::buffa::MessageView<'a> for UserUnpausedView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -4056,6 +4368,9 @@ impl<'a> ::buffa::ViewEncode<'a> for UserUnpausedView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -4076,6 +4391,9 @@ impl<'a> ::buffa::ViewEncode<'a> for UserUnpausedView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
 }
@@ -4181,6 +4499,13 @@ impl UserUnpausedOwnedView {
     > {
         &self.0.reborrow().tx
     }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<UserUnpausedView<'static>>>
 for UserUnpausedOwnedView {
@@ -4214,6 +4539,10 @@ pub struct UserPauseBlockIntervalUpdatedView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> ::buffa::MessageView<'a> for UserPauseBlockIntervalUpdatedView<'a> {
     type Owned = super::super::UserPauseBlockIntervalUpdated;
@@ -4280,6 +4609,13 @@ impl<'a> ::buffa::MessageView<'a> for UserPauseBlockIntervalUpdatedView<'a> {
                     }
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -4317,6 +4653,7 @@ impl<'a> ::buffa::MessageView<'a> for UserPauseBlockIntervalUpdatedView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -4341,6 +4678,9 @@ impl<'a> ::buffa::ViewEncode<'a> for UserPauseBlockIntervalUpdatedView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -4364,6 +4704,9 @@ impl<'a> ::buffa::ViewEncode<'a> for UserPauseBlockIntervalUpdatedView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
 }
@@ -4477,6 +4820,13 @@ impl UserPauseBlockIntervalUpdatedOwnedView {
         super::super::__buffa::view::TransactionContextView<'_>,
     > {
         &self.0.reborrow().tx
+    }
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
     }
 }
 impl ::core::convert::From<

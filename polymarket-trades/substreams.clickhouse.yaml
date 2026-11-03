@@ -1,0 +1,21 @@
+# ClickHouse deployment of polymarket-trades: the same modules (imported from
+# substreams.yaml, so the module hashes and caches are shared), with the sink set to
+# db_out_clickhouse and clickhouse-schema.sql. Usage in README.md ("SQL sink").
+specVersion: v0.1.0
+package:
+  name: polymarket_trades_clickhouse
+  version: v1.2.0
+  url: https://github.com/bluehoodie/substreams-polymarket
+  description: polymarket-trades sink config for ClickHouse
+
+network: polygon
+
+imports:
+  trades: ./substreams.yaml
+
+sink:
+  module: trades:db_out_clickhouse
+  type: sf.substreams.sink.sql.v1.Service
+  config:
+    schema: "./clickhouse-schema.sql"
+    engine: clickhouse

@@ -14,7 +14,7 @@ use substreams_ethereum::pb::eth::v2 as eth;
 use pb::polymarket::exchange::v1 as proto;
 use polymarket_substreams_common::{
     bigint_to_string, bigint_to_u32, block_logs, format_address, tx_context, BlockLog, BlockLogs,
-    CTF_EXCHANGE as CTF_EXCHANGE_CONTRACT_ADDRESS,
+    CTF_EXCHANGE as CTF_EXCHANGE_CONTRACT_ADDRESS, EXCHANGE_V3,
 };
 
 #[substreams::handlers::map]
@@ -40,6 +40,7 @@ pub fn map_exchange_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::Exchan
                     builder: event.builder.to_vec(),
                     metadata: event.metadata.to_vec(),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if OrdersMatched::match_log(&log.log) {
@@ -52,6 +53,7 @@ pub fn map_exchange_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::Exchan
                     maker_amount_filled: bigint_to_string(&event.maker_amount_filled),
                     taker_amount_filled: bigint_to_string(&event.taker_amount_filled),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         }
@@ -75,6 +77,7 @@ pub fn map_fee_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::FeeEvents, 
                     recipient: format_address(&event.recipient),
                     amount: bigint_to_string(&event.amount),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if FeeReceiverUpdated::match_log(&log.log) {
@@ -82,6 +85,7 @@ pub fn map_fee_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::FeeEvents, 
                 events.fee_receiver_updated.push(proto::FeeReceiverUpdated {
                     fee_receiver: format_address(&event.fee_receiver),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if MaxFeeRateUpdated::match_log(&log.log) {
@@ -89,6 +93,7 @@ pub fn map_fee_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::FeeEvents, 
                 events.max_fee_rate_updated.push(proto::MaxFeeRateUpdated {
                     max_fee_rate: bigint_to_string(&event.max_fee_rate),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         }
@@ -112,6 +117,7 @@ pub fn map_admin_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AdminEven
                     new_admin_address: format_address(&event.new_admin_address),
                     admin: format_address(&event.admin),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if NewOperator::match_log(&log.log) {
@@ -120,6 +126,7 @@ pub fn map_admin_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AdminEven
                     new_operator_address: format_address(&event.new_operator_address),
                     admin: format_address(&event.admin),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if RemovedAdmin::match_log(&log.log) {
@@ -128,6 +135,7 @@ pub fn map_admin_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AdminEven
                     removed_admin: format_address(&event.removed_admin),
                     admin: format_address(&event.admin),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if RemovedOperator::match_log(&log.log) {
@@ -136,6 +144,7 @@ pub fn map_admin_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AdminEven
                     removed_operator: format_address(&event.removed_operator),
                     admin: format_address(&event.admin),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         }
@@ -159,6 +168,7 @@ pub fn map_pause_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::PauseEven
                     user: format_address(&event.user),
                     effective_pause_block: bigint_to_string(&event.effective_pause_block),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if UserUnpaused::match_log(&log.log) {
@@ -166,6 +176,7 @@ pub fn map_pause_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::PauseEven
                 events.user_unpaused.push(proto::UserUnpaused {
                     user: format_address(&event.user),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if UserPauseBlockIntervalUpdated::match_log(&log.log) {
@@ -175,6 +186,7 @@ pub fn map_pause_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::PauseEven
                         old_interval: bigint_to_string(&event.old_interval),
                         new_interval: bigint_to_string(&event.new_interval),
                         tx: build_transaction_context(&blk, log).into(),
+                        exchange: exchange_label(log).to_owned(),
                     },
                 );
             }
@@ -200,6 +212,7 @@ pub fn map_approval_events(
                 events.order_preapproved.push(proto::OrderPreapproved {
                     order_hash: event.order_hash.to_vec(),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if OrderPreapprovalInvalidated::match_log(&log.log) {
@@ -209,6 +222,7 @@ pub fn map_approval_events(
                     .push(proto::OrderPreapprovalInvalidated {
                         order_hash: event.order_hash.to_vec(),
                         tx: build_transaction_context(&blk, log).into(),
+                        exchange: exchange_label(log).to_owned(),
                     });
             }
         }
@@ -244,6 +258,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     builder: event.builder.to_vec(),
                     metadata: event.metadata.to_vec(),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if OrdersMatched::match_log(&log.log) {
@@ -256,6 +271,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     maker_amount_filled: bigint_to_string(&event.maker_amount_filled),
                     taker_amount_filled: bigint_to_string(&event.taker_amount_filled),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if FeeCharged::match_log(&log.log) {
@@ -264,6 +280,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     recipient: format_address(&event.recipient),
                     amount: bigint_to_string(&event.amount),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if FeeReceiverUpdated::match_log(&log.log) {
@@ -273,6 +290,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     .push(proto::FeeReceiverUpdated {
                         fee_receiver: format_address(&event.fee_receiver),
                         tx: build_transaction_context(&blk, log).into(),
+                        exchange: exchange_label(log).to_owned(),
                     });
             }
         } else if MaxFeeRateUpdated::match_log(&log.log) {
@@ -282,6 +300,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     .push(proto::MaxFeeRateUpdated {
                         max_fee_rate: bigint_to_string(&event.max_fee_rate),
                         tx: build_transaction_context(&blk, log).into(),
+                        exchange: exchange_label(log).to_owned(),
                     });
             }
         } else if NewAdmin::match_log(&log.log) {
@@ -290,6 +309,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     new_admin_address: format_address(&event.new_admin_address),
                     admin: format_address(&event.admin),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if NewOperator::match_log(&log.log) {
@@ -298,6 +318,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     new_operator_address: format_address(&event.new_operator_address),
                     admin: format_address(&event.admin),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if RemovedAdmin::match_log(&log.log) {
@@ -306,6 +327,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     removed_admin: format_address(&event.removed_admin),
                     admin: format_address(&event.admin),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if RemovedOperator::match_log(&log.log) {
@@ -314,6 +336,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     removed_operator: format_address(&event.removed_operator),
                     admin: format_address(&event.admin),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if UserPaused::match_log(&log.log) {
@@ -322,6 +345,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     user: format_address(&event.user),
                     effective_pause_block: bigint_to_string(&event.effective_pause_block),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if UserUnpaused::match_log(&log.log) {
@@ -329,6 +353,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                 pause_events.user_unpaused.push(proto::UserUnpaused {
                     user: format_address(&event.user),
                     tx: build_transaction_context(&blk, log).into(),
+                    exchange: exchange_label(log).to_owned(),
                 });
             }
         } else if UserPauseBlockIntervalUpdated::match_log(&log.log) {
@@ -338,6 +363,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                         old_interval: bigint_to_string(&event.old_interval),
                         new_interval: bigint_to_string(&event.new_interval),
                         tx: build_transaction_context(&blk, log).into(),
+                        exchange: exchange_label(log).to_owned(),
                     },
                 );
             }
@@ -348,6 +374,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     .push(proto::OrderPreapproved {
                         order_hash: event.order_hash.to_vec(),
                         tx: build_transaction_context(&blk, log).into(),
+                        exchange: exchange_label(log).to_owned(),
                     });
             }
         } else if OrderPreapprovalInvalidated::match_log(&log.log) {
@@ -356,6 +383,7 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
                     proto::OrderPreapprovalInvalidated {
                         order_hash: event.order_hash.to_vec(),
                         tx: build_transaction_context(&blk, log).into(),
+                        exchange: exchange_label(log).to_owned(),
                     },
                 );
             }
@@ -405,10 +433,26 @@ pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, 
     })
 }
 
+/// Keeps logs from CTF Exchange V2 and the Protocol V2 Exchange (ExchangeV3), which
+/// emit the same event signatures.
 #[inline]
 fn is_exchange_contract(address: &[u8]) -> bool {
-    address == CTF_EXCHANGE_CONTRACT_ADDRESS
+    address == CTF_EXCHANGE_CONTRACT_ADDRESS || address == EXCHANGE_V3
 }
+
+/// Value of every event's `exchange` field: which contract emitted the log. Only
+/// called on logs kept by `is_exchange_contract`, so anything else is ExchangeV3.
+#[inline]
+fn exchange_label(log: &BlockLog) -> &'static str {
+    if log.log.address == CTF_EXCHANGE_CONTRACT_ADDRESS {
+        EXCHANGE_CTF_V2_LABEL
+    } else {
+        EXCHANGE_V3_LABEL
+    }
+}
+
+const EXCHANGE_CTF_V2_LABEL: &str = "ctf_v2";
+const EXCHANGE_V3_LABEL: &str = "exchange_v3";
 
 #[inline]
 fn build_transaction_context(blk: &BlockLogs, log: &BlockLog) -> proto::TransactionContext {
@@ -448,6 +492,12 @@ mod tests {
             ..Default::default()
         };
         assert!(!is_exchange_contract(&log.address));
+    }
+
+    #[test]
+    fn test_is_exchange_contract_matches_exchange_v3() {
+        let address = hex_literal::hex!("e3333700cA9d93003F00f0F71f8515005F6c00Aa");
+        assert!(is_exchange_contract(&address));
     }
 
     #[test]
@@ -735,6 +785,29 @@ mod handler_tests {
     }
 
     #[test]
+    fn map_all_events_labels_exchange_v3_logs() {
+        let mut log = order_filled_log();
+        log.address = EXCHANGE_V3.to_vec();
+        let out = polymarket_substreams_common::with_lazy_block(&block_with_log(log), |blk| {
+            substreams::testing::map!(map_all_events(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        let ex = out.exchange_events.as_option().expect("exchange events");
+        assert_eq!(ex.order_filled.len(), 1);
+        assert_eq!(ex.order_filled[0].exchange, "exchange_v3");
+
+        let out = polymarket_substreams_common::with_lazy_block(
+            &block_with_log(order_filled_log()),
+            |blk| substreams::testing::map!(map_all_events(blk)),
+        )
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        let ex = out.exchange_events.as_option().expect("exchange events");
+        assert_eq!(ex.order_filled[0].exchange, "ctf_v2");
+    }
+
+    #[test]
     fn map_all_events_empty_block_ok() {
         let out = polymarket_substreams_common::with_lazy_block(&eth::Block::default(), |blk| {
             substreams::testing::map!(map_all_events(blk))
@@ -797,5 +870,102 @@ mod fixture_tests {
                 .maker,
             "0x45f82472a88f759f8a98174d3cdd3db4a9ee6d79"
         );
+        // ExchangeV3 had no activity in this block: every event is CTF Exchange V2.
+        let ex = out.exchange_events.as_option().expect("exchange events");
+        assert!(ex.order_filled.iter().all(|e| e.exchange == "ctf_v2"));
+        assert!(ex.orders_matched.iter().all(|e| e.exchange == "ctf_v2"));
+    }
+
+    fn load_96680009() -> eth::Block {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../testdata/polygon_96680009.binpb.b64"
+        );
+        let block = polymarket_substreams_common::load_block_b64(path).expect("fixture loads");
+        assert_eq!(block.number, 96680009);
+        block
+    }
+
+    fn count_by<'a>(labels: impl Iterator<Item = &'a str>) -> (usize, usize) {
+        labels.fold((0, 0), |(v2, v3), l| match l {
+            "ctf_v2" => (v2 + 1, v3),
+            "exchange_v3" => (v2, v3 + 1),
+            other => panic!("unexpected exchange label {other:?}"),
+        })
+    }
+
+    /// Real Polygon block 96680009, which has fills from both CTF Exchange V2 and
+    /// ExchangeV3. Counts match `substreams run` of the same modules on that block.
+    #[test]
+    fn map_all_events_real_block_96680009_both_exchanges() {
+        let block = load_96680009();
+        let out = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+            substreams::testing::map!(map_all_events(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        let ex = out.exchange_events.as_option().expect("exchange events");
+        let fees = out.fee_events.as_option().expect("fee events");
+        assert_eq!(
+            count_by(ex.order_filled.iter().map(|e| e.exchange.as_str())),
+            (29, 4),
+            "order_filled (ctf_v2, exchange_v3)"
+        );
+        assert_eq!(
+            count_by(ex.orders_matched.iter().map(|e| e.exchange.as_str())),
+            (12, 2),
+            "orders_matched (ctf_v2, exchange_v3)"
+        );
+        assert_eq!(
+            count_by(fees.fee_charged.iter().map(|e| e.exchange.as_str())),
+            (12, 2),
+            "fee_charged (ctf_v2, exchange_v3)"
+        );
+        let v3: Vec<_> = ex
+            .order_filled
+            .iter()
+            .filter(|e| e.exchange == "exchange_v3")
+            .collect();
+        assert_eq!(v3[1].maker, "0xbd30eb77e69846f240716e33eb82e036c5ad9983");
+        // The taker order's own fill names the exchange itself as taker.
+        assert_eq!(v3[1].taker, "0xe3333700ca9d93003f00f0f71f8515005f6c00aa");
+        assert_eq!(v3[1].maker_amount_filled, "952790");
+        assert_eq!(v3[1].taker_amount_filled, "106231679");
+        assert_eq!(v3[1].fee, "47210");
+    }
+
+    /// The per-category modules emit the same ExchangeV3 events as `map_all_events`.
+    #[test]
+    fn per_category_modules_real_block_96680009() {
+        let block = load_96680009();
+        let ex = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+            substreams::testing::map!(map_exchange_events(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        assert_eq!(
+            count_by(ex.order_filled.iter().map(|e| e.exchange.as_str())),
+            (29, 4)
+        );
+        assert_eq!(
+            count_by(ex.orders_matched.iter().map(|e| e.exchange.as_str())),
+            (12, 2)
+        );
+        let fees = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+            substreams::testing::map!(map_fee_events(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        assert_eq!(
+            count_by(fees.fee_charged.iter().map(|e| e.exchange.as_str())),
+            (12, 2)
+        );
+        let v3_fees: Vec<_> = fees
+            .fee_charged
+            .iter()
+            .filter(|e| e.exchange == "exchange_v3")
+            .map(|e| e.amount.as_str())
+            .collect();
+        assert_eq!(v3_fees, ["47210", "51380"]);
     }
 }

@@ -17,7 +17,7 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 pkgs=("$@")
 if [ ${#pkgs[@]} -eq 0 ]; then
-  pkgs=(exchange ctf neg-risk-ctf neg-risk-adapter collateral wallet-factory resolution trader-index)
+  pkgs=(exchange ctf neg-risk-ctf neg-risk-adapter collateral wallet-factory resolution trader-index trades)
 fi
 
 failed=0
@@ -31,20 +31,23 @@ for pkg in "${pkgs[@]}"; do
     /path:/     { sub(/^[^:]*: */, ""); gsub(/^'\''|'\''$/, ""); p=$0 }
     /expect:/   { sub(/^[^:]*: */, ""); gsub(/^"|"$/, ""); print m "\t" b "\t" p "\t" $0 }
   ' "$file" > "$tmp/tests.tsv"
-  module=$(cut -f1 "$tmp/tests.tsv" | sort -u)
-  [ "$(wc -l <<< "$module")" -eq 1 ] || { echo "$file: one module per file" >&2; exit 1; }
-  start=$(cut -f2 "$tmp/tests.tsv" | sort -n | head -1)
-  stop=$(cut -f2 "$tmp/tests.tsv" | sort -n | tail -1)
-  echo "== $pkg $module @ $start..$stop"
-  (cd "$dir" && substreams run substreams.yaml "$module" -e "$EP" \
-    -s "$start" -t "$((stop + 1))" -o jsonl --test-file tests/assertions.yaml \
-    > "$tmp/out.jsonl" 2> "$tmp/err.log") || { cat "$tmp/err.log" >&2; exit 1; }
-  while IFS=$'\t' read -r _ block path expect; do
-    actual=$(jq -r --argjson b "$block" "select(.[\"@block\"] == \$b) | .[\"@data\"] | $path" "$tmp/out.jsonl")
+  # One run per distinct (module, block), so assertions on far-apart blocks don't
+  # stream the whole range between them.
+  : > "$tmp/out.jsonl"
+  cut -f1,2 "$tmp/tests.tsv" | sort -u > "$tmp/runs.tsv"
+  while IFS=$'\t' read -r module blk; do
+    echo "== $pkg $module @ $blk"
+    (cd "$dir" && substreams run substreams.yaml "$module" -e "$EP" \
+      -s "$blk" -t "$((blk + 1))" -o jsonl --test-file tests/assertions.yaml \
+      >> "$tmp/out.jsonl" 2> "$tmp/err.log" < /dev/null) || { cat "$tmp/err.log" >&2; exit 1; }
+  done < "$tmp/runs.tsv"
+  while IFS=$'\t' read -r module block path expect; do
+    actual=$(jq -r --arg m "$module" --argjson b "$block" \
+      "select(.[\"@block\"] == \$b and .[\"@module\"] == \$m) | .[\"@data\"] | $path" "$tmp/out.jsonl")
     if [ "$actual" == "$expect" ]; then
-      echo "   ok   $block $path"
+      echo "   ok   $module $block $path"
     else
-      echo "   FAIL $block $path: expected '$expect', got '$actual'"
+      echo "   FAIL $module $block $path: expected '$expect', got '$actual'"
       failed=1
     fi
   done < "$tmp/tests.tsv"

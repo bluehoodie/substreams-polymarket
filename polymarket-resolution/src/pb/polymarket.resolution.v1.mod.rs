@@ -135,6 +135,18 @@ pub use self::__buffa::view::DisputeAlertsOwnedView;
 #[doc(inline)]
 pub use self::__buffa::lazy_view::DisputeAlertsLazyView;
 #[doc(inline)]
+pub use self::__buffa::view::ModuleConditionResolvedView;
+#[doc(inline)]
+pub use self::__buffa::view::ModuleConditionResolvedOwnedView;
+#[doc(inline)]
+pub use self::__buffa::lazy_view::ModuleConditionResolvedLazyView;
+#[doc(inline)]
+pub use self::__buffa::view::ModuleEventsView;
+#[doc(inline)]
+pub use self::__buffa::view::ModuleEventsOwnedView;
+#[doc(inline)]
+pub use self::__buffa::lazy_view::ModuleEventsLazyView;
+#[doc(inline)]
 pub use self::__buffa::view::ResolutionEventsView;
 #[doc(inline)]
 pub use self::__buffa::view::ResolutionEventsOwnedView;

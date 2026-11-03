@@ -17,6 +17,8 @@ fn main() -> Result<()> {
     gen("PUsd", "abi/pUSD.json", "src/abi/p_usd.rs")?;
     gen("CtfCollateralAdapter", "abi/CtfCollateralAdapter.json", "src/abi/ctf_collateral_adapter.rs")?;
     gen("NegRiskCtfCollateralAdapter", "abi/NegRiskCtfCollateralAdapter.json", "src/abi/neg_risk_ctf_collateral_adapter.rs")?;
+    gen("CtfExchangeV2Match", "abi/CTFExchangeV2_match.json", "src/abi/ctf_exchange_v2_match.rs")?;
+    gen("ExchangeV3Match", "abi/ExchangeV3_match.json", "src/abi/exchange_v3_match.rs")?;
     gen("DepositWalletFactory", "abi/DepositWalletFactory.json", "src/abi/deposit_wallet_factory.rs")?;
     Ok(())
 }

@@ -398,6 +398,10 @@ pub struct OrderFilledLazyView<'a> {
     pub builder: &'a [u8],
     /// Field 11: `metadata`
     pub metadata: &'a [u8],
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 12: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> OrderFilledLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -510,6 +514,13 @@ impl<'a> OrderFilledLazyView<'a> {
                     )?;
                     view.metadata = ::buffa::types::borrow_bytes(&mut cur)?;
                 }
+                12u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+                }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 }
@@ -572,6 +583,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for OrderFilledLazyView<'a> {
             },
             builder: (self.builder).to_vec(),
             metadata: (self.metadata).to_vec(),
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -636,6 +648,9 @@ impl<'a> OrderFilledLazyView<'a> {
         if !self.metadata.is_empty() {
             size += 1u64 + ::buffa::types::bytes_encoded_len(&self.metadata) as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -689,6 +704,9 @@ impl<'a> OrderFilledLazyView<'a> {
         }
         if !self.metadata.is_empty() {
             ::buffa::types::put_shared_bytes_field(11u32, &self.metadata, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(12u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -884,6 +902,10 @@ pub struct OrdersMatchedLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 8: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> OrdersMatchedLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -968,6 +990,13 @@ impl<'a> OrdersMatchedLazyView<'a> {
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
                 }
+                8u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+                }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 }
@@ -1026,6 +1055,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for OrdersMatchedLazyView<'a> {
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -1082,6 +1112,9 @@ impl<'a> OrdersMatchedLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -1123,6 +1156,9 @@ impl<'a> OrdersMatchedLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(8u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -1308,6 +1344,10 @@ pub struct OrderPreapprovedLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> OrderPreapprovedLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -1356,6 +1396,13 @@ impl<'a> OrderPreapprovedLazyView<'a> {
                     let sub = ::buffa::types::borrow_bytes(&mut cur)?;
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
+                }
+                3u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
                 }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
@@ -1410,6 +1457,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for OrderPreapprovedLazyView<'a> {
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -1441,6 +1489,9 @@ impl<'a> OrderPreapprovedLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -1467,6 +1518,9 @@ impl<'a> OrderPreapprovedLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -1652,6 +1706,10 @@ pub struct OrderPreapprovalInvalidatedLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> OrderPreapprovalInvalidatedLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -1700,6 +1758,13 @@ impl<'a> OrderPreapprovalInvalidatedLazyView<'a> {
                     let sub = ::buffa::types::borrow_bytes(&mut cur)?;
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
+                }
+                3u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
                 }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
@@ -1757,6 +1822,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for OrderPreapprovalInvalidatedLazyView<'a
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -1788,6 +1854,9 @@ impl<'a> OrderPreapprovalInvalidatedLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -1814,6 +1883,9 @@ impl<'a> OrderPreapprovalInvalidatedLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -2001,6 +2073,10 @@ pub struct FeeChargedLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> FeeChargedLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -2057,6 +2133,13 @@ impl<'a> FeeChargedLazyView<'a> {
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
                 }
+                4u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+                }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 }
@@ -2111,6 +2194,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for FeeChargedLazyView<'a> {
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -2145,6 +2229,9 @@ impl<'a> FeeChargedLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -2174,6 +2261,9 @@ impl<'a> FeeChargedLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -2359,6 +2449,10 @@ pub struct FeeReceiverUpdatedLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> FeeReceiverUpdatedLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -2407,6 +2501,13 @@ impl<'a> FeeReceiverUpdatedLazyView<'a> {
                     let sub = ::buffa::types::borrow_bytes(&mut cur)?;
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
+                }
+                3u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
                 }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
@@ -2461,6 +2562,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for FeeReceiverUpdatedLazyView<'a> {
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -2492,6 +2594,9 @@ impl<'a> FeeReceiverUpdatedLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -2518,6 +2623,9 @@ impl<'a> FeeReceiverUpdatedLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -2703,6 +2811,10 @@ pub struct MaxFeeRateUpdatedLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> MaxFeeRateUpdatedLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -2751,6 +2863,13 @@ impl<'a> MaxFeeRateUpdatedLazyView<'a> {
                     let sub = ::buffa::types::borrow_bytes(&mut cur)?;
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
+                }
+                3u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
                 }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
@@ -2805,6 +2924,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for MaxFeeRateUpdatedLazyView<'a> {
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -2836,6 +2956,9 @@ impl<'a> MaxFeeRateUpdatedLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -2862,6 +2985,9 @@ impl<'a> MaxFeeRateUpdatedLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -3049,6 +3175,10 @@ pub struct NewAdminLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> NewAdminLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -3105,6 +3235,13 @@ impl<'a> NewAdminLazyView<'a> {
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
                 }
+                4u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+                }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 }
@@ -3159,6 +3296,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for NewAdminLazyView<'a> {
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -3195,6 +3333,9 @@ impl<'a> NewAdminLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -3224,6 +3365,9 @@ impl<'a> NewAdminLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -3411,6 +3555,10 @@ pub struct NewOperatorLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> NewOperatorLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -3467,6 +3615,13 @@ impl<'a> NewOperatorLazyView<'a> {
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
                 }
+                4u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+                }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 }
@@ -3521,6 +3676,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for NewOperatorLazyView<'a> {
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -3558,6 +3714,9 @@ impl<'a> NewOperatorLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -3587,6 +3746,9 @@ impl<'a> NewOperatorLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -3774,6 +3936,10 @@ pub struct RemovedAdminLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> RemovedAdminLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -3830,6 +3996,13 @@ impl<'a> RemovedAdminLazyView<'a> {
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
                 }
+                4u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+                }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 }
@@ -3884,6 +4057,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for RemovedAdminLazyView<'a> {
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -3919,6 +4093,9 @@ impl<'a> RemovedAdminLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -3948,6 +4125,9 @@ impl<'a> RemovedAdminLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -4135,6 +4315,10 @@ pub struct RemovedOperatorLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> RemovedOperatorLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -4191,6 +4375,13 @@ impl<'a> RemovedOperatorLazyView<'a> {
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
                 }
+                4u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+                }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 }
@@ -4245,6 +4436,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for RemovedOperatorLazyView<'a> {
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -4281,6 +4473,9 @@ impl<'a> RemovedOperatorLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -4310,6 +4505,9 @@ impl<'a> RemovedOperatorLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -4497,6 +4695,10 @@ pub struct UserPausedLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> UserPausedLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -4553,6 +4755,13 @@ impl<'a> UserPausedLazyView<'a> {
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
                 }
+                4u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+                }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 }
@@ -4607,6 +4816,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for UserPausedLazyView<'a> {
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -4644,6 +4854,9 @@ impl<'a> UserPausedLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -4673,6 +4886,9 @@ impl<'a> UserPausedLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -4858,6 +5074,10 @@ pub struct UserUnpausedLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> UserUnpausedLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -4906,6 +5126,13 @@ impl<'a> UserUnpausedLazyView<'a> {
                     let sub = ::buffa::types::borrow_bytes(&mut cur)?;
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
+                }
+                3u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
                 }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
@@ -4960,6 +5187,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for UserUnpausedLazyView<'a> {
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -4991,6 +5219,9 @@ impl<'a> UserUnpausedLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -5017,6 +5248,9 @@ impl<'a> UserUnpausedLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -5204,6 +5438,10 @@ pub struct UserPauseBlockIntervalUpdatedLazyView<'a> {
         'a,
         super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: &'a str,
 }
 impl<'a> UserPauseBlockIntervalUpdatedLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -5259,6 +5497,13 @@ impl<'a> UserPauseBlockIntervalUpdatedLazyView<'a> {
                     let sub = ::buffa::types::borrow_bytes(&mut cur)?;
                     ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
                     view.tx.push_fragment(sub, __sub_ctx);
+                }
+                4u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
                 }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
@@ -5317,6 +5562,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for UserPauseBlockIntervalUpdatedLazyView<
                 }
                 ::core::option::Option::None => ::buffa::MessageField::none(),
             },
+            exchange: self.exchange.to_string(),
             ..::core::default::Default::default()
         })
     }
@@ -5351,6 +5597,9 @@ impl<'a> UserPauseBlockIntervalUpdatedLazyView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
                     + __frag.len() as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -5380,6 +5629,9 @@ impl<'a> UserPauseBlockIntervalUpdatedLazyView<'a> {
                 .encode(buf);
             ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
             buf.put_slice(__frag);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.

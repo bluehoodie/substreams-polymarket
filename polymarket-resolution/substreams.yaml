@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-resolution
-  version: v1.1.0
+  version: v1.2.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: Full Polymarket resolution pipeline — UMA Oracle disputes + CTF Adapter question lifecycle
   image: ./polymarket.png
@@ -76,6 +76,23 @@ modules:
       Extracts a unified alert stream of disputes, emergency resolutions,
       flags, pauses, and resets across both oracle and adapter contracts.
 
+  - name: map_module_events
+    kind: map
+    initialBlock: 29786052
+    blockFilter:
+      module: eth_common:index_events
+      query:
+        string: >-
+          evt_addr:0x1000008dd9001b968442c1000017eae6e0da00ba ||
+          evt_addr:0x200000900045e3b6259600682756002200028933
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.resolution.v1.ModuleEvents
+    doc: |
+      Extracts ConditionResolved (final payout vectors) from the Protocol V2
+      BinaryModule and NegRiskModule.
+
   - name: map_resolution_events
     kind: map
     initialBlock: 29786052
@@ -86,11 +103,13 @@ modules:
           evt_addr:0xee3afe347d5c74317041e2618c49534daf887c24 ||
           evt_addr:0x5953f2538f613e05baed8a5aefa8e6622467ad3d ||
           evt_addr:0x6a9d222616c90fca5754cd1333cfd9b7fb6a4f74 ||
-          evt_addr:0x2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d
+          evt_addr:0x2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d ||
+          evt_addr:0x1000008dd9001b968442c1000017eae6e0da00ba ||
+          evt_addr:0x200000900045e3b6259600682756002200028933
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:polymarket.resolution.v1.ResolutionEvents
     doc: |
-      Extracts the full combined resolution pipeline — oracle and adapter
-      events from all four contracts in a single pass.
+      Extracts the full combined resolution pipeline — oracle, adapter and
+      Protocol V2 module events from all six contracts in a single pass.

@@ -24,6 +24,7 @@ ALL_PACKAGES=(
   polymarket-resolution
   polymarket-wallet-factory
   polymarket-trader-index
+  polymarket-trades
 )
 
 # Use packages passed as arguments, or all of them.

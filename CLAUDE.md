@@ -4,9 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Cargo workspace of 8 Substreams packages (`polymarket-*`) that extract Polymarket
+Cargo workspace of 9 Substreams packages (`polymarket-*`) that extract Polymarket
 events on Polygon, plus `polymarket-substreams-common` — a plain shared helper crate
-(no wasm target, no manifest). All 8 packages are released in lockstep at the same version.
+(no wasm target, no manifest). All 9 packages are released in lockstep at the same version.
+`polymarket-trades` builds on the sibling `polymarket-exchange`, `polymarket-neg-risk-ctf`
+and `polymarket-resolution` manifests' map outputs (it imports them, so build those first:
+`make build-trades` does). Its only block-reading module is `map_orders`, which decodes
+exchange settlement calldata (`polymarket_substreams_common::orders`). Its `db_out`
+(PostgreSQL, `schema.sql`) and `db_out_clickhouse` (`clickhouse-schema.sql`) feed
+`substreams sink postgres|clickhouse`; delta upserts (`add`/`max`/`min`/`set_if_null`)
+are PostgreSQL-only, so the ClickHouse module inserts fragments for the table engines to merge.
 
 ## Build / test / lint
 
@@ -70,7 +77,8 @@ changing these rules.
   with `scripts/capture_fixture.sh <block>`; load it with
   `polymarket_substreams_common::load_block_b64` (the `fixtures` feature, enabled from each
   package's `[dev-dependencies]` only, so base64 never reaches the wasm build). Each package's
-  `fixture_tests` asserts the same counts as its `tests/assertions.yaml`.
+  `fixture_tests` asserts the same counts as its `tests/assertions.yaml`, which may
+  cover several modules (the runner makes one run per module and block).
 - `scripts/run_test_files.sh` runs every `tests/assertions.yaml` against the chain (needs
   `make build-all`, `substreams auth`, jq); run it before each release. It checks the
   assertions itself with jq because `substreams run --test-file` (v1.26) never fails a run
@@ -100,7 +108,8 @@ Needs `substreams auth` first (API key from thegraph.market). Endpoint: `polygon
 
 ## Releases
 
-Versions bump across ALL 8 manifests (`package.version`) and the versioned `.spkg`
+Versions bump across ALL 9 manifests (`package.version`, plus
+`polymarket-trades/substreams.clickhouse.yaml`) and the versioned `.spkg`
 references in the READMEs in lockstep, in one commit. Then push tag `vX.Y.Z`. The tag push
 runs `release.yml`: workspace tests, then build, GitHub Release and publish. To publish
 by hand, use `./publish-all.sh` (needs `substreams auth` / a substreams.dev token).

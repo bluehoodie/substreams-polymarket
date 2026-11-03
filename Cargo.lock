@@ -86,6 +86,7 @@ version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a92f2f5df67a9d5ccfc65237bfc954c56328aee40a04a9b92381ecba370be246"
 dependencies = [
+ "base64",
  "bytes",
  "foldhash",
  "hashbrown",
@@ -321,6 +322,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
  "foldhash",
+ "serde",
 ]
 
 [[package]]
@@ -632,6 +634,7 @@ dependencies = [
  "hex",
  "hex-literal 0.4.1",
  "num-bigint",
+ "sha3",
  "substreams",
  "substreams-ethereum",
 ]
@@ -646,6 +649,20 @@ dependencies = [
  "hex-literal 0.4.1",
  "polymarket-substreams-common",
  "substreams",
+ "substreams-ethereum",
+]
+
+[[package]]
+name = "polymarket-trades"
+version = "0.1.0"
+dependencies = [
+ "buffa",
+ "buffa-types",
+ "hex",
+ "hex-literal 0.4.1",
+ "polymarket-substreams-common",
+ "substreams",
+ "substreams-database-change",
  "substreams-ethereum",
 ]
 
@@ -849,6 +866,17 @@ dependencies = [
  "pest_derive",
  "substreams-macro",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "substreams-database-change"
+version = "5.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ec5a27f1f98c269685f7112ece4c04c8596e91dee461d60ef0f018b58915c6c"
+dependencies = [
+ "buffa",
+ "buffa-types",
+ "substreams",
 ]
 
 [[package]]

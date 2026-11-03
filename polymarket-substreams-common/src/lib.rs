@@ -3,6 +3,7 @@
 // `dead_code` is allowed; the per-file `#![allow(clippy::all)]` covers clippy.
 #[allow(dead_code, clippy::all)]
 pub mod abi;
+pub mod orders;
 
 use std::collections::HashSet;
 
@@ -187,6 +188,10 @@ pub fn block_logs<'a>(
 
 /// CTF Exchange (CLOB).
 pub const CTF_EXCHANGE: [u8; 20] = hex_literal::hex!("E111180000d2663C0091e4f400237545B87B996B");
+/// Protocol V2 Exchange ("ExchangeV3", UUPS proxy). Emits the same OrderFilled /
+/// OrdersMatched / FeeCharged signatures as `CTF_EXCHANGE`, but its token ids are
+/// Protocol V2 PositionManager position ids.
+pub const EXCHANGE_V3: [u8; 20] = hex_literal::hex!("e3333700cA9d93003F00f0F71f8515005F6c00Aa");
 /// Neg-Risk CTF Exchange.
 pub const NEG_RISK_CTF: [u8; 20] = hex_literal::hex!("e2222d279d744050d28e00520010520000310F59");
 /// Gnosis Conditional Tokens Framework (ERC1155).

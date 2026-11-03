@@ -1,0 +1,189 @@
+syntax = "proto3";
+
+package polymarket.trades.v1;
+
+message TransactionContext {
+  string tx_hash = 1;
+  // Block-wide log index of the OrderFilled log; orders trades within a block.
+  uint64 log_index = 2;
+  uint64 block_number = 3;
+  uint64 timestamp = 4;
+}
+
+// One fill of one signed order (one OrderFilled log), from CTF Exchange V2, Neg Risk
+// CTF Exchange V2 or ExchangeV3. Amounts are raw 6-decimal integers as strings.
+message Trade {
+  // Outcome token traded. For exchange_v3 this is a Protocol V2 PositionManager id.
+  string token_id = 1;
+  // Side of the filled order: 0 = BUY (pays collateral, receives shares), 1 = SELL.
+  uint32 side = 2;
+  // Outcome shares that changed hands.
+  string shares = 3;
+  // Collateral the order's owner paid (BUY) or received (SELL), fee included:
+  // BUY = maker_amount_filled + fee, SELL = taker_amount_filled - fee.
+  string collateral = 4;
+  // collateral / shares, rounded down to 6 decimals ("0.537000"); "0" if no shares.
+  string price = 5;
+  // Fee charged to this order, in collateral.
+  string fee = 6;
+  // Owner of the filled order.
+  string maker = 7;
+  // Counterparty: a maker order's taker, or the exchange itself for the taker
+  // order's own fill (see is_match).
+  string taker = 8;
+  bytes order_hash = 9;
+  // "ctf_v2" | "neg_risk_v2" | "exchange_v3".
+  string exchange = 10;
+  // True for the taker order's own fill (taker == the exchange contract). There is
+  // exactly one per match, so summing is_match trades counts each match once.
+  bool is_match = 11;
+  TransactionContext tx = 12;
+  // True for the fills that make up market volume, so each match counts once per
+  // token: the taker's own fill, plus any maker fill on a different token than the
+  // taker's (a mint or merge match, where the maker trades the complement), plus
+  // fills with no taker order in the transaction (direct fillOrder). False for maker
+  // fills on the taker's token, which the taker fill already covers.
+  bool is_volume = 13;
+}
+
+message Trades {
+  // In block order (tx.log_index).
+  repeated Trade trades = 1;
+}
+
+// Running summary of one outcome token, emitted for every token traded in a block.
+// Cumulative fields cover all blocks up to and including this one. Volume fields
+// sum `is_volume` trades; `fees` sums every fill.
+message TokenStats {
+  string token_id = 1;
+  // Cumulative counts of is_volume trades, and of those, BUY and SELL orders.
+  uint64 trades = 2;
+  uint64 buys = 3;
+  uint64 sells = 4;
+  // Cumulative collateral and share volume (raw 6-decimal integers).
+  string volume_collateral = 5;
+  string volume_shares = 6;
+  // Cumulative fees charged on fills of this token.
+  string fees = 7;
+  // Price of the latest is_volume trade (6 decimals). Not a mid price: chain data
+  // has no book.
+  string last_price = 8;
+  // Volume-weighted average price of this block's is_volume trades; "" if none.
+  string block_vwap = 9;
+  string block_volume_collateral = 10;
+  string block_volume_shares = 11;
+  uint64 last_trade_block = 12;
+  uint64 last_trade_timestamp = 13;
+}
+
+message MarketStats {
+  repeated TokenStats tokens = 1;
+}
+
+// OHLCV fragment of one outcome token over one 1-minute bucket, from one block's
+// is_volume trades. A bucket spans several blocks, so a sink merges the fragments
+// of the same (token_id, bucket_start): open from the fragment with the lowest
+// (block_number, open_log_index), close from the highest (block_number,
+// close_log_index), high = max, low = min, volumes and trades summed. Prices are
+// fee-aware trade prices with 6 decimals.
+message Candle {
+  string token_id = 1;
+  // Start of the bucket: block timestamp (unix seconds) rounded down to a minute.
+  uint64 bucket_start = 2;
+  string open = 3;
+  string high = 4;
+  string low = 5;
+  string close = 6;
+  // Raw 6-decimal integers.
+  string volume_shares = 7;
+  string volume_collateral = 8;
+  uint64 trades = 9;
+  uint64 block_number = 10;
+  // Block-wide log index of the first and last trade in this fragment.
+  uint64 open_log_index = 11;
+  uint64 close_log_index = 12;
+}
+
+message Candles {
+  // Ordered by token_id.
+  repeated Candle candles = 1;
+}
+
+// Fills of one signed order in one block, emitted for every order filled in the
+// block. No store keeps running totals (one key set per order ever filled would grow
+// without bound), so a sink merges the fragments of the same order_hash: shares,
+// collateral, fees and fills summed, first fill block = min(block_number), last =
+// max. Chain data has no full order size, so this is what was filled, not what
+// remains.
+message OrderFill {
+  // 0x-prefixed hex.
+  string order_hash = 1;
+  // Owner of the order (Trade.maker).
+  string owner = 2;
+  string token_id = 3;
+  // 0 = BUY, 1 = SELL.
+  uint32 side = 4;
+  string exchange = 5;
+  // Filled in this block: shares, collateral (fee-aware, as Trade.collateral),
+  // fees, and number of fills.
+  string shares = 6;
+  string collateral = 7;
+  string fees = 8;
+  uint64 fills = 9;
+  uint64 block_number = 10;
+  uint64 timestamp = 11;
+}
+
+message OrderFills {
+  // Ordered by order_hash.
+  repeated OrderFill orders = 1;
+}
+
+// One signed order from an exchange settlement call (`matchOrders`), decoded from
+// calldata: the full order, which OrderFilled doesn't carry. Emitted once per order
+// per settlement, so an order filled in several settlements appears in each. A
+// sink keeps one row per order_hash and sums fill_amount to get what remains:
+// remaining = maker_amount - sum(fill_amount), in maker-asset units (collateral for
+// a BUY, shares for a SELL), which is how the exchange itself tracks it. Off-chain
+// cancellations and orders never filled stay invisible, so this is an upper bound
+// on the book.
+message ObservedOrder {
+  // EIP-712 hash, the OrderFilled order_hash. 0x-prefixed hex.
+  string order_hash = 1;
+  // ctf_v2 | neg_risk_v2 | exchange_v3, as Trade.exchange.
+  string exchange = 2;
+  // Order owner (source of funds), and the key that signed it.
+  string maker = 3;
+  string signer = 4;
+  string token_id = 5;
+  // 0 = BUY, 1 = SELL.
+  uint32 side = 6;
+  // Full order: the most the maker gives and the least they get (raw 6-decimal).
+  string maker_amount = 7;
+  string taker_amount = 8;
+  // Collateral per share, 6 decimals, rounded down: maker/taker for a BUY,
+  // taker/maker for a SELL. Excludes fees, which the operator sets per fill.
+  string limit_price = 9;
+  // Size in shares: taker_amount for a BUY, maker_amount for a SELL.
+  string size_shares = 10;
+  // 0 EOA, 1 POLY_PROXY, 2 POLY_GNOSIS_SAFE, 3 POLY_1271.
+  uint32 signature_type = 11;
+  // Order creation time, unix milliseconds.
+  uint64 created_at_ms = 12;
+  // 0x-prefixed bytes32.
+  string metadata = 13;
+  string builder = 14;
+  // The taker order of its match (the others are maker orders).
+  bool is_taker = 15;
+  // Maker-asset amount this settlement filled (OrderFilled.makerAmountFilled) and
+  // the fee charged on it.
+  string fill_amount = 16;
+  string fee = 17;
+  // log_index is that of the order's OrderFilled log in the same transaction.
+  TransactionContext tx = 18;
+}
+
+message ObservedOrders {
+  // In block order: by transaction, then taker first, then makers in call order.
+  repeated ObservedOrder orders = 1;
+}

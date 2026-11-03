@@ -1,0 +1,169 @@
+specVersion: v0.1.0
+package:
+  name: polymarket-trades
+  version: v1.2.0
+  url: https://github.com/bluehoodie/substreams-polymarket
+  description: Polymarket trade tape — every order fill from CTF Exchange V2, Neg Risk CTF Exchange V2 and ExchangeV3, with fee-aware price
+  image: ./polymarket.png
+
+network: polygon
+
+# The sibling manifests, not their published spkgs: built from the same code at the
+# same (lockstep) version, their modules hash the same as the published packages',
+# so their cached outputs are reused instead of re-decoding blocks.
+imports:
+  # For map_orders' blockFilter (the same index the exchange packages use).
+  eth_common: https://spkg.io/v1/packages/ethereum-common/v0.3.3
+  exchange: ../polymarket-exchange/substreams.yaml
+  neg_risk_ctf: ../polymarket-neg-risk-ctf/substreams.yaml
+  resolution: ../polymarket-resolution/substreams.yaml
+
+protobuf:
+  files:
+    - polymarket/trades/v1/trades.proto
+    # Vendored from the substreams-database-change crate (v5.0.0), for db_out's
+    # output type.
+    - sf/substreams/sink/database/v1/database.proto
+  importPaths:
+    - ./proto
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ../target/wasm32-unknown-unknown/release/polymarket_trades.wasm
+
+modules:
+  - name: map_trades
+    kind: map
+    initialBlock: 84902353
+    inputs:
+      - map: exchange:map_exchange_events
+      - map: neg_risk_ctf:map_trading_events
+    output:
+      type: proto:polymarket.trades.v1.Trades
+    doc: |
+      One trade per OrderFilled across CTF Exchange V2, Neg Risk CTF Exchange V2
+      and ExchangeV3, in block order: token, side, shares, fee-aware collateral and
+      price, maker, taker, order hash, exchange, and is_match (the taker order's
+      own fill, one per match).
+
+  - name: store_token_totals
+    kind: store
+    initialBlock: 84902353
+    updatePolicy: add
+    valueType: bigint
+    inputs:
+      - map: map_trades
+    doc: |
+      Running totals per outcome token, keyed `<token_id>:<field>`: trades, buys,
+      sells, volume_collateral and volume_shares over is_volume trades (each match
+      once per token), and fees over every fill.
+
+  - name: store_last_price
+    kind: store
+    initialBlock: 84902353
+    updatePolicy: set
+    valueType: string
+    inputs:
+      - map: map_trades
+    doc: |
+      Price of the latest is_volume trade per token, keyed by token id.
+
+  - name: map_market_stats
+    kind: map
+    initialBlock: 84902353
+    inputs:
+      - map: map_trades
+      - store: store_token_totals
+      - store: store_last_price
+    output:
+      type: proto:polymarket.trades.v1.MarketStats
+    doc: |
+      For every token traded in the block: cumulative trades, buys, sells, volume
+      and fees, last price, and the block's VWAP and volume.
+
+  - name: map_candles
+    kind: map
+    initialBlock: 84902353
+    inputs:
+      - map: map_trades
+    output:
+      type: proto:polymarket.trades.v1.Candles
+    doc: |
+      1-minute OHLCV fragment per token from this block's is_volume trades. No
+      store: a sink merges fragments of the same (token_id, bucket_start) — open
+      from the lowest (block_number, open_log_index), close from the highest,
+      high max, low min, volumes and trades summed.
+
+  - name: map_order_fills
+    kind: map
+    initialBlock: 84902353
+    inputs:
+      - map: map_trades
+    output:
+      type: proto:polymarket.trades.v1.OrderFills
+    doc: |
+      For every order filled in the block: owner, token, side, exchange, and that
+      block's filled shares, collateral, fees and fill count. No store: a sink
+      keeps each order's running totals by summing fragments per order_hash.
+
+  - name: map_orders
+    kind: map
+    initialBlock: 84902353
+    blockFilter:
+      module: eth_common:index_events
+      query:
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b || evt_addr:0xe2222d279d744050d28e00520010520000310f59 || evt_addr:0xe3333700ca9d93003f00f0f71f8515005f6c00aa"
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.trades.v1.ObservedOrders
+    doc: |
+      The full signed orders behind the fills, decoded from the calldata of the
+      exchanges' matchOrders calls (successful, non-reverted calls only): maker,
+      signer, token, side, full maker/taker amounts, limit price, size in shares,
+      creation time, and the amount and fee this settlement filled. order_hash is
+      the EIP-712 hash, the same as in OrderFilled. A sink sums fill_amount per
+      order_hash, so maker_amount minus that is what the order has left.
+
+  - name: db_out
+    kind: map
+    initialBlock: 84902353
+    inputs:
+      - map: map_trades
+      - map: map_market_stats
+      - map: map_candles
+      - map: map_order_fills
+      - map: resolution:map_resolution_events
+      - map: map_orders
+    output:
+      type: proto:sf.substreams.sink.database.v1.DatabaseChanges
+    doc: |
+      PostgreSQL rows (schema.sql) for `substreams sink postgres`: trades and
+      resolutions inserted, market_stats upserted with absolute values, and
+      candles_1m / order_fills merged in place with delta upserts (add, max, min,
+      set_if_null), which only the PostgreSQL sink supports.
+
+  - name: db_out_clickhouse
+    kind: map
+    initialBlock: 84902353
+    inputs:
+      - map: map_trades
+      - map: map_market_stats
+      - map: map_candles
+      - map: map_order_fills
+      - map: resolution:map_resolution_events
+      - map: map_orders
+    output:
+      type: proto:sf.substreams.sink.database.v1.DatabaseChanges
+    doc: |
+      ClickHouse rows (clickhouse-schema.sql) for `substreams sink clickhouse`:
+      plain inserts only (the ClickHouse sink has no delta updates). Candle and
+      order fill fragments are inserted as rows and merged by the table engines.
+
+sink:
+  module: db_out
+  type: sf.substreams.sink.sql.v1.Service
+  config:
+    schema: "./schema.sql"
+    engine: postgres

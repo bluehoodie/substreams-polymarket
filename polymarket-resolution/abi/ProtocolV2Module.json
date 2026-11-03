@@ -1,0 +1,11 @@
+[
+  {
+    "type": "event",
+    "name": "ConditionResolved",
+    "anonymous": false,
+    "inputs": [
+      { "name": "conditionId", "type": "bytes31", "indexed": true, "internalType": "ConditionId" },
+      { "name": "result", "type": "uint256[]", "indexed": false, "internalType": "uint256[]" }
+    ]
+  }
+]

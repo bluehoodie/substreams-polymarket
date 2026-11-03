@@ -29,6 +29,26 @@ const CTF_ADAPTER_V2_ADDRESS: [u8; 20] =
 const CTF_ADAPTER_V3_ADDRESS: [u8; 20] =
     hex_literal::hex!("2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d");
 
+/// Protocol V2 BinaryModule (proxy).
+const BINARY_MODULE_ADDRESS: [u8; 20] =
+    hex_literal::hex!("1000008dd9001b968442c1000017eae6e0da00ba");
+
+/// Protocol V2 NegRiskModule (proxy).
+const NEG_RISK_MODULE_ADDRESS: [u8; 20] =
+    hex_literal::hex!("200000900045e3b6259600682756002200028933");
+
+fn is_module_address(addr: &[u8]) -> bool {
+    addr == BINARY_MODULE_ADDRESS || addr == NEG_RISK_MODULE_ADDRESS
+}
+
+fn module_name(addr: &[u8]) -> &'static str {
+    if addr == BINARY_MODULE_ADDRESS {
+        "binary"
+    } else {
+        "neg_risk"
+    }
+}
+
 fn is_adapter_address(addr: &[u8]) -> bool {
     addr == CTF_ADAPTER_V2_ADDRESS || addr == CTF_ADAPTER_V3_ADDRESS
 }
@@ -42,7 +62,10 @@ fn adapter_source(addr: &[u8]) -> &'static str {
 }
 
 fn is_resolution_address(addr: &[u8]) -> bool {
-    addr == UMA_ORACLE_V2_ADDRESS || addr == UMA_ORACLE_V3_ADDRESS || is_adapter_address(addr)
+    addr == UMA_ORACLE_V2_ADDRESS
+        || addr == UMA_ORACLE_V3_ADDRESS
+        || is_adapter_address(addr)
+        || is_module_address(addr)
 }
 
 fn to_proto_tx(blk: &BlockLogs, log: &BlockLog) -> proto::TransactionContext {
@@ -67,6 +90,7 @@ struct DecodedBlock {
     adapter: proto::AdapterEvents,
     oracle_alerts: Vec<proto::DisputeAlert>,
     adapter_alerts: Vec<proto::DisputeAlert>,
+    modules: proto::ModuleEvents,
 }
 
 /// Single pass over `blk.logs()`, classifying each log by its emitting contract
@@ -196,6 +220,21 @@ fn decode_block(blk: &eth::BlockLazyView) -> Result<DecodedBlock, Error> {
                         question_data: Vec::new(),
                         tx: tx.into(),
                     });
+                }
+            }
+        } else if is_module_address(log.log.address) {
+            use abi::protocol_v2_module::events::ConditionResolved;
+            if ConditionResolved::match_log(&log.log) {
+                if let Ok(e) = ConditionResolved::decode(&log.log) {
+                    d.modules
+                        .condition_resolved
+                        .push(proto::ModuleConditionResolved {
+                            // 0x-prefixed hex; `format_address` hex-encodes any byte slice.
+                            condition_id: format_address(&e.condition_id),
+                            payouts: e.result.iter().map(bigint_to_string).collect(),
+                            module: module_name(log.log.address).into(),
+                            tx: to_proto_tx(blk, log).into(),
+                        });
                 }
             }
         } else if is_adapter_address(log.log.address) {
@@ -384,6 +423,12 @@ pub fn map_adapter_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::Adapter
 }
 
 #[substreams::handlers::map]
+pub fn map_module_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::ModuleEvents, Error> {
+    substreams::skip_empty_output();
+    Ok(decode_block(blk)?.modules)
+}
+
+#[substreams::handlers::map]
 pub fn map_dispute_alerts(blk: &eth::BlockLazyView<'_>) -> Result<proto::DisputeAlerts, Error> {
     substreams::skip_empty_output();
     let d = decode_block(blk)?;
@@ -415,6 +460,11 @@ pub fn map_resolution_events(
         },
         dispute_alerts: if !all_alerts.is_empty() {
             proto::DisputeAlerts { alerts: all_alerts }.into()
+        } else {
+            Default::default()
+        },
+        modules: if !d.modules.condition_resolved.is_empty() {
+            d.modules.into()
         } else {
             Default::default()
         },
@@ -574,6 +624,77 @@ mod handler_tests {
         assert_eq!(alerts.alerts[0].source, "adapter_v2");
     }
 
+    /// ConditionResolved(bytes31 indexed conditionId, uint256[] result) from `module`.
+    fn condition_resolved_log(module: [u8; 20], payouts: &[u64]) -> eth::Log {
+        let topic0 =
+            hex_literal::hex!("e560c1a2847d4cf2e66de11fe592605556989449f38cc3ab96e2e287daa68caa")
+                .to_vec();
+        // bytes31 is left-aligned in its 32-byte topic.
+        let mut condition = [0u8; 32];
+        condition[..31].copy_from_slice(&[0x42u8; 31]);
+        let word = |v: u64| {
+            let mut w = [0u8; 32];
+            w[24..].copy_from_slice(&v.to_be_bytes());
+            w
+        };
+        let mut data = Vec::new();
+        data.extend_from_slice(&word(32)); // offset of the dynamic array
+        data.extend_from_slice(&word(payouts.len() as u64));
+        for p in payouts {
+            data.extend_from_slice(&word(*p));
+        }
+        eth::Log {
+            address: module.to_vec(),
+            topics: vec![topic0, condition.to_vec()],
+            data,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn map_resolution_events_decodes_module_condition_resolved() {
+        for (module, name) in [
+            (BINARY_MODULE_ADDRESS, "binary"),
+            (NEG_RISK_MODULE_ADDRESS, "neg_risk"),
+        ] {
+            let block = block_with_log(condition_resolved_log(module, &[0, 1]));
+            let out = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+                substreams::testing::map!(map_resolution_events(blk))
+            })
+            .expect("fixture block encodes")
+            .expect("handler must not err");
+            let modules = out.modules.as_option().expect("module events");
+            assert_eq!(modules.condition_resolved.len(), 1);
+            let ev = &modules.condition_resolved[0];
+            assert_eq!(ev.condition_id, format!("0x{}", "42".repeat(31)));
+            assert_eq!(ev.payouts, ["0", "1"]);
+            assert_eq!(ev.module, name);
+            // Module resolutions are not disputes and touch no other bucket.
+            assert!(!out.oracle.is_set());
+            assert!(!out.adapter.is_set());
+            assert!(!out.dispute_alerts.is_set());
+
+            let per_category = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+                substreams::testing::map!(map_module_events(blk))
+            })
+            .expect("fixture block encodes")
+            .expect("handler must not err");
+            assert_eq!(&per_category, modules);
+        }
+    }
+
+    #[test]
+    fn test_module_addresses() {
+        assert!(is_module_address(&hex_literal::hex!(
+            "1000008dD9001B968442c1000017eaE6E0dA00Ba"
+        )));
+        assert!(is_module_address(&hex_literal::hex!(
+            "200000900045e3B6259600682756002200028933"
+        )));
+        assert!(!is_module_address(&CTF_ADAPTER_V3_ADDRESS));
+        assert!(is_resolution_address(&BINARY_MODULE_ADDRESS));
+    }
+
     #[test]
     fn map_resolution_events_empty_block_ok() {
         let out = polymarket_substreams_common::with_lazy_block(&eth::Block::default(), |blk| {
@@ -584,6 +705,7 @@ mod handler_tests {
         assert!(!out.oracle.is_set());
         assert!(!out.adapter.is_set());
         assert!(!out.dispute_alerts.is_set());
+        assert!(!out.modules.is_set());
     }
 }
 
@@ -626,5 +748,56 @@ mod fixture_tests {
                 .question_id,
             hex_literal::hex!("9d13800f3a3ac1a7e5224f60d3b1343aec81f8d66d6d7c8ffac80f9b2b331740")
         );
+        assert!(!out.modules.is_set(), "no Protocol V2 module events here");
+    }
+
+    /// Real Polygon block 96681462: ConditionResolved from both Protocol V2 modules
+    /// (30 BinaryModule, 11 NegRiskModule) and nothing from UMA. Values match
+    /// `substreams run` of `map_resolution_events` on the same block.
+    #[test]
+    fn map_resolution_events_real_block_96681462_modules() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../testdata/polygon_96681462.binpb.b64"
+        );
+        let block = polymarket_substreams_common::load_block_b64(path).expect("fixture loads");
+        assert_eq!(block.number, 96681462);
+        let out = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+            substreams::testing::map!(map_resolution_events(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        assert!(!out.oracle.is_set());
+        assert!(!out.adapter.is_set());
+        let resolved = &out.modules.as_option().expect("module events").condition_resolved;
+        let count = |m: &str| resolved.iter().filter(|e| e.module == m).count();
+        assert_eq!((count("binary"), count("neg_risk")), (30, 11));
+
+        let first = &resolved[0];
+        assert_eq!(first.module, "binary");
+        assert_eq!(
+            first.condition_id,
+            "0x01c4dffb9bd6905f7a54e9b9ad362dcbcb0000000000000000000000000000"
+        );
+        assert_eq!(first.payouts, ["0", "1000000"]);
+        let tx = first.tx.as_option().expect("tx");
+        assert_eq!(tx.log_index, 918);
+
+        let neg_risk = resolved
+            .iter()
+            .find(|e| e.module == "neg_risk")
+            .expect("a NegRiskModule resolution");
+        assert_eq!(
+            neg_risk.condition_id,
+            "0x0233f39b9a277246f5ff8cb3ab3edd92000025000000000000000000000012"
+        );
+        assert_eq!(neg_risk.payouts, ["0", "1000000"]);
+
+        let per_category = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+            substreams::testing::map!(map_module_events(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        assert_eq!(&per_category.condition_resolved, resolved);
     }
 }

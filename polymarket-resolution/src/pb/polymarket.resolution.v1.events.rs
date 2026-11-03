@@ -3145,6 +3145,270 @@ impl ::buffa::Message for DisputeAlerts {
         self.alerts.clear();
     }
 }
+/// === Protocol V2 modules ===
+///
+/// ConditionResolved from a Protocol V2 module (BinaryModule or NegRiskModule): the
+/// condition's final payout vector. Markets settled through Protocol V2 resolve here,
+/// not through Conditional Tokens' ConditionResolution.
+#[derive(Clone, PartialEq, Default)]
+pub struct ModuleConditionResolved {
+    /// ConditionId (bytes31) as 0x-prefixed lowercase hex.
+    ///
+    /// Field 1: `condition_id`
+    pub condition_id: ::buffa::alloc::string::String,
+    /// Payout numerators, one per outcome, as decimal strings.
+    ///
+    /// Field 2: `payouts`
+    pub payouts: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
+    /// "binary" (BinaryModule) or "neg_risk" (NegRiskModule).
+    ///
+    /// Field 3: `module`
+    pub module: ::buffa::alloc::string::String,
+    /// Field 4: `tx`
+    pub tx: ::buffa::MessageField<
+        TransactionContext,
+        ::buffa::Inline<TransactionContext>,
+    >,
+}
+impl ::core::fmt::Debug for ModuleConditionResolved {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("ModuleConditionResolved")
+            .field("condition_id", &self.condition_id)
+            .field("payouts", &self.payouts)
+            .field("module", &self.module)
+            .field("tx", &self.tx)
+            .finish()
+    }
+}
+impl ModuleConditionResolved {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/polymarket.resolution.v1.ModuleConditionResolved";
+}
+::buffa::impl_default_instance!(ModuleConditionResolved);
+impl ::buffa::MessageName for ModuleConditionResolved {
+    const PACKAGE: &'static str = "polymarket.resolution.v1";
+    const NAME: &'static str = "ModuleConditionResolved";
+    const FULL_NAME: &'static str = "polymarket.resolution.v1.ModuleConditionResolved";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.resolution.v1.ModuleConditionResolved";
+}
+impl ::buffa::Message for ModuleConditionResolved {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// Accumulates in `u64` (which cannot overflow for in-memory
+    /// data) and saturates to `u32` at return, so a message whose
+    /// encoded size exceeds the 2 GiB protobuf limit yields a value
+    /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
+    /// points reject, never a silently wrapped size.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.condition_id.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.condition_id) as u64;
+        }
+        for v in &self.payouts {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
+        if !self.module.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.module) as u64;
+        }
+        if self.tx.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.tx.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.condition_id.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.condition_id, buf);
+        }
+        for v in &self.payouts {
+            ::buffa::types::put_string_field(2u32, v, buf);
+        }
+        if !self.module.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.module, buf);
+        }
+        if self.tx.is_set() {
+            ::buffa::types::put_len_delimited_header(
+                4u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            self.tx.write_to(__cache, buf);
+        }
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.condition_id, buf)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::decode_string(buf)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                self.payouts.push(__elem);
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.module, buf)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.tx.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.condition_id.clear();
+        self.payouts.clear();
+        self.module.clear();
+        self.tx = ::buffa::MessageField::none();
+    }
+}
+#[derive(Clone, PartialEq, Default)]
+pub struct ModuleEvents {
+    /// Field 1: `condition_resolved`
+    pub condition_resolved: ::buffa::alloc::vec::Vec<ModuleConditionResolved>,
+}
+impl ::core::fmt::Debug for ModuleEvents {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("ModuleEvents")
+            .field("condition_resolved", &self.condition_resolved)
+            .finish()
+    }
+}
+impl ModuleEvents {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/polymarket.resolution.v1.ModuleEvents";
+}
+::buffa::impl_default_instance!(ModuleEvents);
+impl ::buffa::MessageName for ModuleEvents {
+    const PACKAGE: &'static str = "polymarket.resolution.v1";
+    const NAME: &'static str = "ModuleEvents";
+    const FULL_NAME: &'static str = "polymarket.resolution.v1.ModuleEvents";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.resolution.v1.ModuleEvents";
+}
+impl ::buffa::Message for ModuleEvents {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// Accumulates in `u64` (which cannot overflow for in-memory
+    /// data) and saturates to `u32` at return, so a message whose
+    /// encoded size exceeds the 2 GiB protobuf limit yields a value
+    /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
+    /// points reject, never a silently wrapped size.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        for v in &self.condition_resolved {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        for v in &self.condition_resolved {
+            ::buffa::types::put_len_delimited_header(
+                1u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
+        }
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&elem),
+                )?;
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.condition_resolved.push(elem);
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.condition_resolved.clear();
+    }
+}
 /// === Unified output ===
 #[derive(Clone, PartialEq, Default)]
 pub struct ResolutionEvents {
@@ -3157,6 +3421,8 @@ pub struct ResolutionEvents {
         DisputeAlerts,
         ::buffa::Inline<DisputeAlerts>,
     >,
+    /// Field 4: `modules`
+    pub modules: ::buffa::MessageField<ModuleEvents, ::buffa::Inline<ModuleEvents>>,
 }
 impl ::core::fmt::Debug for ResolutionEvents {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3164,6 +3430,7 @@ impl ::core::fmt::Debug for ResolutionEvents {
             .field("oracle", &self.oracle)
             .field("adapter", &self.adapter)
             .field("dispute_alerts", &self.dispute_alerts)
+            .field("modules", &self.modules)
             .finish()
     }
 }
@@ -3218,6 +3485,14 @@ impl ::buffa::Message for ResolutionEvents {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if self.modules.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.modules.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -3250,6 +3525,14 @@ impl ::buffa::Message for ResolutionEvents {
                 buf,
             );
             self.dispute_alerts.write_to(__cache, buf);
+        }
+        if self.modules.is_set() {
+            ::buffa::types::put_len_delimited_header(
+                4u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            self.modules.write_to(__cache, buf);
         }
     }
     fn merge_field(
@@ -3296,6 +3579,17 @@ impl ::buffa::Message for ResolutionEvents {
                     ctx,
                 )?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.modules.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -3306,5 +3600,6 @@ impl ::buffa::Message for ResolutionEvents {
         self.oracle = ::buffa::MessageField::none();
         self.adapter = ::buffa::MessageField::none();
         self.dispute_alerts = ::buffa::MessageField::none();
+        self.modules = ::buffa::MessageField::none();
     }
 }
