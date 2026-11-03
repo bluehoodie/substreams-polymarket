@@ -1796,3 +1796,695 @@ impl ::buffa::HasMessageView for super::super::MarketStats {
     type View<'a> = MarketStatsView<'a>;
     type ViewHandle = MarketStatsOwnedView;
 }
+/// OHLCV fragment of one outcome token over one 1-minute bucket, from one block's
+/// is_volume trades. A bucket spans several blocks, so a sink merges the fragments
+/// of the same (token_id, bucket_start): open from the fragment with the lowest
+/// (block_number, open_log_index), close from the highest (block_number,
+/// close_log_index), high = max, low = min, volumes and trades summed. Prices are
+/// fee-aware trade prices with 6 decimals.
+#[derive(Clone, Debug, Default)]
+pub struct CandleView<'a> {
+    /// Field 1: `token_id`
+    pub token_id: &'a str,
+    /// Start of the bucket: block timestamp (unix seconds) rounded down to a minute.
+    ///
+    /// Field 2: `bucket_start`
+    pub bucket_start: u64,
+    /// Field 3: `open`
+    pub open: &'a str,
+    /// Field 4: `high`
+    pub high: &'a str,
+    /// Field 5: `low`
+    pub low: &'a str,
+    /// Field 6: `close`
+    pub close: &'a str,
+    /// Raw 6-decimal integers.
+    ///
+    /// Field 7: `volume_shares`
+    pub volume_shares: &'a str,
+    /// Field 8: `volume_collateral`
+    pub volume_collateral: &'a str,
+    /// Field 9: `trades`
+    pub trades: u64,
+    /// Field 10: `block_number`
+    pub block_number: u64,
+    /// Block-wide log index of the first and last trade in this fragment.
+    ///
+    /// Field 11: `open_log_index`
+    pub open_log_index: u64,
+    /// Field 12: `close_log_index`
+    pub close_log_index: u64,
+}
+impl<'a> ::buffa::MessageView<'a> for CandleView<'a> {
+    type Owned = super::super::Candle;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        let __elem = ::core::cell::Cell::new(::buffa::DEFAULT_ELEMENT_MEMORY_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit)
+                .with_element_memory(&__elem),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    #[inline]
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        _before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.token_id = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.bucket_start = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.open = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.high = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.low = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.close = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.volume_shares = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.volume_collateral = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.trades = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            10u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.block_number = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            11u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.open_log_index = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.close_log_index = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::Candle, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::Candle, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::Candle {
+            token_id: self.token_id.to_string(),
+            bucket_start: self.bucket_start,
+            open: self.open.to_string(),
+            high: self.high.to_string(),
+            low: self.low.to_string(),
+            close: self.close.to_string(),
+            volume_shares: self.volume_shares.to_string(),
+            volume_collateral: self.volume_collateral.to_string(),
+            trades: self.trades,
+            block_number: self.block_number,
+            open_log_index: self.open_log_index,
+            close_log_index: self.close_log_index,
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for CandleView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.token_id.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.token_id) as u64;
+        }
+        if self.bucket_start != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.bucket_start) as u64;
+        }
+        if !self.open.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.open) as u64;
+        }
+        if !self.high.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.high) as u64;
+        }
+        if !self.low.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.low) as u64;
+        }
+        if !self.close.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.close) as u64;
+        }
+        if !self.volume_shares.is_empty() {
+            size
+                += 1u64 + ::buffa::types::string_encoded_len(&self.volume_shares) as u64;
+        }
+        if !self.volume_collateral.is_empty() {
+            size
+                += 1u64
+                    + ::buffa::types::string_encoded_len(&self.volume_collateral) as u64;
+        }
+        if self.trades != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.trades) as u64;
+        }
+        if self.block_number != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.block_number) as u64;
+        }
+        if self.open_log_index != 0u64 {
+            size
+                += 1u64 + ::buffa::types::uint64_encoded_len(self.open_log_index) as u64;
+        }
+        if self.close_log_index != 0u64 {
+            size
+                += 1u64
+                    + ::buffa::types::uint64_encoded_len(self.close_log_index) as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.token_id.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.token_id, buf);
+        }
+        if self.bucket_start != 0u64 {
+            ::buffa::types::put_uint64_field(2u32, self.bucket_start, buf);
+        }
+        if !self.open.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.open, buf);
+        }
+        if !self.high.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.high, buf);
+        }
+        if !self.low.is_empty() {
+            ::buffa::types::put_string_field(5u32, &self.low, buf);
+        }
+        if !self.close.is_empty() {
+            ::buffa::types::put_string_field(6u32, &self.close, buf);
+        }
+        if !self.volume_shares.is_empty() {
+            ::buffa::types::put_string_field(7u32, &self.volume_shares, buf);
+        }
+        if !self.volume_collateral.is_empty() {
+            ::buffa::types::put_string_field(8u32, &self.volume_collateral, buf);
+        }
+        if self.trades != 0u64 {
+            ::buffa::types::put_uint64_field(9u32, self.trades, buf);
+        }
+        if self.block_number != 0u64 {
+            ::buffa::types::put_uint64_field(10u32, self.block_number, buf);
+        }
+        if self.open_log_index != 0u64 {
+            ::buffa::types::put_uint64_field(11u32, self.open_log_index, buf);
+        }
+        if self.close_log_index != 0u64 {
+            ::buffa::types::put_uint64_field(12u32, self.close_log_index, buf);
+        }
+    }
+}
+impl<'a> ::buffa::MessageName for CandleView<'a> {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "Candle";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.Candle";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.Candle";
+}
+::buffa::impl_default_view_instance!(CandleView);
+::buffa::impl_view_reborrow!(CandleView);
+/** Self-contained, `'static` owned view of a `Candle` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`CandleView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`CandleView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct CandleOwnedView(::buffa::OwnedView<CandleView<'static>>);
+impl CandleOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(CandleOwnedView(::buffa::OwnedView::decode(bytes)?))
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            CandleOwnedView(::buffa::OwnedView::decode_with_options(bytes, opts)?),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError::MessageTooLarge`] if the
+    /// message's encoded size exceeds the 2 GiB protobuf limit, or
+    /// another [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::Candle,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(CandleOwnedView(::buffa::OwnedView::from_owned(msg)?))
+    }
+    /// Borrow the full [`CandleView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &CandleView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// Infallible: this type's constructors wire-decode their
+    /// buffer, and a view produced by wire decoding always
+    /// converts. Delegates to [`::buffa::OwnedView::to_owned_message`],
+    /// whose contract also governs handles converted from a raw
+    /// [`::buffa::OwnedView`].
+    #[must_use]
+    pub fn to_owned_message(&self) -> super::super::Candle {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// Field 1: `token_id`
+    #[must_use]
+    pub fn token_id(&self) -> &'_ str {
+        self.0.reborrow().token_id
+    }
+    /// Start of the bucket: block timestamp (unix seconds) rounded down to a minute.
+    ///
+    /// Field 2: `bucket_start`
+    #[must_use]
+    pub fn bucket_start(&self) -> u64 {
+        self.0.reborrow().bucket_start
+    }
+    /// Field 3: `open`
+    #[must_use]
+    pub fn open(&self) -> &'_ str {
+        self.0.reborrow().open
+    }
+    /// Field 4: `high`
+    #[must_use]
+    pub fn high(&self) -> &'_ str {
+        self.0.reborrow().high
+    }
+    /// Field 5: `low`
+    #[must_use]
+    pub fn low(&self) -> &'_ str {
+        self.0.reborrow().low
+    }
+    /// Field 6: `close`
+    #[must_use]
+    pub fn close(&self) -> &'_ str {
+        self.0.reborrow().close
+    }
+    /// Raw 6-decimal integers.
+    ///
+    /// Field 7: `volume_shares`
+    #[must_use]
+    pub fn volume_shares(&self) -> &'_ str {
+        self.0.reborrow().volume_shares
+    }
+    /// Field 8: `volume_collateral`
+    #[must_use]
+    pub fn volume_collateral(&self) -> &'_ str {
+        self.0.reborrow().volume_collateral
+    }
+    /// Field 9: `trades`
+    #[must_use]
+    pub fn trades(&self) -> u64 {
+        self.0.reborrow().trades
+    }
+    /// Field 10: `block_number`
+    #[must_use]
+    pub fn block_number(&self) -> u64 {
+        self.0.reborrow().block_number
+    }
+    /// Block-wide log index of the first and last trade in this fragment.
+    ///
+    /// Field 11: `open_log_index`
+    #[must_use]
+    pub fn open_log_index(&self) -> u64 {
+        self.0.reborrow().open_log_index
+    }
+    /// Field 12: `close_log_index`
+    #[must_use]
+    pub fn close_log_index(&self) -> u64 {
+        self.0.reborrow().close_log_index
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<CandleView<'static>>> for CandleOwnedView {
+    fn from(inner: ::buffa::OwnedView<CandleView<'static>>) -> Self {
+        CandleOwnedView(inner)
+    }
+}
+impl ::core::convert::From<CandleOwnedView> for ::buffa::OwnedView<CandleView<'static>> {
+    fn from(wrapper: CandleOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<CandleView<'static>>>
+for CandleOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<CandleView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::Candle {
+    type View<'a> = CandleView<'a>;
+    type ViewHandle = CandleOwnedView;
+}
+#[derive(Clone, Debug, Default)]
+pub struct CandlesView<'a> {
+    /// Ordered by token_id.
+    ///
+    /// Field 1: `candles`
+    pub candles: ::buffa::RepeatedView<'a, super::super::__buffa::view::CandleView<'a>>,
+}
+impl<'a> ::buffa::MessageView<'a> for CandlesView<'a> {
+    type Owned = super::super::Candles;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        let __elem = ::core::cell::Cell::new(::buffa::DEFAULT_ELEMENT_MEMORY_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit)
+                .with_element_memory(&__elem),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    #[inline]
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        _before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                ctx.register_element_memory(
+                    ::core::mem::size_of::<super::super::__buffa::view::CandleView>(),
+                )?;
+                view.candles
+                    .push(
+                        <super::super::__buffa::view::CandleView as ::buffa::MessageView>::decode_view_ctx(
+                            sub,
+                            __sub_ctx,
+                        )?,
+                    );
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::Candles, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::Candles, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::Candles {
+            candles: self
+                .candles
+                .iter()
+                .map(|v| v.to_owned_from_source(__buffa_src))
+                .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for CandlesView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        for v in &self.candles {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        for v in &self.candles {
+            ::buffa::types::put_len_delimited_header(
+                1u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
+        }
+    }
+}
+impl<'a> ::buffa::MessageName for CandlesView<'a> {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "Candles";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.Candles";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.Candles";
+}
+::buffa::impl_default_view_instance!(CandlesView);
+::buffa::impl_view_reborrow!(CandlesView);
+/** Self-contained, `'static` owned view of a `Candles` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`CandlesView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`CandlesView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct CandlesOwnedView(::buffa::OwnedView<CandlesView<'static>>);
+impl CandlesOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(CandlesOwnedView(::buffa::OwnedView::decode(bytes)?))
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            CandlesOwnedView(::buffa::OwnedView::decode_with_options(bytes, opts)?),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError::MessageTooLarge`] if the
+    /// message's encoded size exceeds the 2 GiB protobuf limit, or
+    /// another [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::Candles,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            CandlesOwnedView(::buffa::OwnedView::from_owned(msg)?),
+        )
+    }
+    /// Borrow the full [`CandlesView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &CandlesView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// Infallible: this type's constructors wire-decode their
+    /// buffer, and a view produced by wire decoding always
+    /// converts. Delegates to [`::buffa::OwnedView::to_owned_message`],
+    /// whose contract also governs handles converted from a raw
+    /// [`::buffa::OwnedView`].
+    #[must_use]
+    pub fn to_owned_message(&self) -> super::super::Candles {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// Ordered by token_id.
+    ///
+    /// Field 1: `candles`
+    #[must_use]
+    pub fn candles(
+        &self,
+    ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::CandleView<'_>> {
+        &self.0.reborrow().candles
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<CandlesView<'static>>>
+for CandlesOwnedView {
+    fn from(inner: ::buffa::OwnedView<CandlesView<'static>>) -> Self {
+        CandlesOwnedView(inner)
+    }
+}
+impl ::core::convert::From<CandlesOwnedView>
+for ::buffa::OwnedView<CandlesView<'static>> {
+    fn from(wrapper: CandlesOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<CandlesView<'static>>>
+for CandlesOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<CandlesView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::Candles {
+    type View<'a> = CandlesView<'a>;
+    type ViewHandle = CandlesOwnedView;
+}

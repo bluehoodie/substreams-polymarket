@@ -1,4 +1,4 @@
-# `substreams run --test-file` assertions on blocks 96600000 (CTF V2 + Neg Risk) and
+# `substreams run --test-file` assertions (map_trades, map_candles) on blocks 96600000 (CTF V2 + Neg Risk) and
 # 96680009 (also ExchangeV3), the same blocks as the Rust fixture tests. Run:
 # scripts/run_test_files.sh trades. Paths must yield a string (hence `| tostring`).
 tests:
@@ -26,3 +26,11 @@ tests:
     block: 96600000
     path: '[.trades[] | select(.isVolume)] | length | tostring'
     expect: "43"
+  - module: map_candles
+    block: 96600000
+    path: '.candles | length | tostring'
+    expect: "21"
+  - module: map_candles
+    block: 96600000
+    path: '.candles[0].open'
+    expect: "0.166720"

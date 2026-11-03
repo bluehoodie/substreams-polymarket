@@ -30,9 +30,28 @@ hash the same, so their cached outputs are reused.
 | `store_token_totals` | Running per-token totals (`<token_id>:<field>`): trades, buys, sells, volume_collateral, volume_shares, fees | store (add, bigint) |
 | `store_last_price` | Last traded price per token | store (set, string) |
 | `map_market_stats` | One `TokenStats` per token traded in the block: running totals, last price, block VWAP and volume | `proto:polymarket.trades.v1.MarketStats` |
+| `map_candles` | 1-minute OHLCV fragment per token from the block's `is_volume` trades | `proto:polymarket.trades.v1.Candles` |
 
 The stores start at block 84902353, so `map_market_stats` needs that backfill before
 its totals are complete.
+
+## Candles
+
+`map_candles` keeps no store, since one key per candle would grow without bound.
+Each block emits one `Candle` per token with `is_volume` trades. It covers the
+1-minute bucket that holds the block timestamp (`bucket_start`, unix seconds), and
+its prices are fee-aware trade prices. A bucket spans many blocks, so the sink merges
+the fragments of the same `(token_id, bucket_start)` like this:
+
+| Field | Merge |
+|-------|-------|
+| `open` | from the fragment with the lowest `(block_number, open_log_index)` (ClickHouse `argMin`) |
+| `close` | from the fragment with the highest `(block_number, close_log_index)` (`argMax`) |
+| `high` / `low` | max / min (Postgres upsert with `GREATEST` / `LEAST`) |
+| `volume_shares`, `volume_collateral`, `trades` | sum |
+
+Larger intervals (5m, 1h, 1d) are rolled up from the 1-minute candles in the sink,
+with the same rule.
 
 ## Trade fields
 

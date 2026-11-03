@@ -56,3 +56,15 @@ pub use self::__buffa::view::MarketStatsView;
 pub use self::__buffa::view::MarketStatsOwnedView;
 #[doc(inline)]
 pub use self::__buffa::lazy_view::MarketStatsLazyView;
+#[doc(inline)]
+pub use self::__buffa::view::CandleView;
+#[doc(inline)]
+pub use self::__buffa::view::CandleOwnedView;
+#[doc(inline)]
+pub use self::__buffa::lazy_view::CandleLazyView;
+#[doc(inline)]
+pub use self::__buffa::view::CandlesView;
+#[doc(inline)]
+pub use self::__buffa::view::CandlesOwnedView;
+#[doc(inline)]
+pub use self::__buffa::lazy_view::CandlesLazyView;

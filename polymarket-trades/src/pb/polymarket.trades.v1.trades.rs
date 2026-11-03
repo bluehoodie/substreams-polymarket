@@ -981,3 +981,389 @@ impl ::buffa::Message for MarketStats {
         self.tokens.clear();
     }
 }
+/// OHLCV fragment of one outcome token over one 1-minute bucket, from one block's
+/// is_volume trades. A bucket spans several blocks, so a sink merges the fragments
+/// of the same (token_id, bucket_start): open from the fragment with the lowest
+/// (block_number, open_log_index), close from the highest (block_number,
+/// close_log_index), high = max, low = min, volumes and trades summed. Prices are
+/// fee-aware trade prices with 6 decimals.
+#[derive(Clone, PartialEq, Default)]
+pub struct Candle {
+    /// Field 1: `token_id`
+    pub token_id: ::buffa::alloc::string::String,
+    /// Start of the bucket: block timestamp (unix seconds) rounded down to a minute.
+    ///
+    /// Field 2: `bucket_start`
+    pub bucket_start: u64,
+    /// Field 3: `open`
+    pub open: ::buffa::alloc::string::String,
+    /// Field 4: `high`
+    pub high: ::buffa::alloc::string::String,
+    /// Field 5: `low`
+    pub low: ::buffa::alloc::string::String,
+    /// Field 6: `close`
+    pub close: ::buffa::alloc::string::String,
+    /// Raw 6-decimal integers.
+    ///
+    /// Field 7: `volume_shares`
+    pub volume_shares: ::buffa::alloc::string::String,
+    /// Field 8: `volume_collateral`
+    pub volume_collateral: ::buffa::alloc::string::String,
+    /// Field 9: `trades`
+    pub trades: u64,
+    /// Field 10: `block_number`
+    pub block_number: u64,
+    /// Block-wide log index of the first and last trade in this fragment.
+    ///
+    /// Field 11: `open_log_index`
+    pub open_log_index: u64,
+    /// Field 12: `close_log_index`
+    pub close_log_index: u64,
+}
+impl ::core::fmt::Debug for Candle {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("Candle")
+            .field("token_id", &self.token_id)
+            .field("bucket_start", &self.bucket_start)
+            .field("open", &self.open)
+            .field("high", &self.high)
+            .field("low", &self.low)
+            .field("close", &self.close)
+            .field("volume_shares", &self.volume_shares)
+            .field("volume_collateral", &self.volume_collateral)
+            .field("trades", &self.trades)
+            .field("block_number", &self.block_number)
+            .field("open_log_index", &self.open_log_index)
+            .field("close_log_index", &self.close_log_index)
+            .finish()
+    }
+}
+impl Candle {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.Candle";
+}
+::buffa::impl_default_instance!(Candle);
+impl ::buffa::MessageName for Candle {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "Candle";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.Candle";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.Candle";
+}
+impl ::buffa::Message for Candle {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// Accumulates in `u64` (which cannot overflow for in-memory
+    /// data) and saturates to `u32` at return, so a message whose
+    /// encoded size exceeds the 2 GiB protobuf limit yields a value
+    /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
+    /// points reject, never a silently wrapped size.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.token_id.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.token_id) as u64;
+        }
+        if self.bucket_start != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.bucket_start) as u64;
+        }
+        if !self.open.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.open) as u64;
+        }
+        if !self.high.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.high) as u64;
+        }
+        if !self.low.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.low) as u64;
+        }
+        if !self.close.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.close) as u64;
+        }
+        if !self.volume_shares.is_empty() {
+            size
+                += 1u64 + ::buffa::types::string_encoded_len(&self.volume_shares) as u64;
+        }
+        if !self.volume_collateral.is_empty() {
+            size
+                += 1u64
+                    + ::buffa::types::string_encoded_len(&self.volume_collateral) as u64;
+        }
+        if self.trades != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.trades) as u64;
+        }
+        if self.block_number != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.block_number) as u64;
+        }
+        if self.open_log_index != 0u64 {
+            size
+                += 1u64 + ::buffa::types::uint64_encoded_len(self.open_log_index) as u64;
+        }
+        if self.close_log_index != 0u64 {
+            size
+                += 1u64
+                    + ::buffa::types::uint64_encoded_len(self.close_log_index) as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.token_id.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.token_id, buf);
+        }
+        if self.bucket_start != 0u64 {
+            ::buffa::types::put_uint64_field(2u32, self.bucket_start, buf);
+        }
+        if !self.open.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.open, buf);
+        }
+        if !self.high.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.high, buf);
+        }
+        if !self.low.is_empty() {
+            ::buffa::types::put_string_field(5u32, &self.low, buf);
+        }
+        if !self.close.is_empty() {
+            ::buffa::types::put_string_field(6u32, &self.close, buf);
+        }
+        if !self.volume_shares.is_empty() {
+            ::buffa::types::put_string_field(7u32, &self.volume_shares, buf);
+        }
+        if !self.volume_collateral.is_empty() {
+            ::buffa::types::put_string_field(8u32, &self.volume_collateral, buf);
+        }
+        if self.trades != 0u64 {
+            ::buffa::types::put_uint64_field(9u32, self.trades, buf);
+        }
+        if self.block_number != 0u64 {
+            ::buffa::types::put_uint64_field(10u32, self.block_number, buf);
+        }
+        if self.open_log_index != 0u64 {
+            ::buffa::types::put_uint64_field(11u32, self.open_log_index, buf);
+        }
+        if self.close_log_index != 0u64 {
+            ::buffa::types::put_uint64_field(12u32, self.close_log_index, buf);
+        }
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.token_id, buf)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.bucket_start = ::buffa::types::decode_uint64(buf)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.open, buf)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.high, buf)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.low, buf)?;
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.close, buf)?;
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.volume_shares, buf)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.volume_collateral, buf)?;
+            }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.trades = ::buffa::types::decode_uint64(buf)?;
+            }
+            10u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.block_number = ::buffa::types::decode_uint64(buf)?;
+            }
+            11u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.open_log_index = ::buffa::types::decode_uint64(buf)?;
+            }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.close_log_index = ::buffa::types::decode_uint64(buf)?;
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.token_id.clear();
+        self.bucket_start = 0u64;
+        self.open.clear();
+        self.high.clear();
+        self.low.clear();
+        self.close.clear();
+        self.volume_shares.clear();
+        self.volume_collateral.clear();
+        self.trades = 0u64;
+        self.block_number = 0u64;
+        self.open_log_index = 0u64;
+        self.close_log_index = 0u64;
+    }
+}
+#[derive(Clone, PartialEq, Default)]
+pub struct Candles {
+    /// Ordered by token_id.
+    ///
+    /// Field 1: `candles`
+    pub candles: ::buffa::alloc::vec::Vec<Candle>,
+}
+impl ::core::fmt::Debug for Candles {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("Candles").field("candles", &self.candles).finish()
+    }
+}
+impl Candles {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.Candles";
+}
+::buffa::impl_default_instance!(Candles);
+impl ::buffa::MessageName for Candles {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "Candles";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.Candles";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.Candles";
+}
+impl ::buffa::Message for Candles {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// Accumulates in `u64` (which cannot overflow for in-memory
+    /// data) and saturates to `u32` at return, so a message whose
+    /// encoded size exceeds the 2 GiB protobuf limit yields a value
+    /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
+    /// points reject, never a silently wrapped size.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        for v in &self.candles {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        for v in &self.candles {
+            ::buffa::types::put_len_delimited_header(
+                1u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
+        }
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&elem),
+                )?;
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.candles.push(elem);
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.candles.clear();
+    }
+}

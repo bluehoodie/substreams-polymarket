@@ -3,6 +3,7 @@
 
 #[allow(dead_code, clippy::all)]
 pub mod pb;
+mod candles;
 mod stats;
 
 use std::str::FromStr;
@@ -220,7 +221,16 @@ pub(crate) fn format_price(collateral: &BigInt, shares: &BigInt) -> String {
     if shares.is_zero() {
         return "0".to_owned();
     }
-    let scaled = (collateral.clone() * BigInt::from(PRICE_SCALE)) / shares.clone();
+    format_micros(&price_micros(collateral, shares))
+}
+
+/// `collateral / shares` in millionths, rounded down. `shares` must be non-zero.
+pub(crate) fn price_micros(collateral: &BigInt, shares: &BigInt) -> BigInt {
+    (collateral.clone() * BigInt::from(PRICE_SCALE)) / shares.clone()
+}
+
+/// A price in millionths as a 6-decimal string, e.g. 537000 -> "0.537000".
+pub(crate) fn format_micros(scaled: &BigInt) -> String {
     let digits = scaled.to_string();
     let (int_part, frac_part) = if digits.len() > 6 {
         digits.split_at(digits.len() - 6)
@@ -575,6 +585,52 @@ mod fixture_tests {
         assert_eq!(volume_fills, VOLUME_FILLS_96600000);
     }
 
+    /// Candles over block 96600000: one per token with is_volume trades, and their
+    /// volumes add up to the block's is_volume volume.
+    #[test]
+    fn map_candles_real_block_96600000() {
+        let inp = inputs(96600000);
+        let trades = substreams::testing::map!(map_trades(inp.exchange, inp.neg_risk))
+            .expect("handler must not err");
+        let candles = substreams::testing::map!(crate::candles::map_candles(trades.clone()))
+            .expect("handler must not err");
+        let mut tokens: Vec<&str> = trades
+            .trades
+            .iter()
+            .filter(|t| t.is_volume)
+            .map(|t| t.token_id.as_str())
+            .collect();
+        tokens.sort_unstable();
+        tokens.dedup();
+        assert_eq!(candles.candles.len(), tokens.len());
+        assert_eq!(candles.candles.len(), CANDLES_96600000);
+        let total = |f: fn(&proto::Candle) -> &str| {
+            candles.candles.iter().fold(BigInt::zero(), |acc, c| {
+                acc + BigInt::from_str(f(c)).expect("amount")
+            })
+        };
+        let volume: BigInt = trades
+            .trades
+            .iter()
+            .filter(|t| t.is_volume)
+            .fold(BigInt::zero(), |acc, t| {
+                acc + BigInt::from_str(&t.collateral).expect("amount")
+            });
+        assert_eq!(total(|c| &c.volume_collateral), volume);
+        let n: u64 = candles.candles.iter().map(|c| c.trades).sum();
+        assert_eq!(n, VOLUME_FILLS_96600000 as u64);
+        for c in &candles.candles {
+            assert_eq!(c.bucket_start % 60, 0);
+            assert!(c.low <= c.open && c.open <= c.high, "{}", c.token_id);
+            assert!(c.low <= c.close && c.close <= c.high, "{}", c.token_id);
+        }
+        let first = &candles.candles[0];
+        assert_eq!(
+            (first.token_id.as_str(), first.open.as_str(), first.bucket_start),
+            FIRST_CANDLE_96600000
+        );
+    }
+
     /// (exchange, maker, price) of the first trade in block 96600000.
     const FIRST_96600000: (&str, &str, &str) = (
         "ctf_v2",
@@ -583,4 +639,11 @@ mod fixture_tests {
     );
     const TOKENS_96600000: usize = 21;
     const VOLUME_FILLS_96600000: usize = 43;
+    const CANDLES_96600000: usize = 21;
+    /// (token_id, open, bucket_start) of the first candle in block 96600000.
+    const FIRST_CANDLE_96600000: (&str, &str, u64) = (
+        "104682004226386236263369368652385253547958068860089723081382793939737139300525",
+        "0.166720",
+        1793605440,
+    );
 }

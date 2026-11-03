@@ -75,3 +75,16 @@ modules:
     doc: |
       For every token traded in the block: cumulative trades, buys, sells, volume
       and fees, last price, and the block's VWAP and volume.
+
+  - name: map_candles
+    kind: map
+    initialBlock: 84902353
+    inputs:
+      - map: map_trades
+    output:
+      type: proto:polymarket.trades.v1.Candles
+    doc: |
+      1-minute OHLCV fragment per token from this block's is_volume trades. No
+      store: a sink merges fragments of the same (token_id, bucket_start) — open
+      from the lowest (block_number, open_log_index), close from the highest,
+      high max, low min, volumes and trades summed.

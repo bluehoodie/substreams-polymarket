@@ -79,3 +79,32 @@ message TokenStats {
 message MarketStats {
   repeated TokenStats tokens = 1;
 }
+
+// OHLCV fragment of one outcome token over one 1-minute bucket, from one block's
+// is_volume trades. A bucket spans several blocks, so a sink merges the fragments
+// of the same (token_id, bucket_start): open from the fragment with the lowest
+// (block_number, open_log_index), close from the highest (block_number,
+// close_log_index), high = max, low = min, volumes and trades summed. Prices are
+// fee-aware trade prices with 6 decimals.
+message Candle {
+  string token_id = 1;
+  // Start of the bucket: block timestamp (unix seconds) rounded down to a minute.
+  uint64 bucket_start = 2;
+  string open = 3;
+  string high = 4;
+  string low = 5;
+  string close = 6;
+  // Raw 6-decimal integers.
+  string volume_shares = 7;
+  string volume_collateral = 8;
+  uint64 trades = 9;
+  uint64 block_number = 10;
+  // Block-wide log index of the first and last trade in this fragment.
+  uint64 open_log_index = 11;
+  uint64 close_log_index = 12;
+}
+
+message Candles {
+  // Ordered by token_id.
+  repeated Candle candles = 1;
+}

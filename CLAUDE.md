@@ -73,7 +73,8 @@ changing these rules.
   with `scripts/capture_fixture.sh <block>`; load it with
   `polymarket_substreams_common::load_block_b64` (the `fixtures` feature, enabled from each
   package's `[dev-dependencies]` only, so base64 never reaches the wasm build). Each package's
-  `fixture_tests` asserts the same counts as its `tests/assertions.yaml`.
+  `fixture_tests` asserts the same counts as its `tests/assertions.yaml`, which may
+  cover several modules (the runner makes one run per module and block).
 - `scripts/run_test_files.sh` runs every `tests/assertions.yaml` against the chain (needs
   `make build-all`, `substreams auth`, jq); run it before each release. It checks the
   assertions itself with jq because `substreams run --test-file` (v1.26) never fails a run
