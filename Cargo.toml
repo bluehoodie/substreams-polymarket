@@ -12,7 +12,11 @@ members = [
     "polymarket-trader-index",
 ]
 
+# opt-level 's' (the substreams skill template) over 'z': on map_all_events of
+# polymarket-exchange it ran ~1.8x faster for a ~1.5x larger WASM (189 KB -> 285 KB);
+# numbers and method in SUB-6 / scripts/wasm_bench.js. debuginfo stripping keeps
+# symbol names for readable panics.
 [profile.release]
 lto = true
-opt-level = 'z'
-strip = true
+opt-level = 's'
+strip = "debuginfo"

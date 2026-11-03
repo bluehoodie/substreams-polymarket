@@ -1,3 +1,10 @@
+// The `#[substreams::handlers::map]` macro generates an `extern "C"` shim that rebuilds
+// lazy `&eth::BlockLazyView<'_>` handler inputs from a raw `*mut u8`. The macro drops
+// the annotated fn's attributes, so a fn-scoped allow cannot reach the generated
+// shim; `not_unsafe_ptr_arg_deref` must be allowed at crate scope. The unsafe deref
+// lives entirely in macro-generated code; our handlers are safe.
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
@@ -6,27 +13,25 @@ use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::ctf::v1 as proto;
 use polymarket_substreams_common::{
-    bigint_to_string, bigint_to_u32, build_tx_context, format_address,
+    bigint_to_string, bigint_to_u32, block_logs, format_address, tx_context, BlockLog, BlockLogs,
     CONDITIONAL_TOKENS as CTF_CONTRACT_ADDRESS,
 };
 
 /// Map module that extracts CTF-specific events from blocks
 #[substreams::handlers::map]
-pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
+pub fn map_ctf_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::CtfEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::conditional_tokens::events::*;
 
     let mut events = proto::CtfEvents::default();
 
     // Iterate over all logs in the block
-    for log in blk.logs() {
-        // Filter by contract address first (performance optimization)
-        if !is_ctf_contract(log.log) {
-            continue;
-        }
-
+    // Filter by contract address first (performance optimization)
+    let blk = block_logs(blk, is_ctf_contract)?;
+    for log in &blk.logs {
         // Try to decode each event type (check match_log first to avoid index errors)
-        if ConditionPreparation::match_log(log.log) {
-            if let Ok(event) = ConditionPreparation::decode(log.log) {
+        if ConditionPreparation::match_log(&log.log) {
+            if let Ok(event) = ConditionPreparation::decode(&log.log) {
                 events
                     .condition_preparation
                     .push(proto::ConditionPreparation {
@@ -34,11 +39,11 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                         oracle: format_address(&event.oracle),
                         question_id: event.question_id.to_vec(),
                         outcome_slot_count: bigint_to_u32(&event.outcome_slot_count),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
-        } else if ConditionResolution::match_log(log.log) {
-            if let Ok(event) = ConditionResolution::decode(log.log) {
+        } else if ConditionResolution::match_log(&log.log) {
+            if let Ok(event) = ConditionResolution::decode(&log.log) {
                 events
                     .condition_resolution
                     .push(proto::ConditionResolution {
@@ -51,11 +56,11 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                             .iter()
                             .map(bigint_to_string)
                             .collect(),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
-        } else if PositionSplit::match_log(log.log) {
-            if let Ok(event) = PositionSplit::decode(log.log) {
+        } else if PositionSplit::match_log(&log.log) {
+            if let Ok(event) = PositionSplit::decode(&log.log) {
                 events.position_split.push(proto::PositionSplit {
                     stakeholder: format_address(&event.stakeholder),
                     collateral_token: format_address(&event.collateral_token),
@@ -63,11 +68,11 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     partition: event.partition.iter().map(bigint_to_string).collect(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionsMerge::match_log(log.log) {
-            if let Ok(event) = PositionsMerge::decode(log.log) {
+        } else if PositionsMerge::match_log(&log.log) {
+            if let Ok(event) = PositionsMerge::decode(&log.log) {
                 events.positions_merge.push(proto::PositionsMerge {
                     stakeholder: format_address(&event.stakeholder),
                     collateral_token: format_address(&event.collateral_token),
@@ -75,11 +80,11 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     partition: event.partition.iter().map(bigint_to_string).collect(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PayoutRedemption::match_log(log.log) {
-            if let Ok(event) = PayoutRedemption::decode(log.log) {
+        } else if PayoutRedemption::match_log(&log.log) {
+            if let Ok(event) = PayoutRedemption::decode(&log.log) {
                 events.payout_redemption.push(proto::PayoutRedemption {
                     redeemer: format_address(&event.redeemer),
                     collateral_token: format_address(&event.collateral_token),
@@ -87,7 +92,7 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     index_sets: event.index_sets.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -99,48 +104,46 @@ pub fn map_ctf_events(blk: eth::Block) -> Result<proto::CtfEvents, Error> {
 
 /// Map module that extracts ERC1155 events from blocks
 #[substreams::handlers::map]
-pub fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error> {
+pub fn map_erc1155_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::Erc1155Events, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::conditional_tokens::events::*;
 
     let mut events = proto::Erc1155Events::default();
 
     // Iterate over all logs in the block
-    for log in blk.logs() {
-        // Filter by contract address first (performance optimization)
-        if !is_ctf_contract(log.log) {
-            continue;
-        }
-
+    // Filter by contract address first (performance optimization)
+    let blk = block_logs(blk, is_ctf_contract)?;
+    for log in &blk.logs {
         // Try to decode each ERC1155 event type (check match_log first to avoid index errors)
-        if TransferSingle::match_log(log.log) {
-            if let Ok(event) = TransferSingle::decode(log.log) {
+        if TransferSingle::match_log(&log.log) {
+            if let Ok(event) = TransferSingle::decode(&log.log) {
                 events.transfer_single.push(proto::TransferSingle {
                     operator: format_address(&event.operator),
                     from: format_address(&event.from),
                     to: format_address(&event.to),
                     id: bigint_to_string(&event.id),
                     value: bigint_to_string(&event.value),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if TransferBatch::match_log(log.log) {
-            if let Ok(event) = TransferBatch::decode(log.log) {
+        } else if TransferBatch::match_log(&log.log) {
+            if let Ok(event) = TransferBatch::decode(&log.log) {
                 events.transfer_batch.push(proto::TransferBatch {
                     operator: format_address(&event.operator),
                     from: format_address(&event.from),
                     to: format_address(&event.to),
                     ids: event.ids.iter().map(bigint_to_string).collect(),
                     values: event.values.iter().map(bigint_to_string).collect(),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if ApprovalForAll::match_log(log.log) {
-            if let Ok(event) = ApprovalForAll::decode(log.log) {
+        } else if ApprovalForAll::match_log(&log.log) {
+            if let Ok(event) = ApprovalForAll::decode(&log.log) {
                 events.approval_for_all.push(proto::ApprovalForAll {
                     account: format_address(&event.owner),
                     operator: format_address(&event.operator),
                     approved: event.approved,
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -165,7 +168,8 @@ pub fn map_erc1155_events(blk: eth::Block) -> Result<proto::Erc1155Events, Error
 /// # Returns
 /// AllEvents message containing all extracted event types with optional fields
 #[substreams::handlers::map]
-pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
+pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::conditional_tokens::events::*;
 
     // Initialize all event collectors
@@ -173,15 +177,12 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
     let mut erc1155_events = proto::Erc1155Events::default();
 
     // Single pass through all logs, extracting all event types
-    for log in blk.logs() {
-        // Filter by contract address first (performance optimization)
-        if !is_ctf_contract(log.log) {
-            continue;
-        }
-
+    // Filter by contract address first (performance optimization)
+    let blk = block_logs(blk, is_ctf_contract)?;
+    for log in &blk.logs {
         // CTF events
-        if ConditionPreparation::match_log(log.log) {
-            if let Ok(event) = ConditionPreparation::decode(log.log) {
+        if ConditionPreparation::match_log(&log.log) {
+            if let Ok(event) = ConditionPreparation::decode(&log.log) {
                 ctf_events
                     .condition_preparation
                     .push(proto::ConditionPreparation {
@@ -189,11 +190,11 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         oracle: format_address(&event.oracle),
                         question_id: event.question_id.to_vec(),
                         outcome_slot_count: bigint_to_u32(&event.outcome_slot_count),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
-        } else if ConditionResolution::match_log(log.log) {
-            if let Ok(event) = ConditionResolution::decode(log.log) {
+        } else if ConditionResolution::match_log(&log.log) {
+            if let Ok(event) = ConditionResolution::decode(&log.log) {
                 ctf_events
                     .condition_resolution
                     .push(proto::ConditionResolution {
@@ -206,11 +207,11 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                             .iter()
                             .map(bigint_to_string)
                             .collect(),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
-        } else if PositionSplit::match_log(log.log) {
-            if let Ok(event) = PositionSplit::decode(log.log) {
+        } else if PositionSplit::match_log(&log.log) {
+            if let Ok(event) = PositionSplit::decode(&log.log) {
                 ctf_events.position_split.push(proto::PositionSplit {
                     stakeholder: format_address(&event.stakeholder),
                     collateral_token: format_address(&event.collateral_token),
@@ -218,11 +219,11 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     partition: event.partition.iter().map(bigint_to_string).collect(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionsMerge::match_log(log.log) {
-            if let Ok(event) = PositionsMerge::decode(log.log) {
+        } else if PositionsMerge::match_log(&log.log) {
+            if let Ok(event) = PositionsMerge::decode(&log.log) {
                 ctf_events.positions_merge.push(proto::PositionsMerge {
                     stakeholder: format_address(&event.stakeholder),
                     collateral_token: format_address(&event.collateral_token),
@@ -230,11 +231,11 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     partition: event.partition.iter().map(bigint_to_string).collect(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PayoutRedemption::match_log(log.log) {
-            if let Ok(event) = PayoutRedemption::decode(log.log) {
+        } else if PayoutRedemption::match_log(&log.log) {
+            if let Ok(event) = PayoutRedemption::decode(&log.log) {
                 ctf_events.payout_redemption.push(proto::PayoutRedemption {
                     redeemer: format_address(&event.redeemer),
                     collateral_token: format_address(&event.collateral_token),
@@ -242,40 +243,40 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     condition_id: event.condition_id.to_vec(),
                     index_sets: event.index_sets.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
         // ERC1155 events
-        else if TransferSingle::match_log(log.log) {
-            if let Ok(event) = TransferSingle::decode(log.log) {
+        else if TransferSingle::match_log(&log.log) {
+            if let Ok(event) = TransferSingle::decode(&log.log) {
                 erc1155_events.transfer_single.push(proto::TransferSingle {
                     operator: format_address(&event.operator),
                     from: format_address(&event.from),
                     to: format_address(&event.to),
                     id: bigint_to_string(&event.id),
                     value: bigint_to_string(&event.value),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if TransferBatch::match_log(log.log) {
-            if let Ok(event) = TransferBatch::decode(log.log) {
+        } else if TransferBatch::match_log(&log.log) {
+            if let Ok(event) = TransferBatch::decode(&log.log) {
                 erc1155_events.transfer_batch.push(proto::TransferBatch {
                     operator: format_address(&event.operator),
                     from: format_address(&event.from),
                     to: format_address(&event.to),
                     ids: event.ids.iter().map(bigint_to_string).collect(),
                     values: event.values.iter().map(bigint_to_string).collect(),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if ApprovalForAll::match_log(log.log) {
-            if let Ok(event) = ApprovalForAll::decode(log.log) {
+        } else if ApprovalForAll::match_log(&log.log) {
+            if let Ok(event) = ApprovalForAll::decode(&log.log) {
                 erc1155_events.approval_for_all.push(proto::ApprovalForAll {
                     account: format_address(&event.owner),
                     operator: format_address(&event.operator),
                     approved: event.approved,
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -313,19 +314,16 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
 /// This is significantly faster than string-based comparison (~25x) because it avoids
 /// hex encoding, string allocation, and case-insensitive matching entirely.
 #[inline]
-fn is_ctf_contract(log: &eth::Log) -> bool {
-    log.address == CTF_CONTRACT_ADDRESS
+fn is_ctf_contract(address: &[u8]) -> bool {
+    address == CTF_CONTRACT_ADDRESS
 }
 
-/// Builds a [`proto::TransactionContext`] from block and log data via the shared
-/// `build_tx_context` helper, wrapping its package-agnostic fields into this
+/// Builds a [`proto::TransactionContext`] from a kept log via the shared
+/// `tx_context` helper, wrapping its package-agnostic fields into this
 /// package's proto type.
 #[inline]
-fn build_transaction_context(
-    blk: &eth::Block,
-    log: &substreams_ethereum::block_view::LogView,
-) -> proto::TransactionContext {
-    let ctx = build_tx_context(blk, log);
+fn build_transaction_context(blk: &BlockLogs, log: &BlockLog) -> proto::TransactionContext {
+    let ctx = tx_context(log.tx_hash, &log.log, blk.number, blk.timestamp);
     proto::TransactionContext {
         tx_hash: ctx.tx_hash,
         log_index: ctx.log_index,
@@ -352,7 +350,7 @@ mod tests {
             address: hex_literal::hex!("4D97DCd97eC945f40cF65F87097ACe5EA0476045").to_vec(),
             ..Default::default()
         };
-        assert!(is_ctf_contract(&log));
+        assert!(is_ctf_contract(&log.address));
     }
 
     #[test]
@@ -361,7 +359,7 @@ mod tests {
             address: hex_literal::hex!("0000000000000000000000000000000000000000").to_vec(),
             ..Default::default()
         };
-        assert!(!is_ctf_contract(&log));
+        assert!(!is_ctf_contract(&log.address));
     }
 
     #[test]
@@ -370,7 +368,7 @@ mod tests {
             address: vec![],
             ..Default::default()
         };
-        assert!(!is_ctf_contract(&log));
+        assert!(!is_ctf_contract(&log.address));
     }
 
     #[test]
@@ -456,8 +454,12 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_classifies_transfer_single() {
-        let out = __impl_map_all_events(block_with_log(transfer_single_log()))
-            .expect("handler must not err");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &block_with_log(transfer_single_log()),
+            __impl_map_all_events,
+        )
+        .expect("fixture block encodes")
+        .expect("handler must not err");
         let erc = out
             .erc1155_events
             .as_option()
@@ -473,7 +475,12 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_empty_block_ok() {
-        let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &eth::Block::default(),
+            __impl_map_all_events,
+        )
+        .expect("fixture block encodes")
+        .expect("empty block must not panic");
         assert!(!out.ctf_events.is_set());
         assert!(!out.erc1155_events.is_set());
     }

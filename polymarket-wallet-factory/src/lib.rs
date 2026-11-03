@@ -1,3 +1,10 @@
+// The `#[substreams::handlers::map]` macro generates an `extern "C"` shim that rebuilds
+// lazy `&eth::BlockLazyView<'_>` handler inputs from a raw `*mut u8`. The macro drops
+// the annotated fn's attributes, so a fn-scoped allow cannot reach the generated
+// shim; `not_unsafe_ptr_arg_deref` must be allowed at crate scope. The unsafe deref
+// lives entirely in macro-generated code; our handlers are safe.
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
@@ -6,37 +13,36 @@ use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::wallet_factory::v1 as proto;
 use polymarket_substreams_common::{
-    build_tx_context, format_address, DEPOSIT_WALLET_FACTORY as DEPOSIT_WALLET_FACTORY_ADDRESS,
+    block_logs, format_address, tx_context, BlockLog, BlockLogs,
+    DEPOSIT_WALLET_FACTORY as DEPOSIT_WALLET_FACTORY_ADDRESS,
 };
 
 #[substreams::handlers::map]
-pub fn map_factory_events(blk: eth::Block) -> Result<proto::FactoryEvents, Error> {
+pub fn map_factory_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::FactoryEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::deposit_wallet_factory::events::*;
 
     let mut events = proto::FactoryEvents::default();
 
-    for log in blk.logs() {
-        if !is_factory_contract(log.log) {
-            continue;
-        }
-
-        if WalletDeployed::match_log(log.log) {
-            if let Ok(event) = WalletDeployed::decode(log.log) {
+    let blk = block_logs(blk, is_factory_contract)?;
+    for log in &blk.logs {
+        if WalletDeployed::match_log(&log.log) {
+            if let Ok(event) = WalletDeployed::decode(&log.log) {
                 events.wallet_deployed.push(proto::WalletDeployed {
                     wallet: format_address(&event.wallet),
                     owner: format_address(&event.owner),
                     id: format!("0x{}", hex::encode(event.id)),
                     implementation: format_address(&event.implementation),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if ImplementationAuthorized::match_log(log.log) {
-            if let Ok(event) = ImplementationAuthorized::decode(log.log) {
+        } else if ImplementationAuthorized::match_log(&log.log) {
+            if let Ok(event) = ImplementationAuthorized::decode(&log.log) {
                 events
                     .implementation_authorized
                     .push(proto::ImplementationAuthorized {
                         implementation: format_address(&event.implementation),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
         }
@@ -46,16 +52,13 @@ pub fn map_factory_events(blk: eth::Block) -> Result<proto::FactoryEvents, Error
 }
 
 #[inline]
-fn is_factory_contract(log: &eth::Log) -> bool {
-    log.address == DEPOSIT_WALLET_FACTORY_ADDRESS
+fn is_factory_contract(address: &[u8]) -> bool {
+    address == DEPOSIT_WALLET_FACTORY_ADDRESS
 }
 
 #[inline]
-fn build_transaction_context(
-    blk: &eth::Block,
-    log: &substreams_ethereum::block_view::LogView,
-) -> proto::TransactionContext {
-    let ctx = build_tx_context(blk, log);
+fn build_transaction_context(blk: &BlockLogs, log: &BlockLog) -> proto::TransactionContext {
+    let ctx = tx_context(log.tx_hash, &log.log, blk.number, blk.timestamp);
     proto::TransactionContext {
         tx_hash: ctx.tx_hash,
         log_index: ctx.log_index,
@@ -75,7 +78,7 @@ mod tests {
             address: hex_literal::hex!("00000000000Fb5C9ADea0298D729A0CB3823Cc07").to_vec(),
             ..Default::default()
         };
-        assert!(is_factory_contract(&log));
+        assert!(is_factory_contract(&log.address));
     }
 
     #[test]
@@ -84,7 +87,7 @@ mod tests {
             address: hex_literal::hex!("0000000000000000000000000000000000000000").to_vec(),
             ..Default::default()
         };
-        assert!(!is_factory_contract(&log));
+        assert!(!is_factory_contract(&log.address));
     }
 
     #[test]
@@ -161,8 +164,12 @@ mod handler_tests {
 
     #[test]
     fn map_factory_events_classifies_wallet_deployed() {
-        let out = __impl_map_factory_events(block_with_log(wallet_deployed_log()))
-            .expect("handler must not err");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &block_with_log(wallet_deployed_log()),
+            __impl_map_factory_events,
+        )
+        .expect("fixture block encodes")
+        .expect("handler must not err");
         assert_eq!(out.wallet_deployed.len(), 1);
         assert_eq!(
             out.wallet_deployed[0].wallet,
@@ -173,8 +180,12 @@ mod handler_tests {
 
     #[test]
     fn map_factory_events_empty_block_ok() {
-        let out =
-            __impl_map_factory_events(eth::Block::default()).expect("empty block must not panic");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &eth::Block::default(),
+            __impl_map_factory_events,
+        )
+        .expect("fixture block encodes")
+        .expect("empty block must not panic");
         assert!(out.wallet_deployed.is_empty());
         assert!(out.implementation_authorized.is_empty());
     }

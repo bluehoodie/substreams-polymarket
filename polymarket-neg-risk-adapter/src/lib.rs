@@ -1,3 +1,10 @@
+// The `#[substreams::handlers::map]` macro generates an `extern "C"` shim that rebuilds
+// lazy `&eth::BlockLazyView<'_>` handler inputs from a raw `*mut u8`. The macro drops
+// the annotated fn's attributes, so a fn-scoped allow cannot reach the generated
+// shim; `not_unsafe_ptr_arg_deref` must be allowed at crate scope. The unsafe deref
+// lives entirely in macro-generated code; our handlers are safe.
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
@@ -6,48 +13,46 @@ use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::neg_risk_adapter::v1 as proto;
 use polymarket_substreams_common::{
-    bigint_to_string, build_tx_context, format_address,
+    bigint_to_string, block_logs, format_address, tx_context, BlockLog, BlockLogs,
     NEG_RISK_ADAPTER as NEG_RISK_ADAPTER_CONTRACT_ADDRESS,
 };
 
 #[substreams::handlers::map]
-pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> {
+pub fn map_market_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::MarketEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut events = proto::MarketEvents::default();
 
-    for log in blk.logs() {
-        if !is_adapter_contract(log.log) {
-            continue;
-        }
-
-        if MarketPrepared::match_log(log.log) {
-            if let Ok(event) = MarketPrepared::decode(log.log) {
+    let blk = block_logs(blk, is_adapter_contract)?;
+    for log in &blk.logs {
+        if MarketPrepared::match_log(&log.log) {
+            if let Ok(event) = MarketPrepared::decode(&log.log) {
                 events.market_prepared.push(proto::MarketPrepared {
                     market_id: event.market_id.to_vec(),
                     oracle: format_address(&event.oracle),
                     fee_bips: bigint_to_string(&event.fee_bips),
                     data: event.data,
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if QuestionPrepared::match_log(log.log) {
-            if let Ok(event) = QuestionPrepared::decode(log.log) {
+        } else if QuestionPrepared::match_log(&log.log) {
+            if let Ok(event) = QuestionPrepared::decode(&log.log) {
                 events.question_prepared.push(proto::QuestionPrepared {
                     market_id: event.market_id.to_vec(),
                     question_id: event.question_id.to_vec(),
                     index: bigint_to_string(&event.index),
                     data: event.data,
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if OutcomeReported::match_log(log.log) {
-            if let Ok(event) = OutcomeReported::decode(log.log) {
+        } else if OutcomeReported::match_log(&log.log) {
+            if let Ok(event) = OutcomeReported::decode(&log.log) {
                 events.outcome_reported.push(proto::OutcomeReported {
                     market_id: event.market_id.to_vec(),
                     question_id: event.question_id.to_vec(),
                     outcome: event.outcome,
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -57,52 +62,50 @@ pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> 
 }
 
 #[substreams::handlers::map]
-pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
+pub fn map_trading_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::TradingEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut events = proto::TradingEvents::default();
 
-    for log in blk.logs() {
-        if !is_adapter_contract(log.log) {
-            continue;
-        }
-
-        if PositionSplit::match_log(log.log) {
-            if let Ok(event) = PositionSplit::decode(log.log) {
+    let blk = block_logs(blk, is_adapter_contract)?;
+    for log in &blk.logs {
+        if PositionSplit::match_log(&log.log) {
+            if let Ok(event) = PositionSplit::decode(&log.log) {
                 events.position_split.push(proto::PositionSplit {
                     stakeholder: format_address(&event.stakeholder),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionsMerge::match_log(log.log) {
-            if let Ok(event) = PositionsMerge::decode(log.log) {
+        } else if PositionsMerge::match_log(&log.log) {
+            if let Ok(event) = PositionsMerge::decode(&log.log) {
                 events.positions_merge.push(proto::PositionsMerge {
                     stakeholder: format_address(&event.stakeholder),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionsConverted::match_log(log.log) {
-            if let Ok(event) = PositionsConverted::decode(log.log) {
+        } else if PositionsConverted::match_log(&log.log) {
+            if let Ok(event) = PositionsConverted::decode(&log.log) {
                 events.positions_converted.push(proto::PositionsConverted {
                     stakeholder: format_address(&event.stakeholder),
                     market_id: event.market_id.to_vec(),
                     index_set: bigint_to_string(&event.index_set),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PayoutRedemption::match_log(log.log) {
-            if let Ok(event) = PayoutRedemption::decode(log.log) {
+        } else if PayoutRedemption::match_log(&log.log) {
+            if let Ok(event) = PayoutRedemption::decode(&log.log) {
                 events.payout_redemption.push(proto::PayoutRedemption {
                     redeemer: format_address(&event.redeemer),
                     condition_id: event.condition_id.to_vec(),
                     amounts: event.amounts.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -112,30 +115,28 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
 }
 
 #[substreams::handlers::map]
-pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
+pub fn map_admin_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AdminEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut events = proto::AdminEvents::default();
 
-    for log in blk.logs() {
-        if !is_adapter_contract(log.log) {
-            continue;
-        }
-
-        if NewAdmin::match_log(log.log) {
-            if let Ok(event) = NewAdmin::decode(log.log) {
+    let blk = block_logs(blk, is_adapter_contract)?;
+    for log in &blk.logs {
+        if NewAdmin::match_log(&log.log) {
+            if let Ok(event) = NewAdmin::decode(&log.log) {
                 events.new_admin.push(proto::NewAdmin {
                     new_admin_address: format_address(&event.new_admin_address),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if RemovedAdmin::match_log(log.log) {
-            if let Ok(event) = RemovedAdmin::decode(log.log) {
+        } else if RemovedAdmin::match_log(&log.log) {
+            if let Ok(event) = RemovedAdmin::decode(&log.log) {
                 events.removed_admin.push(proto::RemovedAdmin {
                     removed_admin: format_address(&event.removed_admin),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -145,30 +146,28 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
 }
 
 #[substreams::handlers::map]
-pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
+pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut market_events = proto::MarketEvents::default();
     let mut trading_events = proto::TradingEvents::default();
     let mut admin_events = proto::AdminEvents::default();
 
-    for log in blk.logs() {
-        if !is_adapter_contract(log.log) {
-            continue;
-        }
-
-        if MarketPrepared::match_log(log.log) {
-            if let Ok(event) = MarketPrepared::decode(log.log) {
+    let blk = block_logs(blk, is_adapter_contract)?;
+    for log in &blk.logs {
+        if MarketPrepared::match_log(&log.log) {
+            if let Ok(event) = MarketPrepared::decode(&log.log) {
                 market_events.market_prepared.push(proto::MarketPrepared {
                     market_id: event.market_id.to_vec(),
                     oracle: format_address(&event.oracle),
                     fee_bips: bigint_to_string(&event.fee_bips),
                     data: event.data,
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if QuestionPrepared::match_log(log.log) {
-            if let Ok(event) = QuestionPrepared::decode(log.log) {
+        } else if QuestionPrepared::match_log(&log.log) {
+            if let Ok(event) = QuestionPrepared::decode(&log.log) {
                 market_events
                     .question_prepared
                     .push(proto::QuestionPrepared {
@@ -176,38 +175,38 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         question_id: event.question_id.to_vec(),
                         index: bigint_to_string(&event.index),
                         data: event.data,
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
-        } else if OutcomeReported::match_log(log.log) {
-            if let Ok(event) = OutcomeReported::decode(log.log) {
+        } else if OutcomeReported::match_log(&log.log) {
+            if let Ok(event) = OutcomeReported::decode(&log.log) {
                 market_events.outcome_reported.push(proto::OutcomeReported {
                     market_id: event.market_id.to_vec(),
                     question_id: event.question_id.to_vec(),
                     outcome: event.outcome,
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionSplit::match_log(log.log) {
-            if let Ok(event) = PositionSplit::decode(log.log) {
+        } else if PositionSplit::match_log(&log.log) {
+            if let Ok(event) = PositionSplit::decode(&log.log) {
                 trading_events.position_split.push(proto::PositionSplit {
                     stakeholder: format_address(&event.stakeholder),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionsMerge::match_log(log.log) {
-            if let Ok(event) = PositionsMerge::decode(log.log) {
+        } else if PositionsMerge::match_log(&log.log) {
+            if let Ok(event) = PositionsMerge::decode(&log.log) {
                 trading_events.positions_merge.push(proto::PositionsMerge {
                     stakeholder: format_address(&event.stakeholder),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionsConverted::match_log(log.log) {
-            if let Ok(event) = PositionsConverted::decode(log.log) {
+        } else if PositionsConverted::match_log(&log.log) {
+            if let Ok(event) = PositionsConverted::decode(&log.log) {
                 trading_events
                     .positions_converted
                     .push(proto::PositionsConverted {
@@ -215,11 +214,11 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         market_id: event.market_id.to_vec(),
                         index_set: bigint_to_string(&event.index_set),
                         amount: bigint_to_string(&event.amount),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
-        } else if PayoutRedemption::match_log(log.log) {
-            if let Ok(event) = PayoutRedemption::decode(log.log) {
+        } else if PayoutRedemption::match_log(&log.log) {
+            if let Ok(event) = PayoutRedemption::decode(&log.log) {
                 trading_events
                     .payout_redemption
                     .push(proto::PayoutRedemption {
@@ -227,23 +226,23 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                         condition_id: event.condition_id.to_vec(),
                         amounts: event.amounts.iter().map(bigint_to_string).collect(),
                         payout: bigint_to_string(&event.payout),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
-        } else if NewAdmin::match_log(log.log) {
-            if let Ok(event) = NewAdmin::decode(log.log) {
+        } else if NewAdmin::match_log(&log.log) {
+            if let Ok(event) = NewAdmin::decode(&log.log) {
                 admin_events.new_admin.push(proto::NewAdmin {
                     new_admin_address: format_address(&event.new_admin_address),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if RemovedAdmin::match_log(log.log) {
-            if let Ok(event) = RemovedAdmin::decode(log.log) {
+        } else if RemovedAdmin::match_log(&log.log) {
+            if let Ok(event) = RemovedAdmin::decode(&log.log) {
                 admin_events.removed_admin.push(proto::RemovedAdmin {
                     removed_admin: format_address(&event.removed_admin),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -281,16 +280,13 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
 }
 
 #[inline]
-fn is_adapter_contract(log: &eth::Log) -> bool {
-    log.address == NEG_RISK_ADAPTER_CONTRACT_ADDRESS
+fn is_adapter_contract(address: &[u8]) -> bool {
+    address == NEG_RISK_ADAPTER_CONTRACT_ADDRESS
 }
 
 #[inline]
-fn build_transaction_context(
-    blk: &eth::Block,
-    log: &substreams_ethereum::block_view::LogView,
-) -> proto::TransactionContext {
-    let ctx = build_tx_context(blk, log);
+fn build_transaction_context(blk: &BlockLogs, log: &BlockLog) -> proto::TransactionContext {
+    let ctx = tx_context(log.tx_hash, &log.log, blk.number, blk.timestamp);
     proto::TransactionContext {
         tx_hash: ctx.tx_hash,
         log_index: ctx.log_index,
@@ -310,7 +306,7 @@ mod tests {
             address: hex_literal::hex!("d91E80cF2E7be2e162c6513ceD06f1dD0dA35296").to_vec(),
             ..Default::default()
         };
-        assert!(is_adapter_contract(&log));
+        assert!(is_adapter_contract(&log.address));
     }
 
     #[test]
@@ -319,7 +315,7 @@ mod tests {
             address: hex_literal::hex!("0000000000000000000000000000000000000000").to_vec(),
             ..Default::default()
         };
-        assert!(!is_adapter_contract(&log));
+        assert!(!is_adapter_contract(&log.address));
     }
 
     #[test]
@@ -388,8 +384,12 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_classifies_outcome_reported() {
-        let out = __impl_map_all_events(block_with_log(outcome_reported_log()))
-            .expect("handler must not err");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &block_with_log(outcome_reported_log()),
+            __impl_map_all_events,
+        )
+        .expect("fixture block encodes")
+        .expect("handler must not err");
         let market = out
             .market_events
             .as_option()
@@ -407,7 +407,12 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_empty_block_ok() {
-        let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &eth::Block::default(),
+            __impl_map_all_events,
+        )
+        .expect("fixture block encodes")
+        .expect("empty block must not panic");
         assert!(out.market_events.is_unset());
         assert!(out.trading_events.is_unset());
         assert!(out.admin_events.is_unset());
