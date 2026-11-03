@@ -4,6 +4,7 @@
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 mod candles;
+mod orders;
 mod stats;
 
 use std::str::FromStr;
@@ -631,6 +632,35 @@ mod fixture_tests {
         );
     }
 
+    /// Order fills over block 96600000, with in-memory stores: one entry per order
+    /// hash, every fill counted once.
+    #[test]
+    fn map_order_fills_real_block_96600000() {
+        let inp = inputs(96600000);
+        let trades = substreams::testing::map!(map_trades(inp.exchange, inp.neg_risk))
+            .expect("handler must not err");
+        let fills = crate::orders::tests::fills_after(&[&trades]);
+        let mut hashes: Vec<&[u8]> = trades.trades.iter().map(|t| t.order_hash.as_slice()).collect();
+        hashes.sort_unstable();
+        hashes.dedup();
+        assert_eq!(fills.orders.len(), hashes.len());
+        assert_eq!(fills.orders.len(), ORDERS_96600000);
+        let n: u64 = fills.orders.iter().map(|o| o.fills).sum();
+        assert_eq!(n, trades.trades.len() as u64);
+        for o in &fills.orders {
+            assert_eq!(o.fills, o.block_fills);
+            assert_eq!((o.first_fill_block, o.last_fill_block), (96600000, 96600000));
+            let shares = trades
+                .trades
+                .iter()
+                .filter(|t| format_address(&t.order_hash) == o.order_hash)
+                .fold(BigInt::zero(), |acc, t| {
+                    acc + BigInt::from_str(&t.shares).expect("amount")
+                });
+            assert_eq!(o.filled_shares, shares.to_string(), "{}", o.order_hash);
+        }
+    }
+
     /// (exchange, maker, price) of the first trade in block 96600000.
     const FIRST_96600000: (&str, &str, &str) = (
         "ctf_v2",
@@ -640,6 +670,7 @@ mod fixture_tests {
     const TOKENS_96600000: usize = 21;
     const VOLUME_FILLS_96600000: usize = 43;
     const CANDLES_96600000: usize = 21;
+    const ORDERS_96600000: usize = 49;
     /// (token_id, open, bucket_start) of the first candle in block 96600000.
     const FIRST_CANDLE_96600000: (&str, &str, u64) = (
         "104682004226386236263369368652385253547958068860089723081382793939737139300525",

@@ -31,9 +31,14 @@ hash the same, so their cached outputs are reused.
 | `store_last_price` | Last traded price per token | store (set, string) |
 | `map_market_stats` | One `TokenStats` per token traded in the block: running totals, last price, block VWAP and volume | `proto:polymarket.trades.v1.MarketStats` |
 | `map_candles` | 1-minute OHLCV fragment per token from the block's `is_volume` trades | `proto:polymarket.trades.v1.Candles` |
+| `store_order_filled` | Cumulative fill progress per order (`<order_hash>:<field>`): shares, collateral, fees, fills | store (add, bigint) |
+| `store_order_first_seen` | Block of each order's first fill | store (set_if_not_exists, int64) |
+| `map_order_fills` | One `OrderFill` per order filled in the block: owner, token, side, cumulative filled amounts, fill count, first and last fill block | `proto:polymarket.trades.v1.OrderFills` |
 
-The stores start at block 84902353, so `map_market_stats` needs that backfill before
-its totals are complete.
+The stores start at block 84902353, so `map_market_stats` and `map_order_fills` need
+that backfill before their totals are complete. Chain data only has what an order
+filled, not its full size, so `map_order_fills` reports filled amounts, not what
+remains.
 
 ## Candles
 

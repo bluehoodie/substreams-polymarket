@@ -108,3 +108,31 @@ message Candles {
   // Ordered by token_id.
   repeated Candle candles = 1;
 }
+
+// Fill progress of one signed order, emitted for every order filled in a block.
+// Cumulative fields cover all fills up to and including this block. Chain data has
+// no full order size, so this is what was filled, not what remains.
+message OrderFill {
+  // 0x-prefixed hex.
+  string order_hash = 1;
+  // Owner of the order (Trade.maker).
+  string owner = 2;
+  string token_id = 3;
+  // 0 = BUY, 1 = SELL.
+  uint32 side = 4;
+  string exchange = 5;
+  // Cumulative shares, collateral (fee-aware, as Trade.collateral) and fees filled.
+  string filled_shares = 6;
+  string filled_collateral = 7;
+  string fees = 8;
+  // Cumulative number of fills, and of those, fills in this block.
+  uint64 fills = 9;
+  uint64 block_fills = 10;
+  uint64 first_fill_block = 11;
+  uint64 last_fill_block = 12;
+}
+
+message OrderFills {
+  // Ordered by order_hash.
+  repeated OrderFill orders = 1;
+}

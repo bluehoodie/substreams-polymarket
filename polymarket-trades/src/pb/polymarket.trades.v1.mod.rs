@@ -68,3 +68,15 @@ pub use self::__buffa::view::CandlesView;
 pub use self::__buffa::view::CandlesOwnedView;
 #[doc(inline)]
 pub use self::__buffa::lazy_view::CandlesLazyView;
+#[doc(inline)]
+pub use self::__buffa::view::OrderFillView;
+#[doc(inline)]
+pub use self::__buffa::view::OrderFillOwnedView;
+#[doc(inline)]
+pub use self::__buffa::lazy_view::OrderFillLazyView;
+#[doc(inline)]
+pub use self::__buffa::view::OrderFillsView;
+#[doc(inline)]
+pub use self::__buffa::view::OrderFillsOwnedView;
+#[doc(inline)]
+pub use self::__buffa::lazy_view::OrderFillsLazyView;

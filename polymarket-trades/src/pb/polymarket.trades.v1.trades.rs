@@ -1367,3 +1367,391 @@ impl ::buffa::Message for Candles {
         self.candles.clear();
     }
 }
+/// Fill progress of one signed order, emitted for every order filled in a block.
+/// Cumulative fields cover all fills up to and including this block. Chain data has
+/// no full order size, so this is what was filled, not what remains.
+#[derive(Clone, PartialEq, Default)]
+pub struct OrderFill {
+    /// 0x-prefixed hex.
+    ///
+    /// Field 1: `order_hash`
+    pub order_hash: ::buffa::alloc::string::String,
+    /// Owner of the order (Trade.maker).
+    ///
+    /// Field 2: `owner`
+    pub owner: ::buffa::alloc::string::String,
+    /// Field 3: `token_id`
+    pub token_id: ::buffa::alloc::string::String,
+    /// 0 = BUY, 1 = SELL.
+    ///
+    /// Field 4: `side`
+    pub side: u32,
+    /// Field 5: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
+    /// Cumulative shares, collateral (fee-aware, as Trade.collateral) and fees filled.
+    ///
+    /// Field 6: `filled_shares`
+    pub filled_shares: ::buffa::alloc::string::String,
+    /// Field 7: `filled_collateral`
+    pub filled_collateral: ::buffa::alloc::string::String,
+    /// Field 8: `fees`
+    pub fees: ::buffa::alloc::string::String,
+    /// Cumulative number of fills, and of those, fills in this block.
+    ///
+    /// Field 9: `fills`
+    pub fills: u64,
+    /// Field 10: `block_fills`
+    pub block_fills: u64,
+    /// Field 11: `first_fill_block`
+    pub first_fill_block: u64,
+    /// Field 12: `last_fill_block`
+    pub last_fill_block: u64,
+}
+impl ::core::fmt::Debug for OrderFill {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("OrderFill")
+            .field("order_hash", &self.order_hash)
+            .field("owner", &self.owner)
+            .field("token_id", &self.token_id)
+            .field("side", &self.side)
+            .field("exchange", &self.exchange)
+            .field("filled_shares", &self.filled_shares)
+            .field("filled_collateral", &self.filled_collateral)
+            .field("fees", &self.fees)
+            .field("fills", &self.fills)
+            .field("block_fills", &self.block_fills)
+            .field("first_fill_block", &self.first_fill_block)
+            .field("last_fill_block", &self.last_fill_block)
+            .finish()
+    }
+}
+impl OrderFill {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.OrderFill";
+}
+::buffa::impl_default_instance!(OrderFill);
+impl ::buffa::MessageName for OrderFill {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "OrderFill";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.OrderFill";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.OrderFill";
+}
+impl ::buffa::Message for OrderFill {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// Accumulates in `u64` (which cannot overflow for in-memory
+    /// data) and saturates to `u32` at return, so a message whose
+    /// encoded size exceeds the 2 GiB protobuf limit yields a value
+    /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
+    /// points reject, never a silently wrapped size.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.order_hash.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.order_hash) as u64;
+        }
+        if !self.owner.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.owner) as u64;
+        }
+        if !self.token_id.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.token_id) as u64;
+        }
+        if self.side != 0u32 {
+            size += 1u64 + ::buffa::types::uint32_encoded_len(self.side) as u64;
+        }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
+        if !self.filled_shares.is_empty() {
+            size
+                += 1u64 + ::buffa::types::string_encoded_len(&self.filled_shares) as u64;
+        }
+        if !self.filled_collateral.is_empty() {
+            size
+                += 1u64
+                    + ::buffa::types::string_encoded_len(&self.filled_collateral) as u64;
+        }
+        if !self.fees.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.fees) as u64;
+        }
+        if self.fills != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.fills) as u64;
+        }
+        if self.block_fills != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.block_fills) as u64;
+        }
+        if self.first_fill_block != 0u64 {
+            size
+                += 1u64
+                    + ::buffa::types::uint64_encoded_len(self.first_fill_block) as u64;
+        }
+        if self.last_fill_block != 0u64 {
+            size
+                += 1u64
+                    + ::buffa::types::uint64_encoded_len(self.last_fill_block) as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.order_hash.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.order_hash, buf);
+        }
+        if !self.owner.is_empty() {
+            ::buffa::types::put_string_field(2u32, &self.owner, buf);
+        }
+        if !self.token_id.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.token_id, buf);
+        }
+        if self.side != 0u32 {
+            ::buffa::types::put_uint32_field(4u32, self.side, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(5u32, &self.exchange, buf);
+        }
+        if !self.filled_shares.is_empty() {
+            ::buffa::types::put_string_field(6u32, &self.filled_shares, buf);
+        }
+        if !self.filled_collateral.is_empty() {
+            ::buffa::types::put_string_field(7u32, &self.filled_collateral, buf);
+        }
+        if !self.fees.is_empty() {
+            ::buffa::types::put_string_field(8u32, &self.fees, buf);
+        }
+        if self.fills != 0u64 {
+            ::buffa::types::put_uint64_field(9u32, self.fills, buf);
+        }
+        if self.block_fills != 0u64 {
+            ::buffa::types::put_uint64_field(10u32, self.block_fills, buf);
+        }
+        if self.first_fill_block != 0u64 {
+            ::buffa::types::put_uint64_field(11u32, self.first_fill_block, buf);
+        }
+        if self.last_fill_block != 0u64 {
+            ::buffa::types::put_uint64_field(12u32, self.last_fill_block, buf);
+        }
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.order_hash, buf)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.owner, buf)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.token_id, buf)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.side = ::buffa::types::decode_uint32(buf)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.filled_shares, buf)?;
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.filled_collateral, buf)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.fees, buf)?;
+            }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.fills = ::buffa::types::decode_uint64(buf)?;
+            }
+            10u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.block_fills = ::buffa::types::decode_uint64(buf)?;
+            }
+            11u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.first_fill_block = ::buffa::types::decode_uint64(buf)?;
+            }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.last_fill_block = ::buffa::types::decode_uint64(buf)?;
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.order_hash.clear();
+        self.owner.clear();
+        self.token_id.clear();
+        self.side = 0u32;
+        self.exchange.clear();
+        self.filled_shares.clear();
+        self.filled_collateral.clear();
+        self.fees.clear();
+        self.fills = 0u64;
+        self.block_fills = 0u64;
+        self.first_fill_block = 0u64;
+        self.last_fill_block = 0u64;
+    }
+}
+#[derive(Clone, PartialEq, Default)]
+pub struct OrderFills {
+    /// Ordered by order_hash.
+    ///
+    /// Field 1: `orders`
+    pub orders: ::buffa::alloc::vec::Vec<OrderFill>,
+}
+impl ::core::fmt::Debug for OrderFills {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("OrderFills").field("orders", &self.orders).finish()
+    }
+}
+impl OrderFills {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.OrderFills";
+}
+::buffa::impl_default_instance!(OrderFills);
+impl ::buffa::MessageName for OrderFills {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "OrderFills";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.OrderFills";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.OrderFills";
+}
+impl ::buffa::Message for OrderFills {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// Accumulates in `u64` (which cannot overflow for in-memory
+    /// data) and saturates to `u32` at return, so a message whose
+    /// encoded size exceeds the 2 GiB protobuf limit yields a value
+    /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
+    /// points reject, never a silently wrapped size.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        for v in &self.orders {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        for v in &self.orders {
+            ::buffa::types::put_len_delimited_header(
+                1u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
+        }
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&elem),
+                )?;
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.orders.push(elem);
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.orders.clear();
+    }
+}
