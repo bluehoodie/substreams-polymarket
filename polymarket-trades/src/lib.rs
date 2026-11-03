@@ -4,6 +4,7 @@
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 mod candles;
+mod db;
 mod orders;
 mod stats;
 
@@ -660,6 +661,128 @@ mod fixture_tests {
             assert_eq!(o.shares, shares.to_string(), "{}", o.order_hash);
         }
         assert_eq!(fills.orders.iter().filter(|o| o.fills > 1).count(), 1);
+    }
+
+    /// Protocol V2 module `ConditionResolved` logs of a block, as
+    /// polymarket-resolution's `map_resolution_events` emits them (decoded by hand
+    /// here: that package is a cdylib, so it can't be a dev-dependency).
+    fn module_resolutions(block_number: u64) -> pb::polymarket::resolution::v1::ResolutionEvents {
+        use pb::polymarket::resolution::v1 as res;
+        const BINARY: [u8; 20] = hex_literal::hex!("1000008dd9001b968442c1000017eae6e0da00ba");
+        const NEG_RISK: [u8; 20] = hex_literal::hex!("200000900045e3b6259600682756002200028933");
+        const TOPIC0: [u8; 32] = hex_literal::hex!(
+            "e560c1a2847d4cf2e66de11fe592605556989449f38cc3ab96e2e287daa68caa"
+        );
+        let path = format!(
+            "{}/../testdata/polygon_{block_number}.binpb.b64",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        let block = polymarket_substreams_common::load_block_b64(&path).expect("fixture loads");
+        with_lazy_block(&block, |blk| {
+            let blk = block_logs(blk, |a| a == BINARY || a == NEG_RISK).expect("logs decode");
+            let mut out = res::ModuleEvents::default();
+            for log in &blk.logs {
+                let topics: Vec<&[u8]> = log.log.topics.iter().copied().collect();
+                if topics.len() != 2 || topics[0] != TOPIC0 {
+                    continue;
+                }
+                // data: offset, length, then one 32-byte word per payout.
+                let data = log.log.data;
+                let n = BigInt::from_unsigned_bytes_be(&data[32..64]).to_u64() as usize;
+                let payouts = (0..n)
+                    .map(|i| {
+                        BigInt::from_unsigned_bytes_be(&data[64 + 32 * i..96 + 32 * i]).to_string()
+                    })
+                    .collect();
+                out.condition_resolved.push(res::ModuleConditionResolved {
+                    condition_id: format_address(&topics[1][..31]),
+                    payouts,
+                    module: if log.log.address == BINARY { "binary" } else { "neg_risk" }.into(),
+                    tx: Some(res::TransactionContext {
+                        tx_hash: format_address(log.tx_hash),
+                        log_index: log.log.block_index as u64,
+                        block_number: blk.number,
+                        timestamp: blk.timestamp,
+                    })
+                    .into(),
+                });
+            }
+            res::ResolutionEvents {
+                modules: Some(out).into(),
+                ..Default::default()
+            }
+        })
+        .expect("fixture decodes")
+    }
+
+    /// db_out / db_out_clickhouse over block 96600000 (trades, market stats,
+    /// candles, order fills) and 96681462 (Protocol V2 module resolutions).
+    #[test]
+    fn db_out_real_blocks() {
+        use crate::db::tests::{clickhouse, postgres, rows};
+        use crate::db::{CANDLES, MARKET_STATS, ORDER_FILLS, RESOLUTIONS, TRADES};
+        use substreams_database_change::pb::sf::substreams::sink::database::v1::table_change::Operation;
+
+        let inp = inputs(96600000);
+        let trades = substreams::testing::map!(map_trades(inp.exchange, inp.neg_risk))
+            .expect("handler must not err");
+        let stats = crate::stats::tests::stats_after(&[&trades]);
+        let candles = substreams::testing::map!(crate::candles::map_candles(trades.clone()))
+            .expect("handler must not err");
+        let fills = substreams::testing::map!(crate::orders::map_order_fills(trades.clone()))
+            .expect("handler must not err");
+        let resolutions = module_resolutions(96681462);
+        let no_res = Default::default();
+
+        let pg = postgres(&trades, &stats, &candles, &fills, &no_res);
+        assert_eq!(rows(&pg, TRADES), (50, Some(Operation::Create)));
+        assert_eq!(rows(&pg, MARKET_STATS), (21, Some(Operation::Upsert)));
+        assert_eq!(rows(&pg, CANDLES), (21, Some(Operation::Upsert)));
+        assert_eq!(rows(&pg, ORDER_FILLS), (ORDERS_96600000, Some(Operation::Upsert)));
+        assert_eq!(rows(&pg, RESOLUTIONS).0, 0);
+        let first = pg
+            .table_changes
+            .iter()
+            .find(|c| c.table == TRADES)
+            .expect("a trade row");
+        let price = first.fields.iter().find(|f| f.name == "price").expect("price");
+        assert_eq!(price.value, FIRST_96600000.2);
+
+        let pg = postgres(
+            &proto::Trades::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &resolutions,
+        );
+        assert_eq!(rows(&pg, RESOLUTIONS), (41, Some(Operation::Create)));
+        let r = pg
+            .table_changes
+            .iter()
+            .find(|c| c.table == RESOLUTIONS)
+            .expect("a resolution row");
+        let field = |name: &str| {
+            r.fields
+                .iter()
+                .find(|f| f.name == name)
+                .map(|f| f.value.clone())
+                .expect("field")
+        };
+        assert_eq!(field("source"), "binary");
+        assert_eq!(field("payouts"), "0,1000000");
+        assert!(field("resolved_id").starts_with("0x01c4dffb"));
+
+        // ClickHouse: the same rows, all plain inserts.
+        let ch = clickhouse(&trades, &stats, &candles, &fills, &resolutions);
+        for (table, n) in [
+            (TRADES, 50),
+            (MARKET_STATS, 21),
+            (CANDLES, 21),
+            (ORDER_FILLS, ORDERS_96600000),
+            (RESOLUTIONS, 41),
+        ] {
+            assert_eq!(rows(&ch, table), (n, Some(Operation::Create)), "{table}");
+        }
     }
 
     /// (exchange, maker, price) of the first trade in block 96600000.

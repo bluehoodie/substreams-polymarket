@@ -83,13 +83,14 @@ jobs:
           sudo tar -xzf /tmp/substreams.tar.gz -C /usr/local/bin substreams
           substreams --version
 
-      # polymarket-trades imports the exchange and neg-risk-ctf manifests, which point
-      # at their built wasm; build those first in the same job.
+      # polymarket-trades imports the exchange, neg-risk-ctf and resolution manifests,
+      # which point at their built wasm; build those first in the same job.
       - name: Build polymarket-trades dependencies
         if: matrix.package == 'polymarket-trades'
         run: |
           (cd polymarket-exchange && substreams build)
           (cd polymarket-neg-risk-ctf && substreams build)
+          (cd polymarket-resolution && substreams build)
 
       - name: Build ${{ matrix.package }}
         run: cd ${{ matrix.package }} && substreams build

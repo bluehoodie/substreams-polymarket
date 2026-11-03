@@ -13,6 +13,7 @@ buffa = { version = "0.9.2", default-features = false, features = ["std", "fast-
 buffa-types = { version = "0.9.2", default-features = false }
 hex-literal = "0.4"
 hex = "0.4"
+substreams-database-change = "5.0.0"
 polymarket-substreams-common = { path = "../polymarket-substreams-common" }
 
 [dev-dependencies]

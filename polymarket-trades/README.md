@@ -31,6 +31,8 @@ hash the same, so their cached outputs are reused.
 | `store_last_price` | Last traded price per token | store (set, string) |
 | `map_market_stats` | One `TokenStats` per token traded in the block: running totals, last price, block VWAP and volume | `proto:polymarket.trades.v1.MarketStats` |
 | `map_candles` | 1-minute OHLCV fragment per token from the block's `is_volume` trades | `proto:polymarket.trades.v1.Candles` |
+| `db_out` | PostgreSQL rows for `substreams sink postgres` (`schema.sql`) | `proto:sf.substreams.sink.database.v1.DatabaseChanges` |
+| `db_out_clickhouse` | ClickHouse rows for `substreams sink clickhouse` (`clickhouse-schema.sql`) | `proto:sf.substreams.sink.database.v1.DatabaseChanges` |
 | `map_order_fills` | One `OrderFill` per order filled in the block: owner, token, side, and that block's filled shares, collateral, fees and fill count | `proto:polymarket.trades.v1.OrderFills` |
 
 The stores start at block 84902353, so `map_market_stats` needs that backfill before
@@ -83,6 +85,48 @@ what was filled, not what remains.
   volume from `is_volume` fills only, and fees from every fill.
 - `token_id`: for `exchange_v3`, a Protocol V2 PositionManager position id, not a
   Conditional Tokens ERC1155 id.
+
+## SQL sink
+
+`db_out` writes five tables to PostgreSQL:
+
+| Table | How rows are written |
+|-------|----------------------|
+| `trades` | inserted, one per fill, id `<tx_hash>-<log_index>` |
+| `market_stats` | upserted per token with the absolute values from `map_market_stats` |
+| `candles_1m` | merged per `(token_id, bucket_start)`: `open` set once, `close` set by each block, `high` `GREATEST`, `low` `LEAST`, volumes and `trades` added |
+| `order_fills` | merged per `order_hash`: amounts and `fills` added, first fill block set once, last fill block set by each block |
+| `resolutions` | inserted: UMA adapter `QuestionResolved` / `QuestionEmergencyResolved` and Protocol V2 module `ConditionResolved`, from `polymarket-resolution` |
+
+`schema.sql` also has `candles_5m`, `candles_1h` and `candles_1d` views rolled up
+from `candles_1m`.
+
+```bash
+make build-trades
+export SUBSTREAMS_SINK_DSN="postgres://user:pass@localhost:5432/polymarket?sslmode=disable"
+substreams sink postgres setup polymarket-trades/substreams.yaml
+substreams sink postgres polymarket-trades/substreams.yaml -e polygon.streamingfast.io:443
+```
+
+The `add`/`max`/`min`/`set_if_null` upserts are PostgreSQL-only, so ClickHouse has its
+own module, `db_out_clickhouse`, which only inserts. Candle and order fill fragments
+land as rows, one per token or order per block. `candles_1m_mv` merges the candles
+into the `candles_1m_agg` AggregatingMergeTree, and you read them from
+`candles_1m_merged` and the `candles_5m` / `candles_1h` / `candles_1d` views. Order
+totals are in the `order_fills_totals` view. Run the ClickHouse sink on final blocks,
+because the materialized view can't take back rows from a reorg.
+
+`substreams.clickhouse.yaml` imports `substreams.yaml`, so module hashes and caches
+are shared, and points the sink at `db_out_clickhouse` and `clickhouse-schema.sql`:
+
+```bash
+export SUBSTREAMS_SINK_DSN="clickhouse://default:@localhost:9000/default"
+substreams sink clickhouse setup polymarket-trades/substreams.clickhouse.yaml
+substreams sink clickhouse polymarket-trades/substreams.clickhouse.yaml -e polygon.streamingfast.io:443 --final-blocks-only
+```
+
+`market_stats` comes from stores that start at block 84902353, so a sink started
+later than that still backfills those stores from 84902353 first.
 
 ## Build and run
 

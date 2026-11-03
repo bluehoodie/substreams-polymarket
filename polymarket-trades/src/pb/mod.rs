@@ -16,6 +16,11 @@ pub mod polymarket {
             include!("polymarket.neg_risk_ctf.v1.mod.rs");
         }
     }
+    pub mod resolution {
+        pub mod v1 {
+            include!("polymarket.resolution.v1.mod.rs");
+        }
+    }
     pub mod trades {
         pub mod v1 {
             include!("polymarket.trades.v1.mod.rs");
@@ -66,6 +71,11 @@ pub mod sf {
             }
         }
         pub mod sink {
+            pub mod database {
+                pub mod v1 {
+                    include!("sf.substreams.sink.database.v1.mod.rs");
+                }
+            }
             pub mod service {
                 pub mod v1 {
                     include!("sf.substreams.sink.service.v1.mod.rs");

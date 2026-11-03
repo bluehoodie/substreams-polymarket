@@ -14,10 +14,14 @@ network: polygon
 imports:
   exchange: ../polymarket-exchange/substreams.yaml
   neg_risk_ctf: ../polymarket-neg-risk-ctf/substreams.yaml
+  resolution: ../polymarket-resolution/substreams.yaml
 
 protobuf:
   files:
     - polymarket/trades/v1/trades.proto
+    # Vendored from the substreams-database-change crate (v5.0.0), for db_out's
+    # output type.
+    - sf/substreams/sink/database/v1/database.proto
   importPaths:
     - ./proto
 
@@ -100,3 +104,43 @@ modules:
       For every order filled in the block: owner, token, side, exchange, and that
       block's filled shares, collateral, fees and fill count. No store: a sink
       keeps each order's running totals by summing fragments per order_hash.
+
+  - name: db_out
+    kind: map
+    initialBlock: 84902353
+    inputs:
+      - map: map_trades
+      - map: map_market_stats
+      - map: map_candles
+      - map: map_order_fills
+      - map: resolution:map_resolution_events
+    output:
+      type: proto:sf.substreams.sink.database.v1.DatabaseChanges
+    doc: |
+      PostgreSQL rows (schema.sql) for `substreams sink postgres`: trades and
+      resolutions inserted, market_stats upserted with absolute values, and
+      candles_1m / order_fills merged in place with delta upserts (add, max, min,
+      set_if_null), which only the PostgreSQL sink supports.
+
+  - name: db_out_clickhouse
+    kind: map
+    initialBlock: 84902353
+    inputs:
+      - map: map_trades
+      - map: map_market_stats
+      - map: map_candles
+      - map: map_order_fills
+      - map: resolution:map_resolution_events
+    output:
+      type: proto:sf.substreams.sink.database.v1.DatabaseChanges
+    doc: |
+      ClickHouse rows (clickhouse-schema.sql) for `substreams sink clickhouse`:
+      plain inserts only (the ClickHouse sink has no delta updates). Candle and
+      order fill fragments are inserted as rows and merged by the table engines.
+
+sink:
+  module: db_out
+  type: sf.substreams.sink.sql.v1.Service
+  config:
+    schema: "./schema.sql"
+    engine: postgres
