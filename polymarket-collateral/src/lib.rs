@@ -15,6 +15,7 @@ use polymarket_substreams_common::{
 
 #[substreams::handlers::map]
 pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::p_usd::events::*;
 
     let mut events = proto::PusdEvents::default();
@@ -61,6 +62,7 @@ pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::ctf_collateral_adapter::events::*;
 
     let mut events = proto::CtfAdapterEvents::default();
@@ -108,6 +110,7 @@ pub fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents
 pub fn map_neg_risk_ctf_adapter_events(
     blk: eth::Block,
 ) -> Result<proto::NegRiskCtfAdapterEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf_collateral_adapter::events::*;
 
     let mut events = proto::NegRiskCtfAdapterEvents::default();
@@ -164,6 +167,7 @@ pub fn map_neg_risk_ctf_adapter_events(
 
 #[substreams::handlers::map]
 pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::ctf_collateral_adapter::events as ctf_events;
     use polymarket_substreams_common::abi::neg_risk_ctf_collateral_adapter::events as neg_risk_events;
     use polymarket_substreams_common::abi::p_usd::events as pusd_events;

@@ -12,6 +12,7 @@ use polymarket_substreams_common::{
 
 #[substreams::handlers::map]
 pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::TradingEvents::default();
@@ -57,6 +58,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
 
 #[substreams::handlers::map]
 pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::FeeEvents::default();
@@ -96,6 +98,7 @@ pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::AdminEvents::default();
@@ -145,6 +148,7 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::PauseEvents::default();
@@ -187,6 +191,7 @@ pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::OrderApprovalEvents::default();
@@ -220,6 +225,7 @@ pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents
 
 #[substreams::handlers::map]
 pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut trading_events = proto::TradingEvents::default();

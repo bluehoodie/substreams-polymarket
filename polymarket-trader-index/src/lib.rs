@@ -41,6 +41,7 @@ fn extract_user_addresses(params: &str) -> Vec<Vec<u8>> {
 /// The per-contract decode lives in `polymarket-substreams-common`.
 #[substreams::handlers::map]
 pub fn map_user_keys(blk: eth::Block) -> Result<Keys, Error> {
+    substreams::skip_empty_output();
     Ok(Keys {
         keys: collect_user_addresses(&blk)
             .iter()
@@ -56,6 +57,7 @@ pub fn map_user_keys(blk: eth::Block) -> Result<Keys, Error> {
 /// cannot declare a `blockFilter` of its own.
 #[substreams::handlers::map]
 pub fn index_users(keys: Keys) -> Result<Keys, Error> {
+    substreams::skip_empty_output();
     Ok(keys)
 }
 
@@ -69,6 +71,7 @@ pub fn index_users(keys: Keys) -> Result<Keys, Error> {
 /// filter returns matches; a cold first run builds the index and returns nothing.
 #[substreams::handlers::map]
 pub fn map_user_activity(params: String, blk: eth::Block) -> Result<Keys, Error> {
+    substreams::skip_empty_output();
     let watched: Vec<String> = extract_user_addresses(&params)
         .iter()
         .map(|a| user_key(a))

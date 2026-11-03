@@ -12,6 +12,7 @@ use polymarket_substreams_common::{
 
 #[substreams::handlers::map]
 pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut events = proto::MarketEvents::default();
@@ -58,6 +59,7 @@ pub fn map_market_events(blk: eth::Block) -> Result<proto::MarketEvents, Error> 
 
 #[substreams::handlers::map]
 pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut events = proto::TradingEvents::default();
@@ -113,6 +115,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
 
 #[substreams::handlers::map]
 pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut events = proto::AdminEvents::default();
@@ -146,6 +149,7 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
 
 #[substreams::handlers::map]
 pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_adapter::events::*;
 
     let mut market_events = proto::MarketEvents::default();

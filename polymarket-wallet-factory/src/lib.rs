@@ -11,6 +11,7 @@ use polymarket_substreams_common::{
 
 #[substreams::handlers::map]
 pub fn map_factory_events(blk: eth::Block) -> Result<proto::FactoryEvents, Error> {
+    substreams::skip_empty_output();
     use polymarket_substreams_common::abi::deposit_wallet_factory::events::*;
 
     let mut events = proto::FactoryEvents::default();

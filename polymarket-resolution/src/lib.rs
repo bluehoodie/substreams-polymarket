@@ -364,16 +364,19 @@ fn has_adapter_events(a: &proto::AdapterEvents) -> bool {
 
 #[substreams::handlers::map]
 pub fn map_oracle_events(blk: eth::Block) -> Result<proto::OracleEvents, Error> {
+    substreams::skip_empty_output();
     Ok(decode_block(&blk).oracle)
 }
 
 #[substreams::handlers::map]
 pub fn map_adapter_events(blk: eth::Block) -> Result<proto::AdapterEvents, Error> {
+    substreams::skip_empty_output();
     Ok(decode_block(&blk).adapter)
 }
 
 #[substreams::handlers::map]
 pub fn map_dispute_alerts(blk: eth::Block) -> Result<proto::DisputeAlerts, Error> {
+    substreams::skip_empty_output();
     let d = decode_block(&blk);
     let mut all_alerts = d.oracle_alerts;
     all_alerts.extend(d.adapter_alerts);
@@ -383,6 +386,7 @@ pub fn map_dispute_alerts(blk: eth::Block) -> Result<proto::DisputeAlerts, Error
 
 #[substreams::handlers::map]
 pub fn map_resolution_events(blk: eth::Block) -> Result<proto::ResolutionEvents, Error> {
+    substreams::skip_empty_output();
     let d = decode_block(&blk);
     let mut all_alerts = d.oracle_alerts;
     all_alerts.extend(d.adapter_alerts);
