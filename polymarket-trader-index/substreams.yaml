@@ -16,13 +16,14 @@ network: polygon
 
 imports:
   eth_common: https://spkg.io/v1/packages/ethereum-common/v0.3.3
-  # The warm v1.0.0 index. `map_user_keys` and `index_users` below are taken
-  # from it with `use:` so their module hashes stay those of v1.0.0 and the
-  # already-built `index_users` index keeps serving `map_user_activity`. Any
-  # change to this crate re-hashes them otherwise, forcing a re-warm from
-  # block 4023686 during which `map_user_activity` returns nothing.
-  # Re-point these at this package's own code only in a release that accepts
-  # that re-warm.
+  # NOT a self-import: `warm` is the already-published v1.0.0 release of this
+  # package, frozen on the registry (this manifest's own version is bumped past
+  # it at release time). `map_user_keys` and `index_users` below are taken from
+  # it with `use:`, so their module hashes stay those of v1.0.0 and its
+  # already-built `index_users` index keeps serving `map_user_activity`.
+  # Pointing them at this crate's code instead changes their hashes and forces a
+  # re-warm from block 4023686, during which `map_user_activity` returns
+  # nothing. Do that only in a release that accepts the re-warm.
   warm: https://spkg.io/v1/packages/polymarket-trader-index/v1.0.0
 
 binaries:
