@@ -49,6 +49,10 @@ changing these rules.
   Never compare addresses as hex strings (~25× slower).
 - `map_all_events` does a **single pass** over the kept logs, classifying each log via an
   if/else-if chain into category structs.
+- The per-category modules (`map_fee_events`, `map_ctf_events`, `map_oracle_events`, …) stay
+  alongside `map_all_events` / `map_resolution_events` by Colin's decision (SUB-4, 2026-11-03),
+  even though substreams-dev prefers one extraction module per block. They are public API:
+  don't deprecate or remove them, and keep them in step with the combined module.
 - **No `.unwrap()` / `.expect()` / `panic!` in handlers.** Decode with
   `if let Ok(ev) = Event::decode(&log.log)` and skip on error. (`.expect()` is fine inside
   `#[cfg(test)]`, benches and examples.)
