@@ -140,3 +140,29 @@ mod user_activity_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod fixture_tests {
+    use super::*;
+
+    /// Real Polygon block 96600000 (captured with `scripts/capture_fixture.sh 96600000`). The
+    /// expected keys match `substreams run` of `map_user_keys` on the same block.
+    #[test]
+    fn map_user_keys_real_block_96600000() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../testdata/polygon_96600000.binpb.b64"
+        );
+        let block = polymarket_substreams_common::load_block_b64(path).expect("fixture loads");
+        assert_eq!(block.number, 96600000);
+        let out = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+            substreams::testing::map!(map_user_keys(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        assert_eq!(out.keys.len(), 49);
+        assert!(out
+            .keys
+            .contains(&"user:0x0b5a14b1c2f547cfd238b1123d228562f5721457".to_string()));
+    }
+}

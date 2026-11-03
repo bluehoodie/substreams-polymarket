@@ -549,7 +549,7 @@ mod handler_tests {
     fn map_resolution_events_classifies_question_flagged() {
         let out = polymarket_substreams_common::with_lazy_block(
             &block_with_log(question_flagged_log()),
-            __impl_map_resolution_events,
+            |blk| substreams::testing::map!(map_resolution_events(blk)),
         )
         .expect("fixture block encodes")
         .expect("handler must not err");
@@ -576,14 +576,55 @@ mod handler_tests {
 
     #[test]
     fn map_resolution_events_empty_block_ok() {
-        let out = polymarket_substreams_common::with_lazy_block(
-            &eth::Block::default(),
-            __impl_map_resolution_events,
-        )
+        let out = polymarket_substreams_common::with_lazy_block(&eth::Block::default(), |blk| {
+            substreams::testing::map!(map_resolution_events(blk))
+        })
         .expect("fixture block encodes")
         .expect("empty block must not panic");
         assert!(!out.oracle.is_set());
         assert!(!out.adapter.is_set());
         assert!(!out.dispute_alerts.is_set());
+    }
+}
+
+#[cfg(test)]
+mod fixture_tests {
+    use super::*;
+
+    /// Real Polygon block 96591795 (captured with `scripts/capture_fixture.sh 96591795`). The
+    /// expected counts match `substreams run` of `map_resolution_events` on the same block.
+    #[test]
+    fn map_resolution_events_real_block_96591795() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../testdata/polygon_96591795.binpb.b64"
+        );
+        let block = polymarket_substreams_common::load_block_b64(path).expect("fixture loads");
+        assert_eq!(block.number, 96591795);
+        let out = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+            substreams::testing::map!(map_resolution_events(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        assert_eq!(
+            out.oracle.as_option().map_or(0, |e| e.settlements.len()),
+            1,
+            "oracle.settlements"
+        );
+        assert_eq!(
+            out.adapter
+                .as_option()
+                .map_or(0, |e| e.question_resolved.len()),
+            1,
+            "adapter.question_resolved"
+        );
+        assert_eq!(
+            out.adapter
+                .as_option()
+                .expect("adapter events")
+                .question_resolved[0]
+                .question_id,
+            hex_literal::hex!("9d13800f3a3ac1a7e5224f60d3b1343aec81f8d66d6d7c8ffac80f9b2b331740")
+        );
     }
 }

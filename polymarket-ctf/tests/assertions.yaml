@@ -1,0 +1,28 @@
+# `substreams run --test-file` assertions on block 96600000, the same block as the
+# Rust fixture testdata/polygon_96600000.binpb.b64. Run: scripts/run_test_files.sh.
+# Paths must yield a string (hence `| tostring`): the CLI runner skips other results.
+tests:
+  - module: map_all_events
+    block: 96600000
+    path: '.ctfEvents.positionSplit | length | tostring'
+    expect: "10"
+  - module: map_all_events
+    block: 96600000
+    path: '.ctfEvents.payoutRedemption | length | tostring'
+    expect: "3"
+  - module: map_all_events
+    block: 96600000
+    path: '.erc1155Events.transferSingle | length | tostring'
+    expect: "47"
+  - module: map_all_events
+    block: 96600000
+    path: '.erc1155Events.transferBatch | length | tostring'
+    expect: "27"
+  - module: map_all_events
+    block: 96600000
+    path: '.erc1155Events.approvalForAll | length | tostring'
+    expect: "3"
+  - module: map_all_events
+    block: 96600000
+    path: '.erc1155Events.transferSingle[0].to'
+    expect: "0x45f82472a88f759f8a98174d3cdd3db4a9ee6d79"

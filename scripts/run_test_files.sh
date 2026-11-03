@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Checks each package's tests/assertions.yaml against real Polygon blocks.
+# Run before each release, after `make build-all` (the manifests point at the
+# built wasm) and `substreams auth`. Needs substreams and jq.
+#   scripts/run_test_files.sh            # every package
+#   scripts/run_test_files.sh exchange   # one package
+#
+# The files use the `substreams run --test-file` format and are passed to it,
+# but as of substreams v1.26 that runner never fails a run and only reports in
+# the interactive TUI. So this script also evaluates every assertion itself with
+# jq over the `-o jsonl` output, and exits non-zero on any mismatch.
+set -euo pipefail
+
+EP=${ENDPOINT:-polygon.streamingfast.io:443}
+root=$(cd "$(dirname "$0")/.." && pwd)
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+pkgs=("$@")
+if [ ${#pkgs[@]} -eq 0 ]; then
+  pkgs=(exchange ctf neg-risk-ctf neg-risk-adapter collateral wallet-factory resolution trader-index)
+fi
+
+failed=0
+for pkg in "${pkgs[@]}"; do
+  dir="$root/polymarket-$pkg"
+  file="$dir/tests/assertions.yaml"
+  # module<TAB>block<TAB>path<TAB>expect, one line per assertion.
+  awk '
+    /- module:/ { m=$NF }
+    /block:/    { b=$NF }
+    /path:/     { sub(/^[^:]*: */, ""); gsub(/^'\''|'\''$/, ""); p=$0 }
+    /expect:/   { sub(/^[^:]*: */, ""); gsub(/^"|"$/, ""); print m "\t" b "\t" p "\t" $0 }
+  ' "$file" > "$tmp/tests.tsv"
+  module=$(cut -f1 "$tmp/tests.tsv" | sort -u)
+  [ "$(wc -l <<< "$module")" -eq 1 ] || { echo "$file: one module per file" >&2; exit 1; }
+  start=$(cut -f2 "$tmp/tests.tsv" | sort -n | head -1)
+  stop=$(cut -f2 "$tmp/tests.tsv" | sort -n | tail -1)
+  echo "== $pkg $module @ $start..$stop"
+  (cd "$dir" && substreams run substreams.yaml "$module" -e "$EP" \
+    -s "$start" -t "$((stop + 1))" -o jsonl --test-file tests/assertions.yaml \
+    > "$tmp/out.jsonl" 2> "$tmp/err.log") || { cat "$tmp/err.log" >&2; exit 1; }
+  while IFS=$'\t' read -r _ block path expect; do
+    actual=$(jq -r --argjson b "$block" "select(.[\"@block\"] == \$b) | .[\"@data\"] | $path" "$tmp/out.jsonl")
+    if [ "$actual" == "$expect" ]; then
+      echo "   ok   $block $path"
+    else
+      echo "   FAIL $block $path: expected '$expect', got '$actual'"
+      failed=1
+    fi
+  done < "$tmp/tests.tsv"
+done
+[ "$failed" -eq 0 ] || { echo "assertion failures" >&2; exit 1; }
+echo "all assertion files passed"

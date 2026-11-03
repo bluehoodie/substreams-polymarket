@@ -166,7 +166,7 @@ mod handler_tests {
     fn map_factory_events_classifies_wallet_deployed() {
         let out = polymarket_substreams_common::with_lazy_block(
             &block_with_log(wallet_deployed_log()),
-            __impl_map_factory_events,
+            |blk| substreams::testing::map!(map_factory_events(blk)),
         )
         .expect("fixture block encodes")
         .expect("handler must not err");
@@ -180,13 +180,39 @@ mod handler_tests {
 
     #[test]
     fn map_factory_events_empty_block_ok() {
-        let out = polymarket_substreams_common::with_lazy_block(
-            &eth::Block::default(),
-            __impl_map_factory_events,
-        )
+        let out = polymarket_substreams_common::with_lazy_block(&eth::Block::default(), |blk| {
+            substreams::testing::map!(map_factory_events(blk))
+        })
         .expect("fixture block encodes")
         .expect("empty block must not panic");
         assert!(out.wallet_deployed.is_empty());
         assert!(out.implementation_authorized.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod fixture_tests {
+    use super::*;
+
+    /// Real Polygon block 96600000 (captured with `scripts/capture_fixture.sh 96600000`). The
+    /// expected output matches `substreams run` of `map_factory_events` on the same block.
+    #[test]
+    fn map_factory_events_real_block_96600000() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../testdata/polygon_96600000.binpb.b64"
+        );
+        let block = polymarket_substreams_common::load_block_b64(path).expect("fixture loads");
+        assert_eq!(block.number, 96600000);
+        let out = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+            substreams::testing::map!(map_factory_events(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        assert_eq!(out.wallet_deployed.len(), 1);
+        assert_eq!(
+            out.wallet_deployed[0].wallet,
+            "0xa4639e6625d03cc907da0865b11ab261fd933edd"
+        );
     }
 }

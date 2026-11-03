@@ -97,6 +97,22 @@ pub fn with_lazy_block<R>(
     Ok(f(&view))
 }
 
+/// Loads a real-block fixture captured with
+/// `firecore tools firehose-single-block-client <endpoint> <block> -o bytes --bytes-encoding=base64`
+/// (see `scripts/capture_fixture.sh`) and decodes it into an owned `eth::Block`.
+/// Test-only: behind the `fixtures` feature, which packages enable from
+/// `[dev-dependencies]`.
+#[cfg(feature = "fixtures")]
+pub fn load_block_b64(
+    path: impl AsRef<std::path::Path>,
+) -> Result<eth::Block, Box<dyn std::error::Error>> {
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    use buffa::Message;
+    let raw = std::fs::read_to_string(path.as_ref())?;
+    let bytes = STANDARD.decode(raw.trim())?;
+    Ok(eth::Block::decode_from_slice(&bytes)?)
+}
+
 /// A log of a successful transaction, paired with that transaction's hash.
 pub struct BlockLog<'a> {
     pub tx_hash: &'a [u8],

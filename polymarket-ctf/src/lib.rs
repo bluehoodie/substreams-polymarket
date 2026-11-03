@@ -456,7 +456,7 @@ mod handler_tests {
     fn map_all_events_classifies_transfer_single() {
         let out = polymarket_substreams_common::with_lazy_block(
             &block_with_log(transfer_single_log()),
-            __impl_map_all_events,
+            |blk| substreams::testing::map!(map_all_events(blk)),
         )
         .expect("fixture block encodes")
         .expect("handler must not err");
@@ -475,13 +475,77 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_empty_block_ok() {
-        let out = polymarket_substreams_common::with_lazy_block(
-            &eth::Block::default(),
-            __impl_map_all_events,
-        )
+        let out = polymarket_substreams_common::with_lazy_block(&eth::Block::default(), |blk| {
+            substreams::testing::map!(map_all_events(blk))
+        })
         .expect("fixture block encodes")
         .expect("empty block must not panic");
         assert!(!out.ctf_events.is_set());
         assert!(!out.erc1155_events.is_set());
+    }
+}
+
+#[cfg(test)]
+mod fixture_tests {
+    use super::*;
+
+    /// Real Polygon block 96600000 (captured with `scripts/capture_fixture.sh 96600000`). The
+    /// expected counts match `substreams run` of `map_all_events` on the same block.
+    #[test]
+    fn map_all_events_real_block_96600000() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../testdata/polygon_96600000.binpb.b64"
+        );
+        let block = polymarket_substreams_common::load_block_b64(path).expect("fixture loads");
+        assert_eq!(block.number, 96600000);
+        let out = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+            substreams::testing::map!(map_all_events(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        assert_eq!(
+            out.ctf_events
+                .as_option()
+                .map_or(0, |e| e.position_split.len()),
+            10,
+            "ctf_events.position_split"
+        );
+        assert_eq!(
+            out.ctf_events
+                .as_option()
+                .map_or(0, |e| e.payout_redemption.len()),
+            3,
+            "ctf_events.payout_redemption"
+        );
+        assert_eq!(
+            out.erc1155_events
+                .as_option()
+                .map_or(0, |e| e.transfer_single.len()),
+            47,
+            "erc1155_events.transfer_single"
+        );
+        assert_eq!(
+            out.erc1155_events
+                .as_option()
+                .map_or(0, |e| e.transfer_batch.len()),
+            27,
+            "erc1155_events.transfer_batch"
+        );
+        assert_eq!(
+            out.erc1155_events
+                .as_option()
+                .map_or(0, |e| e.approval_for_all.len()),
+            3,
+            "erc1155_events.approval_for_all"
+        );
+        assert_eq!(
+            out.erc1155_events
+                .as_option()
+                .expect("erc1155 events")
+                .transfer_single[0]
+                .to,
+            "0x45f82472a88f759f8a98174d3cdd3db4a9ee6d79"
+        );
     }
 }

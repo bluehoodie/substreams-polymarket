@@ -49,6 +49,10 @@ changing these rules.
   Never compare addresses as hex strings (~25× slower).
 - `map_all_events` does a **single pass** over the kept logs, classifying each log via an
   if/else-if chain into category structs.
+- The per-category modules (`map_fee_events`, `map_ctf_events`, `map_oracle_events`, …) stay
+  alongside `map_all_events` / `map_resolution_events` by Colin's decision (SUB-4, 2026-11-03),
+  even though substreams-dev prefers one extraction module per block. They are public API:
+  don't deprecate or remove them, and keep them in step with the combined module.
 - **No `.unwrap()` / `.expect()` / `panic!` in handlers.** Decode with
   `if let Ok(ev) = Event::decode(&log.log)` and skip on error. (`.expect()` is fine inside
   `#[cfg(test)]`, benches and examples.)
@@ -59,8 +63,18 @@ changing these rules.
 - Lazy handlers make the macro's generated shim trip `clippy::not_unsafe_ptr_arg_deref`;
   each package allows it at crate scope (see the comment at the top of each `lib.rs`).
 - Tests: fixtures are owned `eth::Block`s. Run a handler with
-  `with_lazy_block(&block, __impl_map_x)`, which encodes the block and decodes it lazily
-  the way the runtime does.
+  `with_lazy_block(&block, |blk| substreams::testing::map!(map_x(blk)))`, which encodes the
+  block and decodes it lazily the way the runtime does. Never call `__impl_map_x` directly.
+- Real-block fixtures are shared at the repo root, `testdata/polygon_<block>.binpb.b64`
+  (96600000 has events for every package but resolution, which uses 96591795). Capture one
+  with `scripts/capture_fixture.sh <block>`; load it with
+  `polymarket_substreams_common::load_block_b64` (the `fixtures` feature, enabled from each
+  package's `[dev-dependencies]` only, so base64 never reaches the wasm build). Each package's
+  `fixture_tests` asserts the same counts as its `tests/assertions.yaml`.
+- `scripts/run_test_files.sh` runs every `tests/assertions.yaml` against the chain (needs
+  `make build-all`, `substreams auth`, jq); run it before each release. It checks the
+  assertions itself with jq because `substreams run --test-file` (v1.26) never fails a run
+  and reports only in the TUI.
 
 ## Performance checks
 
