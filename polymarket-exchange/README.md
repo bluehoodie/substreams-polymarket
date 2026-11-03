@@ -1,12 +1,21 @@
 # Polymarket Exchange Substreams Package
 
-Substreams package for extracting events from the Polymarket CTF Exchange contract on Polygon.
+Substreams package for extracting events from the Polymarket exchange contracts on Polygon:
+CTF Exchange V2 and the Protocol V2 Exchange ("ExchangeV3").
 
 ## Contract Information
 
-- **Address**: `0xE111180000d2663C0091e4f400237545B87B996B`
+| Contract | Address | `exchange` field |
+|----------|---------|------------------|
+| CTF Exchange V2 | [`0xE111180000d2663C0091e4f400237545B87B996B`](https://polygonscan.com/address/0xE111180000d2663C0091e4f400237545B87B996B) | `ctf_v2` |
+| Protocol V2 Exchange (ExchangeV3, proxy) | [`0xe3333700cA9d93003F00f0F71f8515005F6c00Aa`](https://polygonscan.com/address/0xe3333700cA9d93003F00f0F71f8515005F6c00Aa) | `exchange_v3` |
+
 - **Network**: Polygon
-- **Explorer**: [View on Polygonscan](https://polygonscan.com/address/0xE111180000d2663C0091e4f400237545B87B996B)
+- **Initial block**: 84902353 (CTF Exchange V2). ExchangeV3 was deployed after it (its address is listed in Polymarket's `polymarket-v2-external` README as of 2026-09-24; the exact deployment block isn't pinned here), so the initial block covers both.
+
+Both contracts emit the same event signatures, so every module reads both and every
+event carries an `exchange` field saying which one emitted it. ExchangeV3 `token_id`s are
+Protocol V2 PositionManager position ids, not Conditional Tokens ERC1155 ids.
 
 ## Available Modules
 
@@ -45,7 +54,9 @@ substreams run substreams.yaml map_all_events \
 
 ## Event Types
 
-The package extracts the following V2 event categories:
+The package extracts the following event categories. ExchangeV3 emits the exchange, fee,
+pause and order approval events; the admin events (and `FeeReceiverUpdated`,
+`MaxFeeRateUpdated`) only come from CTF Exchange V2.
 
 ### Exchange Events
 - `OrderFilled` - Order filled (with `side` uint8, `token_id`, `builder`, `metadata`)

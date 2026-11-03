@@ -29,7 +29,7 @@ modules:
     blockFilter:
       module: eth_common:index_events
       query:
-        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b || evt_addr:0xe3333700ca9d93003f00f0f71f8515005f6c00aa"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -44,7 +44,7 @@ modules:
     blockFilter:
       module: eth_common:index_events
       query:
-        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b || evt_addr:0xe3333700ca9d93003f00f0f71f8515005f6c00aa"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -59,7 +59,7 @@ modules:
     blockFilter:
       module: eth_common:index_events
       query:
-        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b || evt_addr:0xe3333700ca9d93003f00f0f71f8515005f6c00aa"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -74,7 +74,7 @@ modules:
     blockFilter:
       module: eth_common:index_events
       query:
-        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b || evt_addr:0xe3333700ca9d93003f00f0f71f8515005f6c00aa"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -89,7 +89,7 @@ modules:
     blockFilter:
       module: eth_common:index_events
       query:
-        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b || evt_addr:0xe3333700ca9d93003f00f0f71f8515005f6c00aa"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -104,7 +104,7 @@ modules:
     blockFilter:
       module: eth_common:index_events
       query:
-        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b"
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b || evt_addr:0xe3333700ca9d93003f00f0f71f8515005f6c00aa"
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:

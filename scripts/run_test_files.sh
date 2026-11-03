@@ -33,12 +33,15 @@ for pkg in "${pkgs[@]}"; do
   ' "$file" > "$tmp/tests.tsv"
   module=$(cut -f1 "$tmp/tests.tsv" | sort -u)
   [ "$(wc -l <<< "$module")" -eq 1 ] || { echo "$file: one module per file" >&2; exit 1; }
-  start=$(cut -f2 "$tmp/tests.tsv" | sort -n | head -1)
-  stop=$(cut -f2 "$tmp/tests.tsv" | sort -n | tail -1)
-  echo "== $pkg $module @ $start..$stop"
-  (cd "$dir" && substreams run substreams.yaml "$module" -e "$EP" \
-    -s "$start" -t "$((stop + 1))" -o jsonl --test-file tests/assertions.yaml \
-    > "$tmp/out.jsonl" 2> "$tmp/err.log") || { cat "$tmp/err.log" >&2; exit 1; }
+  # One run per distinct block, so assertions on far-apart blocks don't stream the
+  # whole range between them.
+  : > "$tmp/out.jsonl"
+  for blk in $(cut -f2 "$tmp/tests.tsv" | sort -nu); do
+    echo "== $pkg $module @ $blk"
+    (cd "$dir" && substreams run substreams.yaml "$module" -e "$EP" \
+      -s "$blk" -t "$((blk + 1))" -o jsonl --test-file tests/assertions.yaml \
+      >> "$tmp/out.jsonl" 2> "$tmp/err.log") || { cat "$tmp/err.log" >&2; exit 1; }
+  done
   while IFS=$'\t' read -r _ block path expect; do
     actual=$(jq -r --argjson b "$block" "select(.[\"@block\"] == \$b) | .[\"@data\"] | $path" "$tmp/out.jsonl")
     if [ "$actual" == "$expect" ]; then

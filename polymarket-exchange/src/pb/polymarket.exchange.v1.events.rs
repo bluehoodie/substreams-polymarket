@@ -163,6 +163,10 @@ pub struct OrderFilled {
     pub builder: ::buffa::alloc::vec::Vec<u8>,
     /// Field 11: `metadata`
     pub metadata: ::buffa::alloc::vec::Vec<u8>,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 12: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for OrderFilled {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -178,6 +182,7 @@ impl ::core::fmt::Debug for OrderFilled {
             .field("tx", &self.tx)
             .field("builder", &self.builder)
             .field("metadata", &self.metadata)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -252,6 +257,9 @@ impl ::buffa::Message for OrderFilled {
         if !self.metadata.is_empty() {
             size += 1u64 + ::buffa::types::bytes_encoded_len(&self.metadata) as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -298,6 +306,9 @@ impl ::buffa::Message for OrderFilled {
         }
         if !self.metadata.is_empty() {
             ::buffa::types::put_shared_bytes_field(11u32, &self.metadata, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(12u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -392,6 +403,13 @@ impl ::buffa::Message for OrderFilled {
                 )?;
                 ::buffa::types::merge_bytes(&mut self.metadata, buf)?;
             }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -410,6 +428,7 @@ impl ::buffa::Message for OrderFilled {
         self.tx = ::buffa::MessageField::none();
         self.builder.clear();
         self.metadata.clear();
+        self.exchange.clear();
     }
 }
 /// V2 OrdersMatched - side + token_id replace dual asset IDs
@@ -432,6 +451,10 @@ pub struct OrdersMatched {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 8: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for OrdersMatched {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -443,6 +466,7 @@ impl ::core::fmt::Debug for OrdersMatched {
             .field("maker_amount_filled", &self.maker_amount_filled)
             .field("taker_amount_filled", &self.taker_amount_filled)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -509,6 +533,9 @@ impl ::buffa::Message for OrdersMatched {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -543,6 +570,9 @@ impl ::buffa::Message for OrdersMatched {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(8u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -609,6 +639,13 @@ impl ::buffa::Message for OrdersMatched {
                     ctx,
                 )?;
             }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -623,6 +660,7 @@ impl ::buffa::Message for OrdersMatched {
         self.maker_amount_filled.clear();
         self.taker_amount_filled.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -634,12 +672,17 @@ pub struct OrderPreapproved {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for OrderPreapproved {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         f.debug_struct("OrderPreapproved")
             .field("order_hash", &self.order_hash)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -681,6 +724,9 @@ impl ::buffa::Message for OrderPreapproved {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -700,6 +746,9 @@ impl ::buffa::Message for OrderPreapproved {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -731,6 +780,13 @@ impl ::buffa::Message for OrderPreapproved {
                     ctx,
                 )?;
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -740,6 +796,7 @@ impl ::buffa::Message for OrderPreapproved {
     fn clear(&mut self) {
         self.order_hash.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -751,12 +808,17 @@ pub struct OrderPreapprovalInvalidated {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for OrderPreapprovalInvalidated {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         f.debug_struct("OrderPreapprovalInvalidated")
             .field("order_hash", &self.order_hash)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -798,6 +860,9 @@ impl ::buffa::Message for OrderPreapprovalInvalidated {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -817,6 +882,9 @@ impl ::buffa::Message for OrderPreapprovalInvalidated {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -848,6 +916,13 @@ impl ::buffa::Message for OrderPreapprovalInvalidated {
                     ctx,
                 )?;
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -857,6 +932,7 @@ impl ::buffa::Message for OrderPreapprovalInvalidated {
     fn clear(&mut self) {
         self.order_hash.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -870,6 +946,10 @@ pub struct FeeCharged {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for FeeCharged {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -877,6 +957,7 @@ impl ::core::fmt::Debug for FeeCharged {
             .field("recipient", &self.recipient)
             .field("amount", &self.amount)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -921,6 +1002,9 @@ impl ::buffa::Message for FeeCharged {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -943,6 +1027,9 @@ impl ::buffa::Message for FeeCharged {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -981,6 +1068,13 @@ impl ::buffa::Message for FeeCharged {
                     ctx,
                 )?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -991,6 +1085,7 @@ impl ::buffa::Message for FeeCharged {
         self.recipient.clear();
         self.amount.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -1002,12 +1097,17 @@ pub struct FeeReceiverUpdated {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for FeeReceiverUpdated {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         f.debug_struct("FeeReceiverUpdated")
             .field("fee_receiver", &self.fee_receiver)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -1049,6 +1149,9 @@ impl ::buffa::Message for FeeReceiverUpdated {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -1068,6 +1171,9 @@ impl ::buffa::Message for FeeReceiverUpdated {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -1099,6 +1205,13 @@ impl ::buffa::Message for FeeReceiverUpdated {
                     ctx,
                 )?;
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -1108,6 +1221,7 @@ impl ::buffa::Message for FeeReceiverUpdated {
     fn clear(&mut self) {
         self.fee_receiver.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -1119,12 +1233,17 @@ pub struct MaxFeeRateUpdated {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for MaxFeeRateUpdated {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         f.debug_struct("MaxFeeRateUpdated")
             .field("max_fee_rate", &self.max_fee_rate)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -1166,6 +1285,9 @@ impl ::buffa::Message for MaxFeeRateUpdated {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -1185,6 +1307,9 @@ impl ::buffa::Message for MaxFeeRateUpdated {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -1216,6 +1341,13 @@ impl ::buffa::Message for MaxFeeRateUpdated {
                     ctx,
                 )?;
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -1225,6 +1357,7 @@ impl ::buffa::Message for MaxFeeRateUpdated {
     fn clear(&mut self) {
         self.max_fee_rate.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -1238,6 +1371,10 @@ pub struct NewAdmin {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for NewAdmin {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1245,6 +1382,7 @@ impl ::core::fmt::Debug for NewAdmin {
             .field("new_admin_address", &self.new_admin_address)
             .field("admin", &self.admin)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -1291,6 +1429,9 @@ impl ::buffa::Message for NewAdmin {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -1313,6 +1454,9 @@ impl ::buffa::Message for NewAdmin {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -1351,6 +1495,13 @@ impl ::buffa::Message for NewAdmin {
                     ctx,
                 )?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -1361,6 +1512,7 @@ impl ::buffa::Message for NewAdmin {
         self.new_admin_address.clear();
         self.admin.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -1374,6 +1526,10 @@ pub struct NewOperator {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for NewOperator {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1381,6 +1537,7 @@ impl ::core::fmt::Debug for NewOperator {
             .field("new_operator_address", &self.new_operator_address)
             .field("admin", &self.admin)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -1428,6 +1585,9 @@ impl ::buffa::Message for NewOperator {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -1450,6 +1610,9 @@ impl ::buffa::Message for NewOperator {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -1488,6 +1651,13 @@ impl ::buffa::Message for NewOperator {
                     ctx,
                 )?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -1498,6 +1668,7 @@ impl ::buffa::Message for NewOperator {
         self.new_operator_address.clear();
         self.admin.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -1511,6 +1682,10 @@ pub struct RemovedAdmin {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for RemovedAdmin {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1518,6 +1693,7 @@ impl ::core::fmt::Debug for RemovedAdmin {
             .field("removed_admin", &self.removed_admin)
             .field("admin", &self.admin)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -1563,6 +1739,9 @@ impl ::buffa::Message for RemovedAdmin {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -1585,6 +1764,9 @@ impl ::buffa::Message for RemovedAdmin {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -1623,6 +1805,13 @@ impl ::buffa::Message for RemovedAdmin {
                     ctx,
                 )?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -1633,6 +1822,7 @@ impl ::buffa::Message for RemovedAdmin {
         self.removed_admin.clear();
         self.admin.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -1646,6 +1836,10 @@ pub struct RemovedOperator {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for RemovedOperator {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1653,6 +1847,7 @@ impl ::core::fmt::Debug for RemovedOperator {
             .field("removed_operator", &self.removed_operator)
             .field("admin", &self.admin)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -1699,6 +1894,9 @@ impl ::buffa::Message for RemovedOperator {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -1721,6 +1919,9 @@ impl ::buffa::Message for RemovedOperator {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -1759,6 +1960,13 @@ impl ::buffa::Message for RemovedOperator {
                     ctx,
                 )?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -1769,6 +1977,7 @@ impl ::buffa::Message for RemovedOperator {
         self.removed_operator.clear();
         self.admin.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -1782,6 +1991,10 @@ pub struct UserPaused {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for UserPaused {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1789,6 +2002,7 @@ impl ::core::fmt::Debug for UserPaused {
             .field("user", &self.user)
             .field("effective_pause_block", &self.effective_pause_block)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -1836,6 +2050,9 @@ impl ::buffa::Message for UserPaused {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -1858,6 +2075,9 @@ impl ::buffa::Message for UserPaused {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -1896,6 +2116,13 @@ impl ::buffa::Message for UserPaused {
                     ctx,
                 )?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -1906,6 +2133,7 @@ impl ::buffa::Message for UserPaused {
         self.user.clear();
         self.effective_pause_block.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -1917,12 +2145,17 @@ pub struct UserUnpaused {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 3: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for UserUnpaused {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         f.debug_struct("UserUnpaused")
             .field("user", &self.user)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -1964,6 +2197,9 @@ impl ::buffa::Message for UserUnpaused {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -1983,6 +2219,9 @@ impl ::buffa::Message for UserUnpaused {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -2014,6 +2253,13 @@ impl ::buffa::Message for UserUnpaused {
                     ctx,
                 )?;
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -2023,6 +2269,7 @@ impl ::buffa::Message for UserUnpaused {
     fn clear(&mut self) {
         self.user.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -2036,6 +2283,10 @@ pub struct UserPauseBlockIntervalUpdated {
         TransactionContext,
         ::buffa::Inline<TransactionContext>,
     >,
+    /// Emitting exchange: "ctf_v2" (CTF Exchange V2) or "exchange_v3" (Protocol V2 Exchange).
+    ///
+    /// Field 4: `exchange`
+    pub exchange: ::buffa::alloc::string::String,
 }
 impl ::core::fmt::Debug for UserPauseBlockIntervalUpdated {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2043,6 +2294,7 @@ impl ::core::fmt::Debug for UserPauseBlockIntervalUpdated {
             .field("old_interval", &self.old_interval)
             .field("new_interval", &self.new_interval)
             .field("tx", &self.tx)
+            .field("exchange", &self.exchange)
             .finish()
     }
 }
@@ -2087,6 +2339,9 @@ impl ::buffa::Message for UserPauseBlockIntervalUpdated {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -2109,6 +2364,9 @@ impl ::buffa::Message for UserPauseBlockIntervalUpdated {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.exchange, buf);
         }
     }
     fn merge_field(
@@ -2147,6 +2405,13 @@ impl ::buffa::Message for UserPauseBlockIntervalUpdated {
                     ctx,
                 )?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.exchange, buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -2157,6 +2422,7 @@ impl ::buffa::Message for UserPauseBlockIntervalUpdated {
         self.old_interval.clear();
         self.new_interval.clear();
         self.tx = ::buffa::MessageField::none();
+        self.exchange.clear();
     }
 }
 /// Container messages
