@@ -1,0 +1,20 @@
+# `substreams run --test-file` assertions on block 96600000, the same block as the
+# Rust fixture testdata/polygon_96600000.binpb.b64. Run: scripts/run_test_files.sh.
+# Paths must yield a string (hence `| tostring`): the CLI runner skips other results.
+tests:
+  - module: map_all_events
+    block: 96600000
+    path: '.tradingEvents.orderFilled | length | tostring'
+    expect: "14"
+  - module: map_all_events
+    block: 96600000
+    path: '.tradingEvents.ordersMatched | length | tostring'
+    expect: "6"
+  - module: map_all_events
+    block: 96600000
+    path: '.feeEvents.feeCharged | length | tostring'
+    expect: "6"
+  - module: map_all_events
+    block: 96600000
+    path: '.tradingEvents.orderFilled[0].maker'
+    expect: "0x65e6f32a21c333f81c5292ea7235d96c63803289"

@@ -1,21 +1,20 @@
 #!/usr/bin/env bash
-# Captures one real Polygon block as a test fixture for a package:
-#   scripts/capture_fixture.sh <package> <block>
-#   e.g. scripts/capture_fixture.sh exchange 84902400
-# writes polymarket-<package>/src/testdata/polygon_<block>.binpb.b64, which tests
-# load with polymarket_substreams_common::load_block_b64 (feature "fixtures").
+# Captures one real Polygon block as a shared test fixture:
+#   scripts/capture_fixture.sh <block>
+#   e.g. scripts/capture_fixture.sh 96600000
+# writes testdata/polygon_<block>.binpb.b64 at the repo root (shared by every
+# package, since one block usually has events for several), which tests load with
+# polymarket_substreams_common::load_block_b64 (feature "fixtures").
 #
 # Needs `firecore` (github.com/streamingfast/firehose-core releases) and a
 # StreamingFast token in FIREHOSE_API_TOKEN, SUBSTREAMS_API_TOKEN or
 # FIREHOSE_API_KEY / SUBSTREAMS_API_KEY (`substreams auth` sets them up).
 set -euo pipefail
 
-pkg=${1:?usage: $0 <package> <block>}
-block=${2:?usage: $0 <package> <block>}
+block=${1:?usage: $0 <block>}
 endpoint=${ENDPOINT:-polygon.streamingfast.io:443}
 root=$(cd "$(dirname "$0")/.." && pwd)
-dir="$root/polymarket-$pkg/src/testdata"
-[ -d "$root/polymarket-$pkg" ] || { echo "no package polymarket-$pkg" >&2; exit 1; }
+dir="$root/testdata"
 
 export FIREHOSE_API_TOKEN=${FIREHOSE_API_TOKEN:-${SUBSTREAMS_API_TOKEN:-}}
 export FIREHOSE_API_KEY=${FIREHOSE_API_KEY:-${SUBSTREAMS_API_KEY:-}}

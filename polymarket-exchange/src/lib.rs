@@ -736,10 +736,9 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_empty_block_ok() {
-        let out = polymarket_substreams_common::with_lazy_block(
-            &eth::Block::default(),
-            |blk| substreams::testing::map!(map_all_events(blk)),
-        )
+        let out = polymarket_substreams_common::with_lazy_block(&eth::Block::default(), |blk| {
+            substreams::testing::map!(map_all_events(blk))
+        })
         .expect("fixture block encodes")
         .expect("empty block must not panic");
         assert!(out.exchange_events.is_unset());
@@ -747,5 +746,56 @@ mod handler_tests {
         assert!(out.admin_events.is_unset());
         assert!(out.pause_events.is_unset());
         assert!(out.order_approval_events.is_unset());
+    }
+}
+
+#[cfg(test)]
+mod fixture_tests {
+    use super::*;
+
+    /// Real Polygon block 96600000 (captured with `scripts/capture_fixture.sh 96600000`). The
+    /// expected counts match `substreams run` of `map_all_events` on the same block.
+    #[test]
+    fn map_all_events_real_block_96600000() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../testdata/polygon_96600000.binpb.b64"
+        );
+        let block = polymarket_substreams_common::load_block_b64(path).expect("fixture loads");
+        assert_eq!(block.number, 96600000);
+        let out = polymarket_substreams_common::with_lazy_block(&block, |blk| {
+            substreams::testing::map!(map_all_events(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err");
+        assert_eq!(
+            out.exchange_events
+                .as_option()
+                .map_or(0, |e| e.order_filled.len()),
+            36,
+            "exchange_events.order_filled"
+        );
+        assert_eq!(
+            out.exchange_events
+                .as_option()
+                .map_or(0, |e| e.orders_matched.len()),
+            9,
+            "exchange_events.orders_matched"
+        );
+        assert_eq!(
+            out.fee_events
+                .as_option()
+                .map_or(0, |e| e.fee_charged.len()),
+            9,
+            "fee_events.fee_charged"
+        );
+        assert_eq!(
+            out.exchange_events
+                .as_option()
+                .expect("exchange events")
+                .order_filled[0]
+                .maker,
+            "0x45f82472a88f759f8a98174d3cdd3db4a9ee6d79"
+        );
     }
 }

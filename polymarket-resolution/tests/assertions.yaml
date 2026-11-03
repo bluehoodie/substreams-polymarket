@@ -1,0 +1,16 @@
+# `substreams run --test-file` assertions on block 96591795, the same block as the
+# Rust fixture testdata/polygon_96591795.binpb.b64. Run: scripts/run_test_files.sh.
+# Paths must yield a string (hence `| tostring`): the CLI runner skips other results.
+tests:
+  - module: map_resolution_events
+    block: 96591795
+    path: '.oracle.settlements | length | tostring'
+    expect: "1"
+  - module: map_resolution_events
+    block: 96591795
+    path: '.adapter.questionResolved | length | tostring'
+    expect: "1"
+  - module: map_resolution_events
+    block: 96591795
+    path: '.oracle.settlements[0].payout'
+    expect: "755000000"

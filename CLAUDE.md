@@ -65,10 +65,16 @@ changing these rules.
 - Tests: fixtures are owned `eth::Block`s. Run a handler with
   `with_lazy_block(&block, |blk| substreams::testing::map!(map_x(blk)))`, which encodes the
   block and decodes it lazily the way the runtime does. Never call `__impl_map_x` directly.
-- Real-block fixtures live in `polymarket-<pkg>/src/testdata/polygon_<block>.binpb.b64`,
-  captured with `scripts/capture_fixture.sh <pkg> <block>` and loaded with
+- Real-block fixtures are shared at the repo root, `testdata/polygon_<block>.binpb.b64`
+  (96600000 has events for every package but resolution, which uses 96591795). Capture one
+  with `scripts/capture_fixture.sh <block>`; load it with
   `polymarket_substreams_common::load_block_b64` (the `fixtures` feature, enabled from each
-  package's `[dev-dependencies]` only, so base64 never reaches the wasm build).
+  package's `[dev-dependencies]` only, so base64 never reaches the wasm build). Each package's
+  `fixture_tests` asserts the same counts as its `tests/assertions.yaml`.
+- `scripts/run_test_files.sh` runs every `tests/assertions.yaml` against the chain (needs
+  `make build-all`, `substreams auth`, jq); run it before each release. It checks the
+  assertions itself with jq because `substreams run --test-file` (v1.26) never fails a run
+  and reports only in the TUI.
 
 ## Performance checks
 

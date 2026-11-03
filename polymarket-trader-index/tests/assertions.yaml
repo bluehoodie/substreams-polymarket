@@ -1,0 +1,8 @@
+# `substreams run --test-file` assertions on block 96600000, the same block as the
+# Rust fixture testdata/polygon_96600000.binpb.b64. Run: scripts/run_test_files.sh.
+# Paths must yield a string (hence `| tostring`): the CLI runner skips other results.
+tests:
+  - module: map_user_keys
+    block: 96600000
+    path: '.keys | length | tostring'
+    expect: "49"
