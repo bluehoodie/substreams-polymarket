@@ -332,6 +332,14 @@ pub struct TradeView<'a> {
     pub tx: ::buffa::MessageFieldView<
         super::super::__buffa::view::TransactionContextView<'a>,
     >,
+    /// True for the fills that make up market volume, so each match counts once per
+    /// token: the taker's own fill, plus any maker fill on a different token than the
+    /// taker's (a mint or merge match, where the maker trades the complement), plus
+    /// fills with no taker order in the transaction (direct fillOrder). False for maker
+    /// fills on the taker's token, which the taker fill already covers.
+    ///
+    /// Field 13: `is_volume`
+    pub is_volume: bool,
 }
 impl<'a> ::buffa::MessageView<'a> for TradeView<'a> {
     type Owned = super::super::Trade;
@@ -461,6 +469,13 @@ impl<'a> ::buffa::MessageView<'a> for TradeView<'a> {
                     }
                 }
             }
+            13u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.is_volume = ::buffa::types::decode_bool(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -501,6 +516,7 @@ impl<'a> ::buffa::MessageView<'a> for TradeView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            is_volume: self.is_volume,
             ..::core::default::Default::default()
         })
     }
@@ -552,6 +568,9 @@ impl<'a> ::buffa::ViewEncode<'a> for TradeView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if self.is_volume {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -602,6 +621,9 @@ impl<'a> ::buffa::ViewEncode<'a> for TradeView<'a> {
                 buf,
             );
             self.tx.write_to(__cache, buf);
+        }
+        if self.is_volume {
+            ::buffa::types::put_bool_field(13u32, self.is_volume, buf);
         }
     }
 }
@@ -775,6 +797,17 @@ impl TradeOwnedView {
         super::super::__buffa::view::TransactionContextView<'_>,
     > {
         &self.0.reborrow().tx
+    }
+    /// True for the fills that make up market volume, so each match counts once per
+    /// token: the taker's own fill, plus any maker fill on a different token than the
+    /// taker's (a mint or merge match, where the maker trades the complement), plus
+    /// fills with no taker order in the transaction (direct fillOrder). False for maker
+    /// fills on the taker's token, which the taker fill already covers.
+    ///
+    /// Field 13: `is_volume`
+    #[must_use]
+    pub fn is_volume(&self) -> bool {
+        self.0.reborrow().is_volume
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<TradeView<'static>>> for TradeOwnedView {
@@ -1027,4 +1060,739 @@ for TradesOwnedView {
 impl ::buffa::HasMessageView for super::super::Trades {
     type View<'a> = TradesView<'a>;
     type ViewHandle = TradesOwnedView;
+}
+/// Running summary of one outcome token, emitted for every token traded in a block.
+/// Cumulative fields cover all blocks up to and including this one. Volume fields
+/// sum `is_volume` trades; `fees` sums every fill.
+#[derive(Clone, Debug, Default)]
+pub struct TokenStatsView<'a> {
+    /// Field 1: `token_id`
+    pub token_id: &'a str,
+    /// Cumulative counts of is_volume trades, and of those, BUY and SELL orders.
+    ///
+    /// Field 2: `trades`
+    pub trades: u64,
+    /// Field 3: `buys`
+    pub buys: u64,
+    /// Field 4: `sells`
+    pub sells: u64,
+    /// Cumulative collateral and share volume (raw 6-decimal integers).
+    ///
+    /// Field 5: `volume_collateral`
+    pub volume_collateral: &'a str,
+    /// Field 6: `volume_shares`
+    pub volume_shares: &'a str,
+    /// Cumulative fees charged on fills of this token.
+    ///
+    /// Field 7: `fees`
+    pub fees: &'a str,
+    /// Price of the latest is_volume trade (6 decimals). Not a mid price: chain data
+    /// has no book.
+    ///
+    /// Field 8: `last_price`
+    pub last_price: &'a str,
+    /// Volume-weighted average price of this block's is_volume trades; "" if none.
+    ///
+    /// Field 9: `block_vwap`
+    pub block_vwap: &'a str,
+    /// Field 10: `block_volume_collateral`
+    pub block_volume_collateral: &'a str,
+    /// Field 11: `block_volume_shares`
+    pub block_volume_shares: &'a str,
+    /// Field 12: `last_trade_block`
+    pub last_trade_block: u64,
+    /// Field 13: `last_trade_timestamp`
+    pub last_trade_timestamp: u64,
+}
+impl<'a> ::buffa::MessageView<'a> for TokenStatsView<'a> {
+    type Owned = super::super::TokenStats;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        let __elem = ::core::cell::Cell::new(::buffa::DEFAULT_ELEMENT_MEMORY_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit)
+                .with_element_memory(&__elem),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    #[inline]
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        _before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.token_id = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.trades = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.buys = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.sells = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.volume_collateral = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.volume_shares = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.fees = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.last_price = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.block_vwap = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            10u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.block_volume_collateral = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            11u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.block_volume_shares = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.last_trade_block = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            13u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.last_trade_timestamp = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::TokenStats, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::TokenStats, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::TokenStats {
+            token_id: self.token_id.to_string(),
+            trades: self.trades,
+            buys: self.buys,
+            sells: self.sells,
+            volume_collateral: self.volume_collateral.to_string(),
+            volume_shares: self.volume_shares.to_string(),
+            fees: self.fees.to_string(),
+            last_price: self.last_price.to_string(),
+            block_vwap: self.block_vwap.to_string(),
+            block_volume_collateral: self.block_volume_collateral.to_string(),
+            block_volume_shares: self.block_volume_shares.to_string(),
+            last_trade_block: self.last_trade_block,
+            last_trade_timestamp: self.last_trade_timestamp,
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for TokenStatsView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.token_id.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.token_id) as u64;
+        }
+        if self.trades != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.trades) as u64;
+        }
+        if self.buys != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.buys) as u64;
+        }
+        if self.sells != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.sells) as u64;
+        }
+        if !self.volume_collateral.is_empty() {
+            size
+                += 1u64
+                    + ::buffa::types::string_encoded_len(&self.volume_collateral) as u64;
+        }
+        if !self.volume_shares.is_empty() {
+            size
+                += 1u64 + ::buffa::types::string_encoded_len(&self.volume_shares) as u64;
+        }
+        if !self.fees.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.fees) as u64;
+        }
+        if !self.last_price.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.last_price) as u64;
+        }
+        if !self.block_vwap.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.block_vwap) as u64;
+        }
+        if !self.block_volume_collateral.is_empty() {
+            size
+                += 1u64
+                    + ::buffa::types::string_encoded_len(&self.block_volume_collateral)
+                        as u64;
+        }
+        if !self.block_volume_shares.is_empty() {
+            size
+                += 1u64
+                    + ::buffa::types::string_encoded_len(&self.block_volume_shares)
+                        as u64;
+        }
+        if self.last_trade_block != 0u64 {
+            size
+                += 1u64
+                    + ::buffa::types::uint64_encoded_len(self.last_trade_block) as u64;
+        }
+        if self.last_trade_timestamp != 0u64 {
+            size
+                += 1u64
+                    + ::buffa::types::uint64_encoded_len(self.last_trade_timestamp)
+                        as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.token_id.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.token_id, buf);
+        }
+        if self.trades != 0u64 {
+            ::buffa::types::put_uint64_field(2u32, self.trades, buf);
+        }
+        if self.buys != 0u64 {
+            ::buffa::types::put_uint64_field(3u32, self.buys, buf);
+        }
+        if self.sells != 0u64 {
+            ::buffa::types::put_uint64_field(4u32, self.sells, buf);
+        }
+        if !self.volume_collateral.is_empty() {
+            ::buffa::types::put_string_field(5u32, &self.volume_collateral, buf);
+        }
+        if !self.volume_shares.is_empty() {
+            ::buffa::types::put_string_field(6u32, &self.volume_shares, buf);
+        }
+        if !self.fees.is_empty() {
+            ::buffa::types::put_string_field(7u32, &self.fees, buf);
+        }
+        if !self.last_price.is_empty() {
+            ::buffa::types::put_string_field(8u32, &self.last_price, buf);
+        }
+        if !self.block_vwap.is_empty() {
+            ::buffa::types::put_string_field(9u32, &self.block_vwap, buf);
+        }
+        if !self.block_volume_collateral.is_empty() {
+            ::buffa::types::put_string_field(10u32, &self.block_volume_collateral, buf);
+        }
+        if !self.block_volume_shares.is_empty() {
+            ::buffa::types::put_string_field(11u32, &self.block_volume_shares, buf);
+        }
+        if self.last_trade_block != 0u64 {
+            ::buffa::types::put_uint64_field(12u32, self.last_trade_block, buf);
+        }
+        if self.last_trade_timestamp != 0u64 {
+            ::buffa::types::put_uint64_field(13u32, self.last_trade_timestamp, buf);
+        }
+    }
+}
+impl<'a> ::buffa::MessageName for TokenStatsView<'a> {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "TokenStats";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.TokenStats";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.TokenStats";
+}
+::buffa::impl_default_view_instance!(TokenStatsView);
+::buffa::impl_view_reborrow!(TokenStatsView);
+/** Self-contained, `'static` owned view of a `TokenStats` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`TokenStatsView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`TokenStatsView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct TokenStatsOwnedView(::buffa::OwnedView<TokenStatsView<'static>>);
+impl TokenStatsOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            TokenStatsOwnedView(::buffa::OwnedView::decode(bytes)?),
+        )
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            TokenStatsOwnedView(::buffa::OwnedView::decode_with_options(bytes, opts)?),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError::MessageTooLarge`] if the
+    /// message's encoded size exceeds the 2 GiB protobuf limit, or
+    /// another [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::TokenStats,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            TokenStatsOwnedView(::buffa::OwnedView::from_owned(msg)?),
+        )
+    }
+    /// Borrow the full [`TokenStatsView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &TokenStatsView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// Infallible: this type's constructors wire-decode their
+    /// buffer, and a view produced by wire decoding always
+    /// converts. Delegates to [`::buffa::OwnedView::to_owned_message`],
+    /// whose contract also governs handles converted from a raw
+    /// [`::buffa::OwnedView`].
+    #[must_use]
+    pub fn to_owned_message(&self) -> super::super::TokenStats {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// Field 1: `token_id`
+    #[must_use]
+    pub fn token_id(&self) -> &'_ str {
+        self.0.reborrow().token_id
+    }
+    /// Cumulative counts of is_volume trades, and of those, BUY and SELL orders.
+    ///
+    /// Field 2: `trades`
+    #[must_use]
+    pub fn trades(&self) -> u64 {
+        self.0.reborrow().trades
+    }
+    /// Field 3: `buys`
+    #[must_use]
+    pub fn buys(&self) -> u64 {
+        self.0.reborrow().buys
+    }
+    /// Field 4: `sells`
+    #[must_use]
+    pub fn sells(&self) -> u64 {
+        self.0.reborrow().sells
+    }
+    /// Cumulative collateral and share volume (raw 6-decimal integers).
+    ///
+    /// Field 5: `volume_collateral`
+    #[must_use]
+    pub fn volume_collateral(&self) -> &'_ str {
+        self.0.reborrow().volume_collateral
+    }
+    /// Field 6: `volume_shares`
+    #[must_use]
+    pub fn volume_shares(&self) -> &'_ str {
+        self.0.reborrow().volume_shares
+    }
+    /// Cumulative fees charged on fills of this token.
+    ///
+    /// Field 7: `fees`
+    #[must_use]
+    pub fn fees(&self) -> &'_ str {
+        self.0.reborrow().fees
+    }
+    /// Price of the latest is_volume trade (6 decimals). Not a mid price: chain data
+    /// has no book.
+    ///
+    /// Field 8: `last_price`
+    #[must_use]
+    pub fn last_price(&self) -> &'_ str {
+        self.0.reborrow().last_price
+    }
+    /// Volume-weighted average price of this block's is_volume trades; "" if none.
+    ///
+    /// Field 9: `block_vwap`
+    #[must_use]
+    pub fn block_vwap(&self) -> &'_ str {
+        self.0.reborrow().block_vwap
+    }
+    /// Field 10: `block_volume_collateral`
+    #[must_use]
+    pub fn block_volume_collateral(&self) -> &'_ str {
+        self.0.reborrow().block_volume_collateral
+    }
+    /// Field 11: `block_volume_shares`
+    #[must_use]
+    pub fn block_volume_shares(&self) -> &'_ str {
+        self.0.reborrow().block_volume_shares
+    }
+    /// Field 12: `last_trade_block`
+    #[must_use]
+    pub fn last_trade_block(&self) -> u64 {
+        self.0.reborrow().last_trade_block
+    }
+    /// Field 13: `last_trade_timestamp`
+    #[must_use]
+    pub fn last_trade_timestamp(&self) -> u64 {
+        self.0.reborrow().last_trade_timestamp
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<TokenStatsView<'static>>>
+for TokenStatsOwnedView {
+    fn from(inner: ::buffa::OwnedView<TokenStatsView<'static>>) -> Self {
+        TokenStatsOwnedView(inner)
+    }
+}
+impl ::core::convert::From<TokenStatsOwnedView>
+for ::buffa::OwnedView<TokenStatsView<'static>> {
+    fn from(wrapper: TokenStatsOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<TokenStatsView<'static>>>
+for TokenStatsOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<TokenStatsView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::TokenStats {
+    type View<'a> = TokenStatsView<'a>;
+    type ViewHandle = TokenStatsOwnedView;
+}
+#[derive(Clone, Debug, Default)]
+pub struct MarketStatsView<'a> {
+    /// Field 1: `tokens`
+    pub tokens: ::buffa::RepeatedView<
+        'a,
+        super::super::__buffa::view::TokenStatsView<'a>,
+    >,
+}
+impl<'a> ::buffa::MessageView<'a> for MarketStatsView<'a> {
+    type Owned = super::super::MarketStats;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        let __elem = ::core::cell::Cell::new(::buffa::DEFAULT_ELEMENT_MEMORY_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit)
+                .with_element_memory(&__elem),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    #[inline]
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        _before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                ctx.register_element_memory(
+                    ::core::mem::size_of::<super::super::__buffa::view::TokenStatsView>(),
+                )?;
+                view.tokens
+                    .push(
+                        <super::super::__buffa::view::TokenStatsView as ::buffa::MessageView>::decode_view_ctx(
+                            sub,
+                            __sub_ctx,
+                        )?,
+                    );
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::MarketStats, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::MarketStats, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::MarketStats {
+            tokens: self
+                .tokens
+                .iter()
+                .map(|v| v.to_owned_from_source(__buffa_src))
+                .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for MarketStatsView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        for v in &self.tokens {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        for v in &self.tokens {
+            ::buffa::types::put_len_delimited_header(
+                1u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
+        }
+    }
+}
+impl<'a> ::buffa::MessageName for MarketStatsView<'a> {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "MarketStats";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.MarketStats";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.MarketStats";
+}
+::buffa::impl_default_view_instance!(MarketStatsView);
+::buffa::impl_view_reborrow!(MarketStatsView);
+/** Self-contained, `'static` owned view of a `MarketStats` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`MarketStatsView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`MarketStatsView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct MarketStatsOwnedView(::buffa::OwnedView<MarketStatsView<'static>>);
+impl MarketStatsOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            MarketStatsOwnedView(::buffa::OwnedView::decode(bytes)?),
+        )
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            MarketStatsOwnedView(::buffa::OwnedView::decode_with_options(bytes, opts)?),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError::MessageTooLarge`] if the
+    /// message's encoded size exceeds the 2 GiB protobuf limit, or
+    /// another [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::MarketStats,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            MarketStatsOwnedView(::buffa::OwnedView::from_owned(msg)?),
+        )
+    }
+    /// Borrow the full [`MarketStatsView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &MarketStatsView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// Infallible: this type's constructors wire-decode their
+    /// buffer, and a view produced by wire decoding always
+    /// converts. Delegates to [`::buffa::OwnedView::to_owned_message`],
+    /// whose contract also governs handles converted from a raw
+    /// [`::buffa::OwnedView`].
+    #[must_use]
+    pub fn to_owned_message(&self) -> super::super::MarketStats {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// Field 1: `tokens`
+    #[must_use]
+    pub fn tokens(
+        &self,
+    ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::TokenStatsView<'_>> {
+        &self.0.reborrow().tokens
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<MarketStatsView<'static>>>
+for MarketStatsOwnedView {
+    fn from(inner: ::buffa::OwnedView<MarketStatsView<'static>>) -> Self {
+        MarketStatsOwnedView(inner)
+    }
+}
+impl ::core::convert::From<MarketStatsOwnedView>
+for ::buffa::OwnedView<MarketStatsView<'static>> {
+    fn from(wrapper: MarketStatsOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<MarketStatsView<'static>>>
+for MarketStatsOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<MarketStatsView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::MarketStats {
+    type View<'a> = MarketStatsView<'a>;
+    type ViewHandle = MarketStatsOwnedView;
 }

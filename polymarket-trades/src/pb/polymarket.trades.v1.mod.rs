@@ -44,3 +44,15 @@ pub use self::__buffa::view::TradesView;
 pub use self::__buffa::view::TradesOwnedView;
 #[doc(inline)]
 pub use self::__buffa::lazy_view::TradesLazyView;
+#[doc(inline)]
+pub use self::__buffa::view::TokenStatsView;
+#[doc(inline)]
+pub use self::__buffa::view::TokenStatsOwnedView;
+#[doc(inline)]
+pub use self::__buffa::lazy_view::TokenStatsLazyView;
+#[doc(inline)]
+pub use self::__buffa::view::MarketStatsView;
+#[doc(inline)]
+pub use self::__buffa::view::MarketStatsOwnedView;
+#[doc(inline)]
+pub use self::__buffa::lazy_view::MarketStatsLazyView;

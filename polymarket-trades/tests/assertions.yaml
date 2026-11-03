@@ -22,3 +22,7 @@ tests:
     block: 96680009
     path: '[.trades[] | select(.exchange == "exchange_v3" and .isMatch)][0].collateral'
     expect: "1000000"
+  - module: map_trades
+    block: 96600000
+    path: '[.trades[] | select(.isVolume)] | length | tostring'
+    expect: "43"

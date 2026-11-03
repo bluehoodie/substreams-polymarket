@@ -40,3 +40,38 @@ modules:
       and ExchangeV3, in block order: token, side, shares, fee-aware collateral and
       price, maker, taker, order hash, exchange, and is_match (the taker order's
       own fill, one per match).
+
+  - name: store_token_totals
+    kind: store
+    initialBlock: 84902353
+    updatePolicy: add
+    valueType: bigint
+    inputs:
+      - map: map_trades
+    doc: |
+      Running totals per outcome token, keyed `<token_id>:<field>`: trades, buys,
+      sells, volume_collateral and volume_shares over is_volume trades (each match
+      once per token), and fees over every fill.
+
+  - name: store_last_price
+    kind: store
+    initialBlock: 84902353
+    updatePolicy: set
+    valueType: string
+    inputs:
+      - map: map_trades
+    doc: |
+      Price of the latest is_volume trade per token, keyed by token id.
+
+  - name: map_market_stats
+    kind: map
+    initialBlock: 84902353
+    inputs:
+      - map: map_trades
+      - store: store_token_totals
+      - store: store_last_price
+    output:
+      type: proto:polymarket.trades.v1.MarketStats
+    doc: |
+      For every token traded in the block: cumulative trades, buys, sells, volume
+      and fees, last price, and the block's VWAP and volume.

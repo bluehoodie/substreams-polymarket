@@ -38,9 +38,44 @@ message Trade {
   // exactly one per match, so summing is_match trades counts each match once.
   bool is_match = 11;
   TransactionContext tx = 12;
+  // True for the fills that make up market volume, so each match counts once per
+  // token: the taker's own fill, plus any maker fill on a different token than the
+  // taker's (a mint or merge match, where the maker trades the complement), plus
+  // fills with no taker order in the transaction (direct fillOrder). False for maker
+  // fills on the taker's token, which the taker fill already covers.
+  bool is_volume = 13;
 }
 
 message Trades {
   // In block order (tx.log_index).
   repeated Trade trades = 1;
+}
+
+// Running summary of one outcome token, emitted for every token traded in a block.
+// Cumulative fields cover all blocks up to and including this one. Volume fields
+// sum `is_volume` trades; `fees` sums every fill.
+message TokenStats {
+  string token_id = 1;
+  // Cumulative counts of is_volume trades, and of those, BUY and SELL orders.
+  uint64 trades = 2;
+  uint64 buys = 3;
+  uint64 sells = 4;
+  // Cumulative collateral and share volume (raw 6-decimal integers).
+  string volume_collateral = 5;
+  string volume_shares = 6;
+  // Cumulative fees charged on fills of this token.
+  string fees = 7;
+  // Price of the latest is_volume trade (6 decimals). Not a mid price: chain data
+  // has no book.
+  string last_price = 8;
+  // Volume-weighted average price of this block's is_volume trades; "" if none.
+  string block_vwap = 9;
+  string block_volume_collateral = 10;
+  string block_volume_shares = 11;
+  uint64 last_trade_block = 12;
+  uint64 last_trade_timestamp = 13;
+}
+
+message MarketStats {
+  repeated TokenStats tokens = 1;
 }

@@ -27,6 +27,12 @@ hash the same, so their cached outputs are reused.
 | Module | Description | Output Type |
 |--------|-------------|-------------|
 | `map_trades` | One trade per `OrderFilled`, in block order | `proto:polymarket.trades.v1.Trades` |
+| `store_token_totals` | Running per-token totals (`<token_id>:<field>`): trades, buys, sells, volume_collateral, volume_shares, fees | store (add, bigint) |
+| `store_last_price` | Last traded price per token | store (set, string) |
+| `map_market_stats` | One `TokenStats` per token traded in the block: running totals, last price, block VWAP and volume | `proto:polymarket.trades.v1.MarketStats` |
+
+The stores start at block 84902353, so `map_market_stats` needs that backfill before
+its totals are complete.
 
 ## Trade fields
 
@@ -39,6 +45,12 @@ hash the same, so their cached outputs are reused.
 - `is_match`: true for the taker order's own fill (its `taker` is the exchange itself).
   Every match has exactly one, so summing `is_match` trades counts each match once.
   Maker fills of the same match carry the complementary view.
+- `is_volume`: true for the fills that count toward per-token volume, so each match
+  is counted once per token. That is the taker fill, plus any maker fill on a
+  different token than the taker's (a complementary match that mints or merges, so
+  the taker fill doesn't cover that token). Maker fills on the taker's own token are
+  the other side of the taker fill and are not volume. Market stats count trades and
+  volume from `is_volume` fills only, and fees from every fill.
 - `token_id`: for `exchange_v3`, a Protocol V2 PositionManager position id, not a
   Conditional Tokens ERC1155 id.
 

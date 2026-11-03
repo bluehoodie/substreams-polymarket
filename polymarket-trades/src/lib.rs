@@ -3,6 +3,7 @@
 
 #[allow(dead_code, clippy::all)]
 pub mod pb;
+mod stats;
 
 use std::str::FromStr;
 
@@ -25,7 +26,7 @@ const NEG_RISK_CTF_FORMATTED: &str = "0xe2222d279d744050d28e00520010520000310f59
 const EXCHANGE_V3_FORMATTED: &str = "0xe3333700ca9d93003f00f0f71f8515005f6c00aa";
 
 /// Order side, as emitted in `OrderFilled.side`.
-const SIDE_BUY: u32 = 0;
+pub(crate) const SIDE_BUY: u32 = 0;
 
 /// 10^6: prices are collateral per share with 6 decimals.
 const PRICE_SCALE: u64 = 1_000_000;
@@ -85,7 +86,51 @@ pub fn map_trades(
 
     // Both inputs are in block order; merge them by the block-wide log index.
     trades.sort_by_key(|t| t.tx.as_option().map_or(0, |tx| tx.log_index));
+    mark_volume(&mut trades);
     Ok(proto::Trades { trades })
+}
+
+/// Sets `is_volume`, so that summing `is_volume` trades counts each match once per
+/// token.
+///
+/// A match settles in one transaction: the exchange emits each maker order's
+/// `OrderFilled`, then the taker order's own fill (`is_match`). Maker fills on the
+/// taker's token are the other side of the taker fill, so only the taker fill counts.
+/// Maker fills on another token (the complement, in a mint or merge match) are trades
+/// of their own token and count. Fills not followed by a taker fill in the same
+/// transaction and exchange (direct `fillOrder`) count too. `trades` must be in block
+/// order.
+fn mark_volume(trades: &mut [proto::Trade]) {
+    let mut pending: Vec<usize> = Vec::new();
+    for i in 0..trades.len() {
+        if let Some(&first) = pending.first() {
+            if !same_settlement(&trades[first], &trades[i]) {
+                // The pending fills' transaction ended without a taker fill.
+                for &p in &pending {
+                    trades[p].is_volume = true;
+                }
+                pending.clear();
+            }
+        }
+        if trades[i].is_match {
+            trades[i].is_volume = true;
+            for &p in &pending {
+                trades[p].is_volume = trades[p].token_id != trades[i].token_id;
+            }
+            pending.clear();
+        } else {
+            pending.push(i);
+        }
+    }
+    for p in pending {
+        trades[p].is_volume = true;
+    }
+}
+
+/// Whether two fills come from the same transaction on the same exchange.
+fn same_settlement(a: &proto::Trade, b: &proto::Trade) -> bool {
+    a.exchange == b.exchange
+        && a.tx.as_option().map(|t| &t.tx_hash) == b.tx.as_option().map(|t| &t.tx_hash)
 }
 
 /// The `OrderFilled` fields both exchange packages emit, under one type.
@@ -122,6 +167,8 @@ fn to_trade(fill: Fill, exchange: String) -> Option<proto::Trade> {
         exchange,
         is_match,
         tx: fill.tx.into(),
+        // Set by `mark_volume` once the whole block is in order.
+        is_volume: false,
     })
 }
 
@@ -169,7 +216,7 @@ fn trade_amounts(
 
 /// `collateral / shares` rounded down to 6 decimals, e.g. "0.537000"; "0" when
 /// there are no shares.
-fn format_price(collateral: &BigInt, shares: &BigInt) -> String {
+pub(crate) fn format_price(collateral: &BigInt, shares: &BigInt) -> String {
     if shares.is_zero() {
         return "0".to_owned();
     }
@@ -269,6 +316,69 @@ mod tests {
         )
         .expect("trade");
         assert!(!t.is_match);
+    }
+
+    fn tape(fills: &[(&str, &str, bool)]) -> Vec<proto::Trade> {
+        // (tx, token, is_match) per fill, all on one exchange.
+        fills
+            .iter()
+            .enumerate()
+            .map(|(i, (tx, token, is_match))| proto::Trade {
+                token_id: (*token).to_owned(),
+                exchange: "ctf_v2".to_owned(),
+                is_match: *is_match,
+                tx: Some(proto::TransactionContext {
+                    tx_hash: (*tx).to_owned(),
+                    log_index: i as u64,
+                    ..Default::default()
+                })
+                .into(),
+                ..Default::default()
+            })
+            .collect()
+    }
+
+    fn volume_flags(fills: &[(&str, &str, bool)]) -> Vec<bool> {
+        let mut t = tape(fills);
+        mark_volume(&mut t);
+        t.iter().map(|t| t.is_volume).collect()
+    }
+
+    #[test]
+    fn volume_counts_taker_fill_for_same_token_match() {
+        // Two makers sell X to a taker buying X: only the taker fill is volume.
+        assert_eq!(
+            volume_flags(&[("t1", "X", false), ("t1", "X", false), ("t1", "X", true)]),
+            [false, false, true]
+        );
+    }
+
+    #[test]
+    fn volume_counts_complement_maker_fills_in_mint_match() {
+        // Taker buys X; one maker sells X, one buys the complement X' (mint).
+        assert_eq!(
+            volume_flags(&[("t1", "X'", false), ("t1", "X", false), ("t1", "X", true)]),
+            [true, false, true]
+        );
+    }
+
+    #[test]
+    fn volume_counts_fills_without_taker_and_splits_by_tx() {
+        // t1: a direct fillOrder (no taker fill). t2: a normal match.
+        assert_eq!(
+            volume_flags(&[("t1", "X", false), ("t2", "X", false), ("t2", "X", true)]),
+            [true, false, true]
+        );
+        // Two matches in one transaction.
+        assert_eq!(
+            volume_flags(&[
+                ("t1", "X", false),
+                ("t1", "X", true),
+                ("t1", "Y", false),
+                ("t1", "Y", true)
+            ]),
+            [false, true, false, true]
+        );
     }
 
     #[test]
@@ -433,10 +543,44 @@ mod fixture_tests {
         assert_eq!(v3_match.price, "0.009413");
     }
 
+    /// Market stats over block 96600000, with in-memory stores standing in for
+    /// `store_token_totals` / `store_last_price`.
+    #[test]
+    fn map_market_stats_real_block_96600000() {
+        let inp = inputs(96600000);
+        let trades = substreams::testing::map!(map_trades(inp.exchange, inp.neg_risk))
+            .expect("handler must not err");
+        let stats = crate::stats::tests::stats_after(&[&trades]);
+        let mut tokens: Vec<&str> = trades.trades.iter().map(|t| t.token_id.as_str()).collect();
+        tokens.sort_unstable();
+        tokens.dedup();
+        // One entry per token traded in the block.
+        assert_eq!(stats.tokens.len(), tokens.len());
+        assert_eq!(stats.tokens.len(), TOKENS_96600000);
+        for s in &stats.tokens {
+            let volume: BigInt = trades
+                .trades
+                .iter()
+                .filter(|t| t.token_id == s.token_id && t.is_volume)
+                .fold(BigInt::zero(), |acc, t| {
+                    acc + BigInt::from_str(&t.collateral).expect("amount")
+                });
+            assert_eq!(s.volume_collateral, volume.to_string(), "{}", s.token_id);
+            assert_eq!(s.block_volume_collateral, s.volume_collateral);
+            assert_eq!(s.last_trade_block, 96600000);
+        }
+        // Every match counted once: is_volume trades are the 15 taker fills plus the
+        // maker fills on a complement token.
+        let volume_fills = trades.trades.iter().filter(|t| t.is_volume).count();
+        assert_eq!(volume_fills, VOLUME_FILLS_96600000);
+    }
+
     /// (exchange, maker, price) of the first trade in block 96600000.
     const FIRST_96600000: (&str, &str, &str) = (
         "ctf_v2",
         "0x45f82472a88f759f8a98174d3cdd3db4a9ee6d79",
         "0.400000",
     );
+    const TOKENS_96600000: usize = 21;
+    const VOLUME_FILLS_96600000: usize = 43;
 }
