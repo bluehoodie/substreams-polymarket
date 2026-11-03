@@ -12,9 +12,11 @@ events on Polygon, plus `polymarket-substreams-common` — a plain shared helper
 
 - Build one package: `cd polymarket-<name> && substreams build` (runs `buf generate` then a cargo wasm release build).
 - Build all: `make build-all`.
-- Test: `cargo test` at the repo root. **CI does not run tests** — run them locally.
-- Lint: `cargo clippy --workspace -- -D warnings` (clippy is installed via `rust-toolchain.toml` but **not run in CI**; the pre-commit hook runs it).
-- CI (`.github/workflows/release.yml`) triggers **only on `v*` tag push** — it builds + publishes. There is no PR/branch CI.
+- Test: `cargo test` at the repo root. Tests are expensive, so CI runs them **only on release** (`v*` tag push) — run them locally before pushing.
+- Lint: `cargo clippy --workspace --all-targets -- -D warnings` (also run by the pre-commit hook).
+- CI is split in two:
+  - `.github/workflows/ci.yml` — on every push/PR, runs **clippy only**.
+  - `.github/workflows/release.yml` — **only on `v*` tag push**: runs `cargo test --workspace`, and only if it passes builds, creates the GitHub Release and publishes. Don't add `cargo test` back to `ci.yml`.
 
 ## Generated code — do not hand-edit
 

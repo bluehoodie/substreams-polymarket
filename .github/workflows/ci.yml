@@ -1,12 +1,15 @@
 name: CI
 
+# Cheap per-commit gate: clippy only. The workspace `cargo test` run is expensive, so it
+# lives in release.yml and runs only when a `v*` release tag is pushed (gating publish).
+
 on:
   push:
   pull_request:
 
 jobs:
   check:
-    name: clippy, test
+    name: clippy
     runs-on: ubuntu-latest
 
     steps:
@@ -30,10 +33,8 @@ jobs:
 
       # No `cargo fmt --all -- --check` gate: build.rs regenerates src/abi/ (and buf
       # regenerates src/pb/) as non-rustfmt-formatted code on every build, so a
-      # workspace-wide fmt check can never stay green. Clippy + tests are the gates.
+      # workspace-wide fmt check can never stay green. Clippy is the per-commit gate;
+      # tests run in release.yml on tag push.
 
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
-
-      - name: Test
-        run: cargo test --workspace
