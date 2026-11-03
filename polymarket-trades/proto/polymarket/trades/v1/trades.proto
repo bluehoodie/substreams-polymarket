@@ -109,9 +109,12 @@ message Candles {
   repeated Candle candles = 1;
 }
 
-// Fill progress of one signed order, emitted for every order filled in a block.
-// Cumulative fields cover all fills up to and including this block. Chain data has
-// no full order size, so this is what was filled, not what remains.
+// Fills of one signed order in one block, emitted for every order filled in the
+// block. No store keeps running totals (one key set per order ever filled would grow
+// without bound), so a sink merges the fragments of the same order_hash: shares,
+// collateral, fees and fills summed, first fill block = min(block_number), last =
+// max. Chain data has no full order size, so this is what was filled, not what
+// remains.
 message OrderFill {
   // 0x-prefixed hex.
   string order_hash = 1;
@@ -121,15 +124,14 @@ message OrderFill {
   // 0 = BUY, 1 = SELL.
   uint32 side = 4;
   string exchange = 5;
-  // Cumulative shares, collateral (fee-aware, as Trade.collateral) and fees filled.
-  string filled_shares = 6;
-  string filled_collateral = 7;
+  // Filled in this block: shares, collateral (fee-aware, as Trade.collateral),
+  // fees, and number of fills.
+  string shares = 6;
+  string collateral = 7;
   string fees = 8;
-  // Cumulative number of fills, and of those, fills in this block.
   uint64 fills = 9;
-  uint64 block_fills = 10;
-  uint64 first_fill_block = 11;
-  uint64 last_fill_block = 12;
+  uint64 block_number = 10;
+  uint64 timestamp = 11;
 }
 
 message OrderFills {

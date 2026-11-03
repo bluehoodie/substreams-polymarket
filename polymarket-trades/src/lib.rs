@@ -632,14 +632,15 @@ mod fixture_tests {
         );
     }
 
-    /// Order fills over block 96600000, with in-memory stores: one entry per order
-    /// hash, every fill counted once.
+    /// Order fills over block 96600000: one entry per order hash, every fill
+    /// counted once, amounts equal to the sum of that order's trades.
     #[test]
     fn map_order_fills_real_block_96600000() {
         let inp = inputs(96600000);
         let trades = substreams::testing::map!(map_trades(inp.exchange, inp.neg_risk))
             .expect("handler must not err");
-        let fills = crate::orders::tests::fills_after(&[&trades]);
+        let fills = substreams::testing::map!(crate::orders::map_order_fills(trades.clone()))
+            .expect("handler must not err");
         let mut hashes: Vec<&[u8]> = trades.trades.iter().map(|t| t.order_hash.as_slice()).collect();
         hashes.sort_unstable();
         hashes.dedup();
@@ -648,8 +649,7 @@ mod fixture_tests {
         let n: u64 = fills.orders.iter().map(|o| o.fills).sum();
         assert_eq!(n, trades.trades.len() as u64);
         for o in &fills.orders {
-            assert_eq!(o.fills, o.block_fills);
-            assert_eq!((o.first_fill_block, o.last_fill_block), (96600000, 96600000));
+            assert_eq!(o.block_number, 96600000);
             let shares = trades
                 .trades
                 .iter()
@@ -657,8 +657,9 @@ mod fixture_tests {
                 .fold(BigInt::zero(), |acc, t| {
                     acc + BigInt::from_str(&t.shares).expect("amount")
                 });
-            assert_eq!(o.filled_shares, shares.to_string(), "{}", o.order_hash);
+            assert_eq!(o.shares, shares.to_string(), "{}", o.order_hash);
         }
+        assert_eq!(fills.orders.iter().filter(|o| o.fills > 1).count(), 1);
     }
 
     /// (exchange, maker, price) of the first trade in block 96600000.

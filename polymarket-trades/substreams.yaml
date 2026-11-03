@@ -89,36 +89,14 @@ modules:
       from the lowest (block_number, open_log_index), close from the highest,
       high max, low min, volumes and trades summed.
 
-  - name: store_order_filled
-    kind: store
-    initialBlock: 84902353
-    updatePolicy: add
-    valueType: bigint
-    inputs:
-      - map: map_trades
-    doc: |
-      Cumulative fill progress per signed order, keyed `<order_hash>:<field>`:
-      shares, collateral, fees and fills. One key set per order ever filled.
-
-  - name: store_order_first_seen
-    kind: store
-    initialBlock: 84902353
-    updatePolicy: set_if_not_exists
-    valueType: int64
-    inputs:
-      - map: map_trades
-    doc: |
-      Block of each order's first fill, keyed by order hash.
-
   - name: map_order_fills
     kind: map
     initialBlock: 84902353
     inputs:
       - map: map_trades
-      - store: store_order_filled
-      - store: store_order_first_seen
     output:
       type: proto:polymarket.trades.v1.OrderFills
     doc: |
-      For every order filled in the block: owner, token, side, exchange, cumulative
-      filled shares, collateral and fees, fill count, and first and last fill block.
+      For every order filled in the block: owner, token, side, exchange, and that
+      block's filled shares, collateral, fees and fill count. No store: a sink
+      keeps each order's running totals by summing fragments per order_hash.

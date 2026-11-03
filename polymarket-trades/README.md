@@ -31,14 +31,10 @@ hash the same, so their cached outputs are reused.
 | `store_last_price` | Last traded price per token | store (set, string) |
 | `map_market_stats` | One `TokenStats` per token traded in the block: running totals, last price, block VWAP and volume | `proto:polymarket.trades.v1.MarketStats` |
 | `map_candles` | 1-minute OHLCV fragment per token from the block's `is_volume` trades | `proto:polymarket.trades.v1.Candles` |
-| `store_order_filled` | Cumulative fill progress per order (`<order_hash>:<field>`): shares, collateral, fees, fills | store (add, bigint) |
-| `store_order_first_seen` | Block of each order's first fill | store (set_if_not_exists, int64) |
-| `map_order_fills` | One `OrderFill` per order filled in the block: owner, token, side, cumulative filled amounts, fill count, first and last fill block | `proto:polymarket.trades.v1.OrderFills` |
+| `map_order_fills` | One `OrderFill` per order filled in the block: owner, token, side, and that block's filled shares, collateral, fees and fill count | `proto:polymarket.trades.v1.OrderFills` |
 
-The stores start at block 84902353, so `map_market_stats` and `map_order_fills` need
-that backfill before their totals are complete. Chain data only has what an order
-filled, not its full size, so `map_order_fills` reports filled amounts, not what
-remains.
+The stores start at block 84902353, so `map_market_stats` needs that backfill before
+its totals are complete.
 
 ## Candles
 
@@ -57,6 +53,16 @@ the fragments of the same `(token_id, bucket_start)` like this:
 
 Larger intervals (5m, 1h, 1d) are rolled up from the 1-minute candles in the sink,
 with the same rule.
+
+## Order fills
+
+`map_order_fills` keeps no store either. A store per order would hold one key set
+for every order ever filled: over blocks 96,590,000–96,600,000 that was 395,523
+orders and about 1.77M keys, while 94.5% of orders finished within one block. Each
+block emits one `OrderFill` per order filled in it, and the sink keeps the running
+total per `order_hash`: `shares`, `collateral`, `fees` and `fills` summed, first fill
+block = min `block_number`, last = max. Chain data has no full order size, so this is
+what was filled, not what remains.
 
 ## Trade fields
 

@@ -2488,9 +2488,12 @@ impl ::buffa::HasMessageView for super::super::Candles {
     type View<'a> = CandlesView<'a>;
     type ViewHandle = CandlesOwnedView;
 }
-/// Fill progress of one signed order, emitted for every order filled in a block.
-/// Cumulative fields cover all fills up to and including this block. Chain data has
-/// no full order size, so this is what was filled, not what remains.
+/// Fills of one signed order in one block, emitted for every order filled in the
+/// block. No store keeps running totals (one key set per order ever filled would grow
+/// without bound), so a sink merges the fragments of the same order_hash: shares,
+/// collateral, fees and fills summed, first fill block = min(block_number), last =
+/// max. Chain data has no full order size, so this is what was filled, not what
+/// remains.
 #[derive(Clone, Debug, Default)]
 pub struct OrderFillView<'a> {
     /// 0x-prefixed hex.
@@ -2509,24 +2512,21 @@ pub struct OrderFillView<'a> {
     pub side: u32,
     /// Field 5: `exchange`
     pub exchange: &'a str,
-    /// Cumulative shares, collateral (fee-aware, as Trade.collateral) and fees filled.
+    /// Filled in this block: shares, collateral (fee-aware, as Trade.collateral),
+    /// fees, and number of fills.
     ///
-    /// Field 6: `filled_shares`
-    pub filled_shares: &'a str,
-    /// Field 7: `filled_collateral`
-    pub filled_collateral: &'a str,
+    /// Field 6: `shares`
+    pub shares: &'a str,
+    /// Field 7: `collateral`
+    pub collateral: &'a str,
     /// Field 8: `fees`
     pub fees: &'a str,
-    /// Cumulative number of fills, and of those, fills in this block.
-    ///
     /// Field 9: `fills`
     pub fills: u64,
-    /// Field 10: `block_fills`
-    pub block_fills: u64,
-    /// Field 11: `first_fill_block`
-    pub first_fill_block: u64,
-    /// Field 12: `last_fill_block`
-    pub last_fill_block: u64,
+    /// Field 10: `block_number`
+    pub block_number: u64,
+    /// Field 11: `timestamp`
+    pub timestamp: u64,
 }
 impl<'a> ::buffa::MessageView<'a> for OrderFillView<'a> {
     type Owned = super::super::OrderFill;
@@ -2598,14 +2598,14 @@ impl<'a> ::buffa::MessageView<'a> for OrderFillView<'a> {
                     tag,
                     ::buffa::encoding::WireType::LengthDelimited,
                 )?;
-                view.filled_shares = ::buffa::types::borrow_str(&mut cur)?;
+                view.shares = ::buffa::types::borrow_str(&mut cur)?;
             }
             7u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
                     ::buffa::encoding::WireType::LengthDelimited,
                 )?;
-                view.filled_collateral = ::buffa::types::borrow_str(&mut cur)?;
+                view.collateral = ::buffa::types::borrow_str(&mut cur)?;
             }
             8u32 => {
                 ::buffa::encoding::check_wire_type(
@@ -2626,21 +2626,14 @@ impl<'a> ::buffa::MessageView<'a> for OrderFillView<'a> {
                     tag,
                     ::buffa::encoding::WireType::Varint,
                 )?;
-                view.block_fills = ::buffa::types::decode_uint64(&mut cur)?;
+                view.block_number = ::buffa::types::decode_uint64(&mut cur)?;
             }
             11u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
                     ::buffa::encoding::WireType::Varint,
                 )?;
-                view.first_fill_block = ::buffa::types::decode_uint64(&mut cur)?;
-            }
-            12u32 => {
-                ::buffa::encoding::check_wire_type(
-                    tag,
-                    ::buffa::encoding::WireType::Varint,
-                )?;
-                view.last_fill_block = ::buffa::types::decode_uint64(&mut cur)?;
+                view.timestamp = ::buffa::types::decode_uint64(&mut cur)?;
             }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
@@ -2667,13 +2660,12 @@ impl<'a> ::buffa::MessageView<'a> for OrderFillView<'a> {
             token_id: self.token_id.to_string(),
             side: self.side,
             exchange: self.exchange.to_string(),
-            filled_shares: self.filled_shares.to_string(),
-            filled_collateral: self.filled_collateral.to_string(),
+            shares: self.shares.to_string(),
+            collateral: self.collateral.to_string(),
             fees: self.fees.to_string(),
             fills: self.fills,
-            block_fills: self.block_fills,
-            first_fill_block: self.first_fill_block,
-            last_fill_block: self.last_fill_block,
+            block_number: self.block_number,
+            timestamp: self.timestamp,
             ..::core::default::Default::default()
         })
     }
@@ -2699,14 +2691,11 @@ impl<'a> ::buffa::ViewEncode<'a> for OrderFillView<'a> {
         if !self.exchange.is_empty() {
             size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
         }
-        if !self.filled_shares.is_empty() {
-            size
-                += 1u64 + ::buffa::types::string_encoded_len(&self.filled_shares) as u64;
+        if !self.shares.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.shares) as u64;
         }
-        if !self.filled_collateral.is_empty() {
-            size
-                += 1u64
-                    + ::buffa::types::string_encoded_len(&self.filled_collateral) as u64;
+        if !self.collateral.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.collateral) as u64;
         }
         if !self.fees.is_empty() {
             size += 1u64 + ::buffa::types::string_encoded_len(&self.fees) as u64;
@@ -2714,18 +2703,11 @@ impl<'a> ::buffa::ViewEncode<'a> for OrderFillView<'a> {
         if self.fills != 0u64 {
             size += 1u64 + ::buffa::types::uint64_encoded_len(self.fills) as u64;
         }
-        if self.block_fills != 0u64 {
-            size += 1u64 + ::buffa::types::uint64_encoded_len(self.block_fills) as u64;
+        if self.block_number != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.block_number) as u64;
         }
-        if self.first_fill_block != 0u64 {
-            size
-                += 1u64
-                    + ::buffa::types::uint64_encoded_len(self.first_fill_block) as u64;
-        }
-        if self.last_fill_block != 0u64 {
-            size
-                += 1u64
-                    + ::buffa::types::uint64_encoded_len(self.last_fill_block) as u64;
+        if self.timestamp != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.timestamp) as u64;
         }
         ::buffa::saturate_size(size)
     }
@@ -2752,11 +2734,11 @@ impl<'a> ::buffa::ViewEncode<'a> for OrderFillView<'a> {
         if !self.exchange.is_empty() {
             ::buffa::types::put_string_field(5u32, &self.exchange, buf);
         }
-        if !self.filled_shares.is_empty() {
-            ::buffa::types::put_string_field(6u32, &self.filled_shares, buf);
+        if !self.shares.is_empty() {
+            ::buffa::types::put_string_field(6u32, &self.shares, buf);
         }
-        if !self.filled_collateral.is_empty() {
-            ::buffa::types::put_string_field(7u32, &self.filled_collateral, buf);
+        if !self.collateral.is_empty() {
+            ::buffa::types::put_string_field(7u32, &self.collateral, buf);
         }
         if !self.fees.is_empty() {
             ::buffa::types::put_string_field(8u32, &self.fees, buf);
@@ -2764,14 +2746,11 @@ impl<'a> ::buffa::ViewEncode<'a> for OrderFillView<'a> {
         if self.fills != 0u64 {
             ::buffa::types::put_uint64_field(9u32, self.fills, buf);
         }
-        if self.block_fills != 0u64 {
-            ::buffa::types::put_uint64_field(10u32, self.block_fills, buf);
+        if self.block_number != 0u64 {
+            ::buffa::types::put_uint64_field(10u32, self.block_number, buf);
         }
-        if self.first_fill_block != 0u64 {
-            ::buffa::types::put_uint64_field(11u32, self.first_fill_block, buf);
-        }
-        if self.last_fill_block != 0u64 {
-            ::buffa::types::put_uint64_field(12u32, self.last_fill_block, buf);
+        if self.timestamp != 0u64 {
+            ::buffa::types::put_uint64_field(11u32, self.timestamp, buf);
         }
     }
 }
@@ -2894,44 +2873,38 @@ impl OrderFillOwnedView {
     pub fn exchange(&self) -> &'_ str {
         self.0.reborrow().exchange
     }
-    /// Cumulative shares, collateral (fee-aware, as Trade.collateral) and fees filled.
+    /// Filled in this block: shares, collateral (fee-aware, as Trade.collateral),
+    /// fees, and number of fills.
     ///
-    /// Field 6: `filled_shares`
+    /// Field 6: `shares`
     #[must_use]
-    pub fn filled_shares(&self) -> &'_ str {
-        self.0.reborrow().filled_shares
+    pub fn shares(&self) -> &'_ str {
+        self.0.reborrow().shares
     }
-    /// Field 7: `filled_collateral`
+    /// Field 7: `collateral`
     #[must_use]
-    pub fn filled_collateral(&self) -> &'_ str {
-        self.0.reborrow().filled_collateral
+    pub fn collateral(&self) -> &'_ str {
+        self.0.reborrow().collateral
     }
     /// Field 8: `fees`
     #[must_use]
     pub fn fees(&self) -> &'_ str {
         self.0.reborrow().fees
     }
-    /// Cumulative number of fills, and of those, fills in this block.
-    ///
     /// Field 9: `fills`
     #[must_use]
     pub fn fills(&self) -> u64 {
         self.0.reborrow().fills
     }
-    /// Field 10: `block_fills`
+    /// Field 10: `block_number`
     #[must_use]
-    pub fn block_fills(&self) -> u64 {
-        self.0.reborrow().block_fills
+    pub fn block_number(&self) -> u64 {
+        self.0.reborrow().block_number
     }
-    /// Field 11: `first_fill_block`
+    /// Field 11: `timestamp`
     #[must_use]
-    pub fn first_fill_block(&self) -> u64 {
-        self.0.reborrow().first_fill_block
-    }
-    /// Field 12: `last_fill_block`
-    #[must_use]
-    pub fn last_fill_block(&self) -> u64 {
-        self.0.reborrow().last_fill_block
+    pub fn timestamp(&self) -> u64 {
+        self.0.reborrow().timestamp
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<OrderFillView<'static>>>

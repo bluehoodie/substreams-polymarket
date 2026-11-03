@@ -1,140 +1,73 @@
-//! Per-order fill progress: cumulative amounts per `order_hash` in stores, and a map
-//! that emits every order filled in the block with its running totals.
+//! Per-order fill progress, without stores: every order filled in a block gets one
+//! `OrderFill` with that block's fills. A sink keeps the running total per
+//! `order_hash` by summing fragments (merge rule on `OrderFill` in the proto). A
+//! store per order would hold one key set for every order ever filled (about 2B
+//! keys from 84902353 at 2026 rates), while 94.5% of orders finish in one block.
 
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
 use substreams::errors::Error;
 use substreams::scalar::BigInt;
-use substreams::store::{
-    StoreAdd, StoreAddBigInt, StoreGet, StoreGetBigInt, StoreGetInt64, StoreNew,
-    StoreSetIfNotExists, StoreSetIfNotExistsInt64,
-};
 
-use polymarket_substreams_common::{bigint_to_u64, format_address};
+use polymarket_substreams_common::format_address;
 
 use crate::pb::polymarket::trades::v1 as proto;
 
-// Fields of `store_order_filled`, keyed `<order_hash>:<field>`.
-const SHARES: &str = "shares";
-const COLLATERAL: &str = "collateral";
-const FEES: &str = "fees";
-const FILLS: &str = "fills";
-
-fn key(order_hash: &str, field: &str) -> String {
-    let mut k = String::with_capacity(order_hash.len() + 1 + field.len());
-    k.push_str(order_hash);
-    k.push(':');
-    k.push_str(field);
-    k
-}
-
-fn tx(trade: &proto::Trade) -> (u64, u64) {
-    trade
-        .tx
-        .as_option()
-        .map_or((0, 0), |tx| (tx.log_index, tx.block_number))
-}
-
-/// The `(field, amount)` additions one fill makes to its order's totals.
-fn fill_additions(trade: &proto::Trade) -> Vec<(&'static str, BigInt)> {
-    let mut out = Vec::with_capacity(4);
-    for (field, value) in [
-        (SHARES, &trade.shares),
-        (COLLATERAL, &trade.collateral),
-        (FEES, &trade.fee),
-    ] {
-        if let Ok(v) = BigInt::from_str(value) {
-            if !v.is_zero() {
-                out.push((field, v));
-            }
-        }
-    }
-    out.push((FILLS, BigInt::one()));
-    out
-}
-
-#[substreams::handlers::store]
-pub fn store_order_filled(trades: proto::Trades, store: StoreAddBigInt) {
-    for trade in &trades.trades {
-        let hash = format_address(&trade.order_hash);
-        let (ord, _) = tx(trade);
-        for (field, amount) in fill_additions(trade) {
-            store.add(ord, key(&hash, field), amount);
-        }
-    }
-}
-
-/// Block of each order's first fill, keyed by order hash.
-#[substreams::handlers::store]
-pub fn store_order_first_seen(trades: proto::Trades, store: StoreSetIfNotExistsInt64) {
-    for trade in &trades.trades {
-        let (ord, block) = tx(trade);
-        store.set_if_not_exists(ord, format_address(&trade.order_hash), &(block as i64));
-    }
-}
-
-/// Read access to the two stores, so `build_order_fills` runs natively in tests.
-trait OrderSource {
-    fn total(&self, order_hash: &str, field: &str) -> BigInt;
-    fn first_seen(&self, order_hash: &str) -> Option<u64>;
-}
-
-struct Stores {
-    filled: StoreGetBigInt,
-    first_seen: StoreGetInt64,
-}
-
-impl OrderSource for Stores {
-    fn total(&self, order_hash: &str, field: &str) -> BigInt {
-        self.filled
-            .get_last(key(order_hash, field))
-            .unwrap_or_else(BigInt::zero)
-    }
-    fn first_seen(&self, order_hash: &str) -> Option<u64> {
-        self.first_seen
-            .get_last(order_hash)
-            .and_then(|b| u64::try_from(b).ok())
-    }
-}
-
 #[substreams::handlers::map]
-pub fn map_order_fills(
-    trades: proto::Trades,
-    filled: StoreGetBigInt,
-    first_seen: StoreGetInt64,
-) -> Result<proto::OrderFills, Error> {
+pub fn map_order_fills(trades: proto::Trades) -> Result<proto::OrderFills, Error> {
     substreams::skip_empty_output();
-    Ok(build_order_fills(&trades, &Stores { filled, first_seen }))
+    Ok(build_order_fills(&trades))
 }
 
-/// One `OrderFill` per order filled in the block, ordered by order hash. The stores
-/// already include this block's writes.
-fn build_order_fills(trades: &proto::Trades, src: &impl OrderSource) -> proto::OrderFills {
-    let mut orders: BTreeMap<String, (&proto::Trade, u64)> = BTreeMap::new();
+struct Agg<'a> {
+    trade: &'a proto::Trade,
+    shares: BigInt,
+    collateral: BigInt,
+    fees: BigInt,
+    fills: u64,
+}
+
+fn amount(value: &str) -> BigInt {
+    BigInt::from_str(value).unwrap_or_else(|_| BigInt::zero())
+}
+
+/// One `OrderFill` per order filled in the block, ordered by order hash.
+fn build_order_fills(trades: &proto::Trades) -> proto::OrderFills {
+    let mut orders: BTreeMap<&[u8], Agg> = BTreeMap::new();
     for trade in &trades.trades {
-        orders
-            .entry(format_address(&trade.order_hash))
-            .and_modify(|(_, n)| *n += 1)
-            .or_insert((trade, 1));
+        let agg = orders.entry(trade.order_hash.as_slice()).or_insert_with(|| Agg {
+            trade,
+            shares: BigInt::zero(),
+            collateral: BigInt::zero(),
+            fees: BigInt::zero(),
+            fills: 0,
+        });
+        agg.shares = agg.shares.clone() + amount(&trade.shares);
+        agg.collateral = agg.collateral.clone() + amount(&trade.collateral);
+        agg.fees = agg.fees.clone() + amount(&trade.fee);
+        agg.fills += 1;
     }
     let orders = orders
         .into_iter()
-        .map(|(hash, (trade, block_fills))| {
-            let (_, block) = tx(trade);
+        .map(|(hash, a)| {
+            let (block_number, timestamp) = a
+                .trade
+                .tx
+                .as_option()
+                .map_or((0, 0), |tx| (tx.block_number, tx.timestamp));
             proto::OrderFill {
-                filled_shares: src.total(&hash, SHARES).to_string(),
-                filled_collateral: src.total(&hash, COLLATERAL).to_string(),
-                fees: src.total(&hash, FEES).to_string(),
-                fills: bigint_to_u64(&src.total(&hash, FILLS)),
-                first_fill_block: src.first_seen(&hash).unwrap_or(block),
-                order_hash: hash,
-                owner: trade.maker.clone(),
-                token_id: trade.token_id.clone(),
-                side: trade.side,
-                exchange: trade.exchange.clone(),
-                last_fill_block: block,
-                block_fills,
+                order_hash: format_address(hash),
+                owner: a.trade.maker.clone(),
+                token_id: a.trade.token_id.clone(),
+                side: a.trade.side,
+                exchange: a.trade.exchange.clone(),
+                shares: a.shares.to_string(),
+                collateral: a.collateral.to_string(),
+                fees: a.fees.to_string(),
+                fills: a.fills,
+                block_number,
+                timestamp,
             }
         })
         .collect();
@@ -146,47 +79,35 @@ pub(crate) mod tests {
     use super::*;
     use std::collections::HashMap;
 
-    /// In-memory stand-in for the two stores, applied the way the runtime does.
-    #[derive(Default)]
-    pub(crate) struct MemStores {
-        totals: HashMap<String, BigInt>,
-        first_seen: HashMap<String, u64>,
+    /// Running totals per order, merged from per-block fragments the way the sink
+    /// does: amounts and fills summed, first block = min, last block = max.
+    #[derive(Default, Debug, PartialEq)]
+    pub(crate) struct Totals {
+        pub(crate) shares: u64,
+        pub(crate) collateral: u64,
+        pub(crate) fees: u64,
+        pub(crate) fills: u64,
+        pub(crate) first_block: u64,
+        pub(crate) last_block: u64,
     }
 
-    impl MemStores {
-        pub(crate) fn apply(&mut self, trades: &proto::Trades) {
-            for trade in &trades.trades {
-                let hash = format_address(&trade.order_hash);
-                for (field, amount) in fill_additions(trade) {
-                    let e = self
-                        .totals
-                        .entry(key(&hash, field))
-                        .or_insert_with(BigInt::zero);
-                    *e = e.clone() + amount;
-                }
-                self.first_seen.entry(hash).or_insert(tx(trade).1);
+    pub(crate) fn merge(blocks: &[&proto::Trades]) -> HashMap<String, Totals> {
+        let mut out: HashMap<String, Totals> = HashMap::new();
+        for b in blocks {
+            for o in build_order_fills(b).orders {
+                let t = out.entry(o.order_hash).or_insert(Totals {
+                    first_block: u64::MAX,
+                    ..Default::default()
+                });
+                t.shares += o.shares.parse::<u64>().expect("amount");
+                t.collateral += o.collateral.parse::<u64>().expect("amount");
+                t.fees += o.fees.parse::<u64>().expect("amount");
+                t.fills += o.fills;
+                t.first_block = t.first_block.min(o.block_number);
+                t.last_block = t.last_block.max(o.block_number);
             }
         }
-    }
-
-    impl OrderSource for MemStores {
-        fn total(&self, order_hash: &str, field: &str) -> BigInt {
-            self.totals
-                .get(&key(order_hash, field))
-                .cloned()
-                .unwrap_or_else(BigInt::zero)
-        }
-        fn first_seen(&self, order_hash: &str) -> Option<u64> {
-            self.first_seen.get(order_hash).copied()
-        }
-    }
-
-    pub(crate) fn fills_after(blocks: &[&proto::Trades]) -> proto::OrderFills {
-        let mut mem = MemStores::default();
-        for b in blocks {
-            mem.apply(b);
-        }
-        build_order_fills(blocks[blocks.len() - 1], &mem)
+        out
     }
 
     fn fill(hash: u8, shares: u64, collateral: u64, fee: u64, block: u64) -> proto::Trade {
@@ -201,6 +122,7 @@ pub(crate) mod tests {
             fee: fee.to_string(),
             tx: Some(proto::TransactionContext {
                 block_number: block,
+                timestamp: block * 2,
                 ..Default::default()
             })
             .into(),
@@ -218,23 +140,31 @@ pub(crate) mod tests {
             trades: vec![fill(0xbb, 10, 5, 0, 12), fill(0xaa, 25, 11, 2, 12)],
         };
 
-        let o = fills_after(&[&b10]).orders;
+        // Each block emits that block's fills only.
+        let o = build_order_fills(&b10).orders;
         assert_eq!(o.len(), 1);
-        assert_eq!((o[0].filled_shares.as_str(), o[0].fills), ("150", 2));
-
-        let o = fills_after(&[&b10, &b12]).orders;
+        assert_eq!((o[0].shares.as_str(), o[0].fills), ("150", 2));
+        assert_eq!((o[0].block_number, o[0].timestamp), (10, 20));
+        let o = build_order_fills(&b12).orders;
         assert_eq!(o.len(), 2);
-        let a = &o[0];
-        assert_eq!(a.order_hash, format!("0x{}", "aa".repeat(32)));
-        assert_eq!(a.filled_shares, "175");
-        assert_eq!(a.filled_collateral, "71");
-        assert_eq!(a.fees, "3");
-        assert_eq!(a.fills, 3);
-        assert_eq!(a.block_fills, 1);
-        assert_eq!((a.first_fill_block, a.last_fill_block), (10, 12));
-        assert_eq!((a.owner.as_str(), a.token_id.as_str(), a.side), ("0xowner", "T", 1));
-        let b = &o[1];
-        assert_eq!((b.fills, b.first_fill_block, b.last_fill_block), (1, 12, 12));
-        assert_eq!(b.fees, "0");
+        assert_eq!(o[0].order_hash, format!("0x{}", "aa".repeat(32)));
+        assert_eq!((o[0].shares.as_str(), o[0].fills), ("25", 1));
+        assert_eq!((o[0].owner.as_str(), o[0].token_id.as_str(), o[0].side), ("0xowner", "T", 1));
+
+        // Merged across blocks, as the sink does.
+        let totals = merge(&[&b10, &b12]);
+        assert_eq!(
+            totals[&format!("0x{}", "aa".repeat(32))],
+            Totals {
+                shares: 175,
+                collateral: 71,
+                fees: 3,
+                fills: 3,
+                first_block: 10,
+                last_block: 12
+            }
+        );
+        let b = &totals[&format!("0x{}", "bb".repeat(32))];
+        assert_eq!((b.fills, b.first_block, b.last_block), (1, 12, 12));
     }
 }

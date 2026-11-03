@@ -1367,9 +1367,12 @@ impl ::buffa::Message for Candles {
         self.candles.clear();
     }
 }
-/// Fill progress of one signed order, emitted for every order filled in a block.
-/// Cumulative fields cover all fills up to and including this block. Chain data has
-/// no full order size, so this is what was filled, not what remains.
+/// Fills of one signed order in one block, emitted for every order filled in the
+/// block. No store keeps running totals (one key set per order ever filled would grow
+/// without bound), so a sink merges the fragments of the same order_hash: shares,
+/// collateral, fees and fills summed, first fill block = min(block_number), last =
+/// max. Chain data has no full order size, so this is what was filled, not what
+/// remains.
 #[derive(Clone, PartialEq, Default)]
 pub struct OrderFill {
     /// 0x-prefixed hex.
@@ -1388,24 +1391,21 @@ pub struct OrderFill {
     pub side: u32,
     /// Field 5: `exchange`
     pub exchange: ::buffa::alloc::string::String,
-    /// Cumulative shares, collateral (fee-aware, as Trade.collateral) and fees filled.
+    /// Filled in this block: shares, collateral (fee-aware, as Trade.collateral),
+    /// fees, and number of fills.
     ///
-    /// Field 6: `filled_shares`
-    pub filled_shares: ::buffa::alloc::string::String,
-    /// Field 7: `filled_collateral`
-    pub filled_collateral: ::buffa::alloc::string::String,
+    /// Field 6: `shares`
+    pub shares: ::buffa::alloc::string::String,
+    /// Field 7: `collateral`
+    pub collateral: ::buffa::alloc::string::String,
     /// Field 8: `fees`
     pub fees: ::buffa::alloc::string::String,
-    /// Cumulative number of fills, and of those, fills in this block.
-    ///
     /// Field 9: `fills`
     pub fills: u64,
-    /// Field 10: `block_fills`
-    pub block_fills: u64,
-    /// Field 11: `first_fill_block`
-    pub first_fill_block: u64,
-    /// Field 12: `last_fill_block`
-    pub last_fill_block: u64,
+    /// Field 10: `block_number`
+    pub block_number: u64,
+    /// Field 11: `timestamp`
+    pub timestamp: u64,
 }
 impl ::core::fmt::Debug for OrderFill {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1415,13 +1415,12 @@ impl ::core::fmt::Debug for OrderFill {
             .field("token_id", &self.token_id)
             .field("side", &self.side)
             .field("exchange", &self.exchange)
-            .field("filled_shares", &self.filled_shares)
-            .field("filled_collateral", &self.filled_collateral)
+            .field("shares", &self.shares)
+            .field("collateral", &self.collateral)
             .field("fees", &self.fees)
             .field("fills", &self.fills)
-            .field("block_fills", &self.block_fills)
-            .field("first_fill_block", &self.first_fill_block)
-            .field("last_fill_block", &self.last_fill_block)
+            .field("block_number", &self.block_number)
+            .field("timestamp", &self.timestamp)
             .finish()
     }
 }
@@ -1467,14 +1466,11 @@ impl ::buffa::Message for OrderFill {
         if !self.exchange.is_empty() {
             size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
         }
-        if !self.filled_shares.is_empty() {
-            size
-                += 1u64 + ::buffa::types::string_encoded_len(&self.filled_shares) as u64;
+        if !self.shares.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.shares) as u64;
         }
-        if !self.filled_collateral.is_empty() {
-            size
-                += 1u64
-                    + ::buffa::types::string_encoded_len(&self.filled_collateral) as u64;
+        if !self.collateral.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.collateral) as u64;
         }
         if !self.fees.is_empty() {
             size += 1u64 + ::buffa::types::string_encoded_len(&self.fees) as u64;
@@ -1482,18 +1478,11 @@ impl ::buffa::Message for OrderFill {
         if self.fills != 0u64 {
             size += 1u64 + ::buffa::types::uint64_encoded_len(self.fills) as u64;
         }
-        if self.block_fills != 0u64 {
-            size += 1u64 + ::buffa::types::uint64_encoded_len(self.block_fills) as u64;
+        if self.block_number != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.block_number) as u64;
         }
-        if self.first_fill_block != 0u64 {
-            size
-                += 1u64
-                    + ::buffa::types::uint64_encoded_len(self.first_fill_block) as u64;
-        }
-        if self.last_fill_block != 0u64 {
-            size
-                += 1u64
-                    + ::buffa::types::uint64_encoded_len(self.last_fill_block) as u64;
+        if self.timestamp != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.timestamp) as u64;
         }
         ::buffa::saturate_size(size)
     }
@@ -1519,11 +1508,11 @@ impl ::buffa::Message for OrderFill {
         if !self.exchange.is_empty() {
             ::buffa::types::put_string_field(5u32, &self.exchange, buf);
         }
-        if !self.filled_shares.is_empty() {
-            ::buffa::types::put_string_field(6u32, &self.filled_shares, buf);
+        if !self.shares.is_empty() {
+            ::buffa::types::put_string_field(6u32, &self.shares, buf);
         }
-        if !self.filled_collateral.is_empty() {
-            ::buffa::types::put_string_field(7u32, &self.filled_collateral, buf);
+        if !self.collateral.is_empty() {
+            ::buffa::types::put_string_field(7u32, &self.collateral, buf);
         }
         if !self.fees.is_empty() {
             ::buffa::types::put_string_field(8u32, &self.fees, buf);
@@ -1531,14 +1520,11 @@ impl ::buffa::Message for OrderFill {
         if self.fills != 0u64 {
             ::buffa::types::put_uint64_field(9u32, self.fills, buf);
         }
-        if self.block_fills != 0u64 {
-            ::buffa::types::put_uint64_field(10u32, self.block_fills, buf);
+        if self.block_number != 0u64 {
+            ::buffa::types::put_uint64_field(10u32, self.block_number, buf);
         }
-        if self.first_fill_block != 0u64 {
-            ::buffa::types::put_uint64_field(11u32, self.first_fill_block, buf);
-        }
-        if self.last_fill_block != 0u64 {
-            ::buffa::types::put_uint64_field(12u32, self.last_fill_block, buf);
+        if self.timestamp != 0u64 {
+            ::buffa::types::put_uint64_field(11u32, self.timestamp, buf);
         }
     }
     fn merge_field(
@@ -1592,14 +1578,14 @@ impl ::buffa::Message for OrderFill {
                     tag,
                     ::buffa::encoding::WireType::LengthDelimited,
                 )?;
-                ::buffa::types::merge_string(&mut self.filled_shares, buf)?;
+                ::buffa::types::merge_string(&mut self.shares, buf)?;
             }
             7u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
                     ::buffa::encoding::WireType::LengthDelimited,
                 )?;
-                ::buffa::types::merge_string(&mut self.filled_collateral, buf)?;
+                ::buffa::types::merge_string(&mut self.collateral, buf)?;
             }
             8u32 => {
                 ::buffa::encoding::check_wire_type(
@@ -1620,21 +1606,14 @@ impl ::buffa::Message for OrderFill {
                     tag,
                     ::buffa::encoding::WireType::Varint,
                 )?;
-                self.block_fills = ::buffa::types::decode_uint64(buf)?;
+                self.block_number = ::buffa::types::decode_uint64(buf)?;
             }
             11u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
                     ::buffa::encoding::WireType::Varint,
                 )?;
-                self.first_fill_block = ::buffa::types::decode_uint64(buf)?;
-            }
-            12u32 => {
-                ::buffa::encoding::check_wire_type(
-                    tag,
-                    ::buffa::encoding::WireType::Varint,
-                )?;
-                self.last_fill_block = ::buffa::types::decode_uint64(buf)?;
+                self.timestamp = ::buffa::types::decode_uint64(buf)?;
             }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
@@ -1648,13 +1627,12 @@ impl ::buffa::Message for OrderFill {
         self.token_id.clear();
         self.side = 0u32;
         self.exchange.clear();
-        self.filled_shares.clear();
-        self.filled_collateral.clear();
+        self.shares.clear();
+        self.collateral.clear();
         self.fees.clear();
         self.fills = 0u64;
-        self.block_fills = 0u64;
-        self.first_fill_block = 0u64;
-        self.last_fill_block = 0u64;
+        self.block_number = 0u64;
+        self.timestamp = 0u64;
     }
 }
 #[derive(Clone, PartialEq, Default)]
