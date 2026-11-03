@@ -63,8 +63,12 @@ changing these rules.
 - Lazy handlers make the macro's generated shim trip `clippy::not_unsafe_ptr_arg_deref`;
   each package allows it at crate scope (see the comment at the top of each `lib.rs`).
 - Tests: fixtures are owned `eth::Block`s. Run a handler with
-  `with_lazy_block(&block, __impl_map_x)`, which encodes the block and decodes it lazily
-  the way the runtime does.
+  `with_lazy_block(&block, |blk| substreams::testing::map!(map_x(blk)))`, which encodes the
+  block and decodes it lazily the way the runtime does. Never call `__impl_map_x` directly.
+- Real-block fixtures live in `polymarket-<pkg>/src/testdata/polygon_<block>.binpb.b64`,
+  captured with `scripts/capture_fixture.sh <pkg> <block>` and loaded with
+  `polymarket_substreams_common::load_block_b64` (the `fixtures` feature, enabled from each
+  package's `[dev-dependencies]` only, so base64 never reaches the wasm build).
 
 ## Performance checks
 

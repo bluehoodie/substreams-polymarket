@@ -10,6 +10,13 @@ hex = "0.4"
 hex-literal = "0.4"
 num-bigint = "0.4"
 buffa = { version = "0.9.2", default-features = false, features = ["std", "fast-utf8"] }
+# Only for the `fixtures` feature (test-only real-block fixture loader).
+base64 = { version = "0.22", optional = true }
+
+[features]
+# Enables `load_block_b64` for tests. Packages turn it on from [dev-dependencies]
+# only, so it never reaches the wasm build.
+fixtures = ["dep:base64"]
 
 [build-dependencies]
 anyhow = "1.0"

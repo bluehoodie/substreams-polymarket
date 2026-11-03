@@ -490,7 +490,7 @@ mod handler_tests {
     fn map_all_events_classifies_pusd_transfer() {
         let out = polymarket_substreams_common::with_lazy_block(
             &block_with_log(pusd_transfer_log()),
-            __impl_map_all_events,
+            |blk| substreams::testing::map!(map_all_events(blk)),
         )
         .expect("fixture block encodes")
         .expect("handler must not err");
@@ -512,7 +512,7 @@ mod handler_tests {
     fn map_all_events_empty_block_ok() {
         let out = polymarket_substreams_common::with_lazy_block(
             &eth::Block::default(),
-            __impl_map_all_events,
+            |blk| substreams::testing::map!(map_all_events(blk)),
         )
         .expect("fixture block encodes")
         .expect("empty block must not panic");

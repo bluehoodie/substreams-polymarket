@@ -166,7 +166,7 @@ mod handler_tests {
     fn map_factory_events_classifies_wallet_deployed() {
         let out = polymarket_substreams_common::with_lazy_block(
             &block_with_log(wallet_deployed_log()),
-            __impl_map_factory_events,
+            |blk| substreams::testing::map!(map_factory_events(blk)),
         )
         .expect("fixture block encodes")
         .expect("handler must not err");
@@ -182,7 +182,7 @@ mod handler_tests {
     fn map_factory_events_empty_block_ok() {
         let out = polymarket_substreams_common::with_lazy_block(
             &eth::Block::default(),
-            __impl_map_factory_events,
+            |blk| substreams::testing::map!(map_factory_events(blk)),
         )
         .expect("fixture block encodes")
         .expect("empty block must not panic");

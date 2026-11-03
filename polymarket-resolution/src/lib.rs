@@ -549,7 +549,7 @@ mod handler_tests {
     fn map_resolution_events_classifies_question_flagged() {
         let out = polymarket_substreams_common::with_lazy_block(
             &block_with_log(question_flagged_log()),
-            __impl_map_resolution_events,
+            |blk| substreams::testing::map!(map_resolution_events(blk)),
         )
         .expect("fixture block encodes")
         .expect("handler must not err");
@@ -578,7 +578,7 @@ mod handler_tests {
     fn map_resolution_events_empty_block_ok() {
         let out = polymarket_substreams_common::with_lazy_block(
             &eth::Block::default(),
-            __impl_map_resolution_events,
+            |blk| substreams::testing::map!(map_resolution_events(blk)),
         )
         .expect("fixture block encodes")
         .expect("empty block must not panic");
