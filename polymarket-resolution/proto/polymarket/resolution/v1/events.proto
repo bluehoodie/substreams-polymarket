@@ -149,10 +149,30 @@ message DisputeAlerts {
   repeated DisputeAlert alerts = 1;
 }
 
+// === Protocol V2 modules ===
+
+// ConditionResolved from a Protocol V2 module (BinaryModule or NegRiskModule): the
+// condition's final payout vector. Markets settled through Protocol V2 resolve here,
+// not through Conditional Tokens' ConditionResolution.
+message ModuleConditionResolved {
+  // ConditionId (bytes31) as 0x-prefixed lowercase hex.
+  string condition_id = 1;
+  // Payout numerators, one per outcome, as decimal strings.
+  repeated string payouts = 2;
+  // "binary" (BinaryModule) or "neg_risk" (NegRiskModule).
+  string module = 3;
+  TransactionContext tx = 4;
+}
+
+message ModuleEvents {
+  repeated ModuleConditionResolved condition_resolved = 1;
+}
+
 // === Unified output ===
 
 message ResolutionEvents {
   optional OracleEvents oracle = 1;
   optional AdapterEvents adapter = 2;
   optional DisputeAlerts dispute_alerts = 3;
+  optional ModuleEvents modules = 4;
 }

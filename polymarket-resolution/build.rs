@@ -19,6 +19,11 @@ fn main() -> Result<()> {
             "abi/UmaCtfAdapter.json",
             "src/abi/uma_ctf_adapter.rs",
         ),
+        (
+            "ProtocolV2Module",
+            "abi/ProtocolV2Module.json",
+            "src/abi/protocol_v2_module.rs",
+        ),
     ] {
         Abigen::new(name, abi_path)?
             .generate()?
