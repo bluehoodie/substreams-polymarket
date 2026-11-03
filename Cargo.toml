@@ -10,6 +10,7 @@ members = [
     "polymarket-wallet-factory",
     "polymarket-resolution",
     "polymarket-trader-index",
+    "polymarket-trades",
 ]
 
 # opt-level 's' (the substreams skill template) over 'z': on map_all_events of

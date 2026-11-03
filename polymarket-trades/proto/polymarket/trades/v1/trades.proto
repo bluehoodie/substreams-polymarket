@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package polymarket.trades.v1;
+
+message TransactionContext {
+  string tx_hash = 1;
+  // Block-wide log index of the OrderFilled log; orders trades within a block.
+  uint64 log_index = 2;
+  uint64 block_number = 3;
+  uint64 timestamp = 4;
+}
+
+// One fill of one signed order (one OrderFilled log), from CTF Exchange V2, Neg Risk
+// CTF Exchange V2 or ExchangeV3. Amounts are raw 6-decimal integers as strings.
+message Trade {
+  // Outcome token traded. For exchange_v3 this is a Protocol V2 PositionManager id.
+  string token_id = 1;
+  // Side of the filled order: 0 = BUY (pays collateral, receives shares), 1 = SELL.
+  uint32 side = 2;
+  // Outcome shares that changed hands.
+  string shares = 3;
+  // Collateral the order's owner paid (BUY) or received (SELL), fee included:
+  // BUY = maker_amount_filled + fee, SELL = taker_amount_filled - fee.
+  string collateral = 4;
+  // collateral / shares, rounded down to 6 decimals ("0.537000"); "0" if no shares.
+  string price = 5;
+  // Fee charged to this order, in collateral.
+  string fee = 6;
+  // Owner of the filled order.
+  string maker = 7;
+  // Counterparty: a maker order's taker, or the exchange itself for the taker
+  // order's own fill (see is_match).
+  string taker = 8;
+  bytes order_hash = 9;
+  // "ctf_v2" | "neg_risk_v2" | "exchange_v3".
+  string exchange = 10;
+  // True for the taker order's own fill (taker == the exchange contract). There is
+  // exactly one per match, so summing is_match trades counts each match once.
+  bool is_match = 11;
+  TransactionContext tx = 12;
+}
+
+message Trades {
+  // In block order (tx.log_index).
+  repeated Trade trades = 1;
+}

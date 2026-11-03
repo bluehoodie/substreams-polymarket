@@ -4,9 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Cargo workspace of 8 Substreams packages (`polymarket-*`) that extract Polymarket
+Cargo workspace of 9 Substreams packages (`polymarket-*`) that extract Polymarket
 events on Polygon, plus `polymarket-substreams-common` — a plain shared helper crate
-(no wasm target, no manifest). All 8 packages are released in lockstep at the same version.
+(no wasm target, no manifest). All 9 packages are released in lockstep at the same version.
+`polymarket-trades` is the one package that reads no blocks: it imports the sibling
+`polymarket-exchange` and `polymarket-neg-risk-ctf` manifests and builds on their map
+outputs, so build those two first (`make build-trades` does).
 
 ## Build / test / lint
 
@@ -100,7 +103,7 @@ Needs `substreams auth` first (API key from thegraph.market). Endpoint: `polygon
 
 ## Releases
 
-Versions bump across ALL 8 manifests (`package.version`) and the versioned `.spkg`
+Versions bump across ALL 9 manifests (`package.version`) and the versioned `.spkg`
 references in the READMEs in lockstep, in one commit. Then push tag `vX.Y.Z`. The tag push
 runs `release.yml`: workspace tests, then build, GitHub Release and publish. To publish
 by hand, use `./publish-all.sh` (needs `substreams auth` / a substreams.dev token).

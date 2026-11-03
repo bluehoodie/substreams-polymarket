@@ -650,6 +650,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "polymarket-trades"
+version = "0.1.0"
+dependencies = [
+ "buffa",
+ "buffa-types",
+ "hex",
+ "hex-literal 0.4.1",
+ "polymarket-substreams-common",
+ "substreams",
+ "substreams-ethereum",
+]
+
+[[package]]
 name = "polymarket-wallet-factory"
 version = "0.1.0"
 dependencies = [

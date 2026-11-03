@@ -17,7 +17,7 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 pkgs=("$@")
 if [ ${#pkgs[@]} -eq 0 ]; then
-  pkgs=(exchange ctf neg-risk-ctf neg-risk-adapter collateral wallet-factory resolution trader-index)
+  pkgs=(exchange ctf neg-risk-ctf neg-risk-adapter collateral wallet-factory resolution trader-index trades)
 fi
 
 failed=0

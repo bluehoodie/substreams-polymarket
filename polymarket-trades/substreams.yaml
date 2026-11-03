@@ -1,0 +1,42 @@
+specVersion: v0.1.0
+package:
+  name: polymarket-trades
+  version: v1.1.0
+  url: https://github.com/bluehoodie/substreams-polymarket
+  description: Polymarket trade tape — every order fill from CTF Exchange V2, Neg Risk CTF Exchange V2 and ExchangeV3, with fee-aware price
+  image: ./polymarket.png
+
+network: polygon
+
+# The sibling manifests, not their published spkgs: built from the same code at the
+# same (lockstep) version, their modules hash the same as the published packages',
+# so their cached outputs are reused instead of re-decoding blocks.
+imports:
+  exchange: ../polymarket-exchange/substreams.yaml
+  neg_risk_ctf: ../polymarket-neg-risk-ctf/substreams.yaml
+
+protobuf:
+  files:
+    - polymarket/trades/v1/trades.proto
+  importPaths:
+    - ./proto
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ../target/wasm32-unknown-unknown/release/polymarket_trades.wasm
+
+modules:
+  - name: map_trades
+    kind: map
+    initialBlock: 84902353
+    inputs:
+      - map: exchange:map_exchange_events
+      - map: neg_risk_ctf:map_trading_events
+    output:
+      type: proto:polymarket.trades.v1.Trades
+    doc: |
+      One trade per OrderFilled across CTF Exchange V2, Neg Risk CTF Exchange V2
+      and ExchangeV3, in block order: token, side, shares, fee-aware collateral and
+      price, maker, taker, order hash, exchange, and is_match (the taker order's
+      own fill, one per match).

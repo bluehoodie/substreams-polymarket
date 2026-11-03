@@ -50,6 +50,7 @@ jobs:
           - polymarket-resolution
           - polymarket-wallet-factory
           - polymarket-trader-index
+          - polymarket-trades
 
     steps:
       - uses: actions/checkout@v4
@@ -81,6 +82,14 @@ jobs:
             "https://github.com/streamingfast/substreams/releases/download/${VERSION}/substreams_linux_x86_64.tar.gz"
           sudo tar -xzf /tmp/substreams.tar.gz -C /usr/local/bin substreams
           substreams --version
+
+      # polymarket-trades imports the exchange and neg-risk-ctf manifests, which point
+      # at their built wasm; build those first in the same job.
+      - name: Build polymarket-trades dependencies
+        if: matrix.package == 'polymarket-trades'
+        run: |
+          (cd polymarket-exchange && substreams build)
+          (cd polymarket-neg-risk-ctf && substreams build)
 
       - name: Build ${{ matrix.package }}
         run: cd ${{ matrix.package }} && substreams build
@@ -125,6 +134,7 @@ jobs:
           - polymarket-resolution
           - polymarket-wallet-factory
           - polymarket-trader-index
+          - polymarket-trades
 
     steps:
       - name: Download spkg artifacts
