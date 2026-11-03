@@ -12,6 +12,8 @@ network: polygon
 # same (lockstep) version, their modules hash the same as the published packages',
 # so their cached outputs are reused instead of re-decoding blocks.
 imports:
+  # For map_orders' blockFilter (the same index the exchange packages use).
+  eth_common: https://spkg.io/v1/packages/ethereum-common/v0.3.3
   exchange: ../polymarket-exchange/substreams.yaml
   neg_risk_ctf: ../polymarket-neg-risk-ctf/substreams.yaml
   resolution: ../polymarket-resolution/substreams.yaml
@@ -105,6 +107,25 @@ modules:
       block's filled shares, collateral, fees and fill count. No store: a sink
       keeps each order's running totals by summing fragments per order_hash.
 
+  - name: map_orders
+    kind: map
+    initialBlock: 84902353
+    blockFilter:
+      module: eth_common:index_events
+      query:
+        string: "evt_addr:0xe111180000d2663c0091e4f400237545b87b996b || evt_addr:0xe2222d279d744050d28e00520010520000310f59 || evt_addr:0xe3333700ca9d93003f00f0f71f8515005f6c00aa"
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:polymarket.trades.v1.ObservedOrders
+    doc: |
+      The full signed orders behind the fills, decoded from the calldata of the
+      exchanges' matchOrders calls (successful, non-reverted calls only): maker,
+      signer, token, side, full maker/taker amounts, limit price, size in shares,
+      creation time, and the amount and fee this settlement filled. order_hash is
+      the EIP-712 hash, the same as in OrderFilled. A sink sums fill_amount per
+      order_hash, so maker_amount minus that is what the order has left.
+
   - name: db_out
     kind: map
     initialBlock: 84902353
@@ -114,6 +135,7 @@ modules:
       - map: map_candles
       - map: map_order_fills
       - map: resolution:map_resolution_events
+      - map: map_orders
     output:
       type: proto:sf.substreams.sink.database.v1.DatabaseChanges
     doc: |
@@ -131,6 +153,7 @@ modules:
       - map: map_candles
       - map: map_order_fills
       - map: resolution:map_resolution_events
+      - map: map_orders
     output:
       type: proto:sf.substreams.sink.database.v1.DatabaseChanges
     doc: |

@@ -7,9 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Cargo workspace of 9 Substreams packages (`polymarket-*`) that extract Polymarket
 events on Polygon, plus `polymarket-substreams-common` — a plain shared helper crate
 (no wasm target, no manifest). All 9 packages are released in lockstep at the same version.
-`polymarket-trades` is the one package that reads no blocks: it imports the sibling
-`polymarket-exchange`, `polymarket-neg-risk-ctf` and `polymarket-resolution` manifests and
-builds on their map outputs, so build those first (`make build-trades` does). Its `db_out`
+`polymarket-trades` builds on the sibling `polymarket-exchange`, `polymarket-neg-risk-ctf`
+and `polymarket-resolution` manifests' map outputs (it imports them, so build those first:
+`make build-trades` does). Its only block-reading module is `map_orders`, which decodes
+exchange settlement calldata (`polymarket_substreams_common::orders`). Its `db_out`
 (PostgreSQL, `schema.sql`) and `db_out_clickhouse` (`clickhouse-schema.sql`) feed
 `substreams sink postgres|clickhouse`; delta upserts (`add`/`max`/`min`/`set_if_null`)
 are PostgreSQL-only, so the ClickHouse module inserts fragments for the table engines to merge.

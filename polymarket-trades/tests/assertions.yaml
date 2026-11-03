@@ -1,4 +1,4 @@
-# `substreams run --test-file` assertions (map_trades, map_candles, map_order_fills) on blocks 96600000 (CTF V2 + Neg Risk) and
+# `substreams run --test-file` assertions (map_trades, map_candles, map_order_fills, map_orders) on blocks 96600000 (CTF V2 + Neg Risk) and
 # 96680009 (also ExchangeV3), the same blocks as the Rust fixture tests. Run:
 # scripts/run_test_files.sh trades. Paths must yield a string (hence `| tostring`).
 tests:
@@ -42,3 +42,15 @@ tests:
     block: 96600000
     path: '[.orders[].fills | tonumber] | add | tostring'
     expect: "50"
+  - module: map_orders
+    block: 96600000
+    path: '.orders | length | tostring'
+    expect: "50"
+  - module: map_orders
+    block: 96600000
+    path: '.orders[0].orderHash'
+    expect: "0x2e6564cfdffd666611fae3d39b772fb78813cdf826a83f16862daef5e594d8da"
+  - module: map_orders
+    block: 96680009
+    path: '[.orders[] | select(.exchange == "exchange_v3")] | length | tostring'
+    expect: "4"

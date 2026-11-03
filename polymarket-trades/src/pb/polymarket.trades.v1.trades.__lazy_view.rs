@@ -3716,3 +3716,962 @@ impl<'a> ::buffa::MessageName for OrderFillsLazyView<'a> {
     const FULL_NAME: &'static str = "polymarket.trades.v1.OrderFills";
     const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.OrderFills";
 }
+/** Lazy view of `polymarket.trades.v1.ObservedOrder`: nested and repeated message fields are
+ recorded as undecoded byte ranges and decoded on access. See
+ [`::buffa::LazyMessageView`] for the deferred-validation contract;
+ the eager, whole-tree-validated counterpart is named `ObservedOrderView`.
+
+ Oneof variants, map values, groups, and extern-typed fields (e.g.
+ well-known types) hold eagerly-decoded `ObservedOrderView`-family
+ types; only singular/repeated message fields defer.
+
+ # Examples
+
+ ```rust,ignore
+ use buffa::LazyMessageView;
+
+ let view = ObservedOrderLazyView::decode_lazy(&bytes)?;
+ ```*/
+#[derive(Clone, Debug, Default)]
+pub struct ObservedOrderLazyView<'a> {
+    /// EIP-712 hash, the OrderFilled order_hash. 0x-prefixed hex.
+    ///
+    /// Field 1: `order_hash`
+    pub order_hash: &'a str,
+    /// ctf_v2 | neg_risk_v2 | exchange_v3, as Trade.exchange.
+    ///
+    /// Field 2: `exchange`
+    pub exchange: &'a str,
+    /// Order owner (source of funds), and the key that signed it.
+    ///
+    /// Field 3: `maker`
+    pub maker: &'a str,
+    /// Field 4: `signer`
+    pub signer: &'a str,
+    /// Field 5: `token_id`
+    pub token_id: &'a str,
+    /// 0 = BUY, 1 = SELL.
+    ///
+    /// Field 6: `side`
+    pub side: u32,
+    /// Full order: the most the maker gives and the least they get (raw 6-decimal).
+    ///
+    /// Field 7: `maker_amount`
+    pub maker_amount: &'a str,
+    /// Field 8: `taker_amount`
+    pub taker_amount: &'a str,
+    /// Collateral per share, 6 decimals, rounded down: maker/taker for a BUY,
+    /// taker/maker for a SELL. Excludes fees, which the operator sets per fill.
+    ///
+    /// Field 9: `limit_price`
+    pub limit_price: &'a str,
+    /// Size in shares: taker_amount for a BUY, maker_amount for a SELL.
+    ///
+    /// Field 10: `size_shares`
+    pub size_shares: &'a str,
+    /// 0 EOA, 1 POLY_PROXY, 2 POLY_GNOSIS_SAFE, 3 POLY_1271.
+    ///
+    /// Field 11: `signature_type`
+    pub signature_type: u32,
+    /// Order creation time, unix milliseconds.
+    ///
+    /// Field 12: `created_at_ms`
+    pub created_at_ms: u64,
+    /// 0x-prefixed bytes32.
+    ///
+    /// Field 13: `metadata`
+    pub metadata: &'a str,
+    /// Field 14: `builder`
+    pub builder: &'a str,
+    /// The taker order of its match (the others are maker orders).
+    ///
+    /// Field 15: `is_taker`
+    pub is_taker: bool,
+    /// Maker-asset amount this settlement filled (OrderFilled.makerAmountFilled) and
+    /// the fee charged on it.
+    ///
+    /// Field 16: `fill_amount`
+    pub fill_amount: &'a str,
+    /// Field 17: `fee`
+    pub fee: &'a str,
+    /// log_index is that of the order's OrderFilled log in the same transaction.
+    ///
+    /// Field 18: `tx`
+    pub tx: ::buffa::LazyMessageFieldView<
+        'a,
+        super::super::__buffa::lazy_view::TransactionContextLazyView<'a>,
+    >,
+}
+impl<'a> ObservedOrderLazyView<'a> {
+    /// Decode from `buf` under the limits carried by `ctx`, recording
+    /// nested/repeated message fields as byte ranges.
+    ///
+    /// **Not part of the public API.**
+    #[doc(hidden)]
+    pub fn _decode_lazy_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let mut view = Self::default();
+        view._merge_lazy(buf, ctx)?;
+        ::core::result::Result::Ok(view)
+    }
+    /// Merge fields from `buf` into this view (proto merge semantics;
+    /// deferred message fragments accumulate).
+    ///
+    /// **Not part of the public API.**
+    #[doc(hidden)]
+    pub fn _merge_lazy(
+        &mut self,
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur: &'a [u8] = buf;
+        while !cur.is_empty() {
+            let tag = ::buffa::encoding::Tag::decode(&mut cur)?;
+            match tag.field_number() {
+                1u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.order_hash = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                2u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                3u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.maker = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                4u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.signer = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                5u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.token_id = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                6u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::Varint,
+                    )?;
+                    view.side = ::buffa::types::decode_uint32(&mut cur)?;
+                }
+                7u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.maker_amount = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                8u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.taker_amount = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                9u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.limit_price = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                10u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.size_shares = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                11u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::Varint,
+                    )?;
+                    view.signature_type = ::buffa::types::decode_uint32(&mut cur)?;
+                }
+                12u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::Varint,
+                    )?;
+                    view.created_at_ms = ::buffa::types::decode_uint64(&mut cur)?;
+                }
+                13u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.metadata = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                14u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.builder = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                15u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::Varint,
+                    )?;
+                    view.is_taker = ::buffa::types::decode_bool(&mut cur)?;
+                }
+                16u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.fill_amount = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                17u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    view.fee = ::buffa::types::borrow_str(&mut cur)?;
+                }
+                18u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    let __sub_ctx = ctx.descend()?;
+                    let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                    ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
+                    view.tx.push_fragment(sub, __sub_ctx);
+                }
+                _ => {
+                    ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+                }
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+}
+impl<'a> ::buffa::LazyMessageView<'a> for ObservedOrderLazyView<'a> {
+    type Owned = super::super::ObservedOrder;
+    fn decode_lazy(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        let __elem = ::core::cell::Cell::new(::buffa::DEFAULT_ELEMENT_MEMORY_LIMIT);
+        Self::_decode_lazy_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit)
+                .with_element_memory(&__elem),
+        )
+    }
+    fn decode_lazy_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        Self::_decode_lazy_ctx(buf, ctx)
+    }
+    fn merge_lazy(
+        &mut self,
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        self._merge_lazy(buf, ctx)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::ObservedOrder, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        #[allow(unused_imports)]
+        use ::buffa::MessageView as _;
+        let __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes> = ::core::option::Option::None;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::ObservedOrder {
+            order_hash: self.order_hash.to_string(),
+            exchange: self.exchange.to_string(),
+            maker: self.maker.to_string(),
+            signer: self.signer.to_string(),
+            token_id: self.token_id.to_string(),
+            side: self.side,
+            maker_amount: self.maker_amount.to_string(),
+            taker_amount: self.taker_amount.to_string(),
+            limit_price: self.limit_price.to_string(),
+            size_shares: self.size_shares.to_string(),
+            signature_type: self.signature_type,
+            created_at_ms: self.created_at_ms,
+            metadata: self.metadata.to_string(),
+            builder: self.builder.to_string(),
+            is_taker: self.is_taker,
+            fill_amount: self.fill_amount.to_string(),
+            fee: self.fee.to_string(),
+            tx: match self.tx.get()? {
+                ::core::option::Option::Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::TransactionContext,
+                        ::buffa::Inline<super::super::TransactionContext>,
+                    >::some(v.to_owned_message()?)
+                }
+                ::core::option::Option::None => ::buffa::MessageField::none(),
+            },
+            ..::core::default::Default::default()
+        })
+    }
+}
+/// Re-encoding: recorded fragments are replayed byte-for-byte
+/// **without validation** — wire-equivalent to the merged value, and
+/// a never-accessed malformed deferred field round-trips silently.
+/// Inherent rather than [`::buffa::ViewEncode`] (whose `MessageView`
+/// supertrait carries the eager whole-tree-validated contract); the
+/// fuller `ViewEncode` set (`encode_length_delimited`,
+/// `encode_with_cache`) lives on the eager view.
+impl<'a> ObservedOrderLazyView<'a> {
+    /// Compute the encoded byte size, filling `cache` with
+    /// per-message sizes consumed by a following `write_to` call.
+    /// Called for that side effect by `encode`; prefer `encoded_len`
+    /// when only the size is needed.
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    pub fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        #[allow(unused_imports)]
+        use ::buffa::ViewEncode as _;
+        let mut size = 0u64;
+        if !self.order_hash.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.order_hash) as u64;
+        }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
+        if !self.maker.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.maker) as u64;
+        }
+        if !self.signer.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.signer) as u64;
+        }
+        if !self.token_id.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.token_id) as u64;
+        }
+        if self.side != 0u32 {
+            size += 1u64 + ::buffa::types::uint32_encoded_len(self.side) as u64;
+        }
+        if !self.maker_amount.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.maker_amount) as u64;
+        }
+        if !self.taker_amount.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.taker_amount) as u64;
+        }
+        if !self.limit_price.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.limit_price) as u64;
+        }
+        if !self.size_shares.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.size_shares) as u64;
+        }
+        if self.signature_type != 0u32 {
+            size
+                += 1u64 + ::buffa::types::uint32_encoded_len(self.signature_type) as u64;
+        }
+        if self.created_at_ms != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.created_at_ms) as u64;
+        }
+        if !self.metadata.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.metadata) as u64;
+        }
+        if !self.builder.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.builder) as u64;
+        }
+        if self.is_taker {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
+        if !self.fill_amount.is_empty() {
+            size += 2u64 + ::buffa::types::string_encoded_len(&self.fill_amount) as u64;
+        }
+        if !self.fee.is_empty() {
+            size += 2u64 + ::buffa::types::string_encoded_len(&self.fee) as u64;
+        }
+        for __frag in self.tx.fragments() {
+            size
+                += 2u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
+                    + __frag.len() as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    /// Write the encoded bytes to `buf`, reading per-message sizes
+    /// from the `cache` filled by a preceding `compute_size` call.
+    /// Prefer `encode` unless threading a shared cache.
+    #[allow(clippy::needless_borrow)]
+    pub fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        #[allow(unused_imports)]
+        use ::buffa::ViewEncode as _;
+        if !self.order_hash.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.order_hash, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(2u32, &self.exchange, buf);
+        }
+        if !self.maker.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.maker, buf);
+        }
+        if !self.signer.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.signer, buf);
+        }
+        if !self.token_id.is_empty() {
+            ::buffa::types::put_string_field(5u32, &self.token_id, buf);
+        }
+        if self.side != 0u32 {
+            ::buffa::types::put_uint32_field(6u32, self.side, buf);
+        }
+        if !self.maker_amount.is_empty() {
+            ::buffa::types::put_string_field(7u32, &self.maker_amount, buf);
+        }
+        if !self.taker_amount.is_empty() {
+            ::buffa::types::put_string_field(8u32, &self.taker_amount, buf);
+        }
+        if !self.limit_price.is_empty() {
+            ::buffa::types::put_string_field(9u32, &self.limit_price, buf);
+        }
+        if !self.size_shares.is_empty() {
+            ::buffa::types::put_string_field(10u32, &self.size_shares, buf);
+        }
+        if self.signature_type != 0u32 {
+            ::buffa::types::put_uint32_field(11u32, self.signature_type, buf);
+        }
+        if self.created_at_ms != 0u64 {
+            ::buffa::types::put_uint64_field(12u32, self.created_at_ms, buf);
+        }
+        if !self.metadata.is_empty() {
+            ::buffa::types::put_string_field(13u32, &self.metadata, buf);
+        }
+        if !self.builder.is_empty() {
+            ::buffa::types::put_string_field(14u32, &self.builder, buf);
+        }
+        if self.is_taker {
+            ::buffa::types::put_bool_field(15u32, self.is_taker, buf);
+        }
+        if !self.fill_amount.is_empty() {
+            ::buffa::types::put_string_field(16u32, &self.fill_amount, buf);
+        }
+        if !self.fee.is_empty() {
+            ::buffa::types::put_string_field(17u32, &self.fee, buf);
+        }
+        for __frag in self.tx.fragments() {
+            ::buffa::encoding::Tag::new(
+                    18u32,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )
+                .encode(buf);
+            ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
+            buf.put_slice(__frag);
+        }
+    }
+    /// Compute size, then write. Primary encode entry point.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the encoded size exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]) — see
+    /// [`try_encode`](Self::try_encode) for the error-returning
+    /// variant.
+    #[inline]
+    pub fn encode(&self, buf: &mut impl ::buffa::EncodeSink) {
+        self.try_encode(buf).unwrap_or_else(|_| ::buffa::encode_size_overflow())
+    }
+    /// Encode, returning an error instead of panicking if the
+    /// encoded size exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]).
+    ///
+    /// On `Err`, nothing is written to `buf`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::EncodeError::MessageTooLarge`] if the
+    /// encoded size exceeds the limit.
+    pub fn try_encode(
+        &self,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) -> ::core::result::Result<(), ::buffa::EncodeError> {
+        let mut __cache = ::buffa::SizeCache::new();
+        ::buffa::checked_encode_size(self.compute_size(&mut __cache))?;
+        self.write_to(&mut __cache, buf);
+        ::core::result::Result::Ok(())
+    }
+    /// Encoded byte size of this view.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the encoded size exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]) — see
+    /// [`try_encoded_len`](Self::try_encoded_len) for the
+    /// error-returning variant.
+    #[inline]
+    #[must_use]
+    pub fn encoded_len(&self) -> u32 {
+        self.try_encoded_len().unwrap_or_else(|_| ::buffa::encode_size_overflow())
+    }
+    /// Encoded byte size, returning an error instead of panicking
+    /// if it exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::EncodeError::MessageTooLarge`] if the
+    /// encoded size exceeds the limit.
+    pub fn try_encoded_len(&self) -> ::core::result::Result<u32, ::buffa::EncodeError> {
+        ::buffa::checked_encode_size(self.compute_size(&mut ::buffa::SizeCache::new()))
+    }
+    /// Encode this view to a new `Vec<u8>`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the encoded size exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]) — see
+    /// [`try_encode_to_vec`](Self::try_encode_to_vec) for the
+    /// error-returning variant. In debug builds, also panics if the
+    /// two encode passes disagree on the byte count.
+    #[inline]
+    #[must_use]
+    pub fn encode_to_vec(&self) -> ::buffa::alloc::vec::Vec<u8> {
+        let mut __cache = ::buffa::SizeCache::new();
+        let __size = match ::buffa::checked_encode_size(
+            self.compute_size(&mut __cache),
+        ) {
+            ::core::result::Result::Ok(__size) => __size as usize,
+            ::core::result::Result::Err(_) => ::buffa::encode_size_overflow(),
+        };
+        let mut __buf = ::buffa::alloc::vec::Vec::with_capacity(__size);
+        self.write_to(&mut __cache, &mut __buf);
+        ::buffa::debug_assert_two_pass(__buf.len(), __size);
+        __buf
+    }
+    /// Encode to a new `Vec<u8>`, returning an error instead of
+    /// panicking if the encoded size exceeds the 2 GiB protobuf
+    /// limit ([`::buffa::MAX_MESSAGE_BYTES`]).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::EncodeError::MessageTooLarge`] if the
+    /// encoded size exceeds the limit.
+    ///
+    /// # Panics
+    ///
+    /// In debug builds, panics if the two encode passes disagree
+    /// on the byte count.
+    pub fn try_encode_to_vec(
+        &self,
+    ) -> ::core::result::Result<::buffa::alloc::vec::Vec<u8>, ::buffa::EncodeError> {
+        let mut __cache = ::buffa::SizeCache::new();
+        let __size = ::buffa::checked_encode_size(self.compute_size(&mut __cache))?
+            as usize;
+        let mut __buf = ::buffa::alloc::vec::Vec::with_capacity(__size);
+        self.write_to(&mut __cache, &mut __buf);
+        ::buffa::debug_assert_two_pass(__buf.len(), __size);
+        ::core::result::Result::Ok(__buf)
+    }
+    /// Encode this view to a new [`::buffa::bytes::Bytes`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if the encoded size exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]) — see
+    /// [`try_encode_to_bytes`](Self::try_encode_to_bytes) for the
+    /// error-returning variant. In debug builds, also panics if the
+    /// two encode passes disagree on the byte count.
+    #[inline]
+    #[must_use]
+    pub fn encode_to_bytes(&self) -> ::buffa::bytes::Bytes {
+        let mut __cache = ::buffa::SizeCache::new();
+        let __size = match ::buffa::checked_encode_size(
+            self.compute_size(&mut __cache),
+        ) {
+            ::core::result::Result::Ok(__size) => __size as usize,
+            ::core::result::Result::Err(_) => ::buffa::encode_size_overflow(),
+        };
+        let mut __buf = ::buffa::bytes::BytesMut::with_capacity(__size);
+        self.write_to(&mut __cache, &mut __buf);
+        ::buffa::debug_assert_two_pass(__buf.len(), __size);
+        __buf.freeze()
+    }
+    /// Encode to a new [`::buffa::bytes::Bytes`], returning an
+    /// error instead of panicking if the encoded size exceeds the
+    /// 2 GiB protobuf limit ([`::buffa::MAX_MESSAGE_BYTES`]).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::EncodeError::MessageTooLarge`] if the
+    /// encoded size exceeds the limit.
+    ///
+    /// # Panics
+    ///
+    /// In debug builds, panics if the two encode passes disagree
+    /// on the byte count.
+    pub fn try_encode_to_bytes(
+        &self,
+    ) -> ::core::result::Result<::buffa::bytes::Bytes, ::buffa::EncodeError> {
+        let mut __cache = ::buffa::SizeCache::new();
+        let __size = ::buffa::checked_encode_size(self.compute_size(&mut __cache))?
+            as usize;
+        let mut __buf = ::buffa::bytes::BytesMut::with_capacity(__size);
+        self.write_to(&mut __cache, &mut __buf);
+        ::buffa::debug_assert_two_pass(__buf.len(), __size);
+        ::core::result::Result::Ok(__buf.freeze())
+    }
+}
+impl<'a> ::buffa::MessageName for ObservedOrderLazyView<'a> {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "ObservedOrder";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.ObservedOrder";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.ObservedOrder";
+}
+/** Lazy view of `polymarket.trades.v1.ObservedOrders`: nested and repeated message fields are
+ recorded as undecoded byte ranges and decoded on access. See
+ [`::buffa::LazyMessageView`] for the deferred-validation contract;
+ the eager, whole-tree-validated counterpart is named `ObservedOrdersView`.
+
+ Oneof variants, map values, groups, and extern-typed fields (e.g.
+ well-known types) hold eagerly-decoded `ObservedOrdersView`-family
+ types; only singular/repeated message fields defer.
+
+ # Examples
+
+ ```rust,ignore
+ use buffa::LazyMessageView;
+
+ let view = ObservedOrdersLazyView::decode_lazy(&bytes)?;
+ ```*/
+#[derive(Clone, Debug, Default)]
+pub struct ObservedOrdersLazyView<'a> {
+    /// In block order: by transaction, then taker first, then makers in call order.
+    ///
+    /// Field 1: `orders`
+    pub orders: ::buffa::LazyRepeatedView<
+        'a,
+        super::super::__buffa::lazy_view::ObservedOrderLazyView<'a>,
+    >,
+}
+impl<'a> ObservedOrdersLazyView<'a> {
+    /// Decode from `buf` under the limits carried by `ctx`, recording
+    /// nested/repeated message fields as byte ranges.
+    ///
+    /// **Not part of the public API.**
+    #[doc(hidden)]
+    pub fn _decode_lazy_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let mut view = Self::default();
+        view._merge_lazy(buf, ctx)?;
+        ::core::result::Result::Ok(view)
+    }
+    /// Merge fields from `buf` into this view (proto merge semantics;
+    /// deferred message fragments accumulate).
+    ///
+    /// **Not part of the public API.**
+    #[doc(hidden)]
+    pub fn _merge_lazy(
+        &mut self,
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur: &'a [u8] = buf;
+        while !cur.is_empty() {
+            let tag = ::buffa::encoding::Tag::decode(&mut cur)?;
+            match tag.field_number() {
+                1u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::LengthDelimited,
+                    )?;
+                    let __sub_ctx = ctx.descend()?;
+                    let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                    ctx.register_element_memory(::core::mem::size_of::<&'a [u8]>())?;
+                    view.orders.push_bytes(sub, __sub_ctx);
+                }
+                _ => {
+                    ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+                }
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+}
+impl<'a> ::buffa::LazyMessageView<'a> for ObservedOrdersLazyView<'a> {
+    type Owned = super::super::ObservedOrders;
+    fn decode_lazy(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        let __elem = ::core::cell::Cell::new(::buffa::DEFAULT_ELEMENT_MEMORY_LIMIT);
+        Self::_decode_lazy_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit)
+                .with_element_memory(&__elem),
+        )
+    }
+    fn decode_lazy_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        Self::_decode_lazy_ctx(buf, ctx)
+    }
+    fn merge_lazy(
+        &mut self,
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        self._merge_lazy(buf, ctx)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::ObservedOrders, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        #[allow(unused_imports)]
+        use ::buffa::MessageView as _;
+        let __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes> = ::core::option::Option::None;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::ObservedOrders {
+            orders: {
+                let mut __out = ::buffa::alloc::vec::Vec::with_capacity(
+                    self.orders.len(),
+                );
+                for __r in self.orders.iter() {
+                    __out.push(__r?.to_owned_message()?);
+                }
+                __out
+            },
+            ..::core::default::Default::default()
+        })
+    }
+}
+/// Re-encoding: recorded fragments are replayed byte-for-byte
+/// **without validation** — wire-equivalent to the merged value, and
+/// a never-accessed malformed deferred field round-trips silently.
+/// Inherent rather than [`::buffa::ViewEncode`] (whose `MessageView`
+/// supertrait carries the eager whole-tree-validated contract); the
+/// fuller `ViewEncode` set (`encode_length_delimited`,
+/// `encode_with_cache`) lives on the eager view.
+impl<'a> ObservedOrdersLazyView<'a> {
+    /// Compute the encoded byte size, filling `cache` with
+    /// per-message sizes consumed by a following `write_to` call.
+    /// Called for that side effect by `encode`; prefer `encoded_len`
+    /// when only the size is needed.
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    pub fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        #[allow(unused_imports)]
+        use ::buffa::ViewEncode as _;
+        let mut size = 0u64;
+        for __frag in self.orders.raw_elements() {
+            size
+                += 1u64 + ::buffa::encoding::varint_len(__frag.len() as u64) as u64
+                    + __frag.len() as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    /// Write the encoded bytes to `buf`, reading per-message sizes
+    /// from the `cache` filled by a preceding `compute_size` call.
+    /// Prefer `encode` unless threading a shared cache.
+    #[allow(clippy::needless_borrow)]
+    pub fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        #[allow(unused_imports)]
+        use ::buffa::ViewEncode as _;
+        for __frag in self.orders.raw_elements() {
+            ::buffa::encoding::Tag::new(
+                    1u32,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )
+                .encode(buf);
+            ::buffa::encoding::encode_varint(__frag.len() as u64, buf);
+            buf.put_slice(__frag);
+        }
+    }
+    /// Compute size, then write. Primary encode entry point.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the encoded size exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]) — see
+    /// [`try_encode`](Self::try_encode) for the error-returning
+    /// variant.
+    #[inline]
+    pub fn encode(&self, buf: &mut impl ::buffa::EncodeSink) {
+        self.try_encode(buf).unwrap_or_else(|_| ::buffa::encode_size_overflow())
+    }
+    /// Encode, returning an error instead of panicking if the
+    /// encoded size exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]).
+    ///
+    /// On `Err`, nothing is written to `buf`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::EncodeError::MessageTooLarge`] if the
+    /// encoded size exceeds the limit.
+    pub fn try_encode(
+        &self,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) -> ::core::result::Result<(), ::buffa::EncodeError> {
+        let mut __cache = ::buffa::SizeCache::new();
+        ::buffa::checked_encode_size(self.compute_size(&mut __cache))?;
+        self.write_to(&mut __cache, buf);
+        ::core::result::Result::Ok(())
+    }
+    /// Encoded byte size of this view.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the encoded size exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]) — see
+    /// [`try_encoded_len`](Self::try_encoded_len) for the
+    /// error-returning variant.
+    #[inline]
+    #[must_use]
+    pub fn encoded_len(&self) -> u32 {
+        self.try_encoded_len().unwrap_or_else(|_| ::buffa::encode_size_overflow())
+    }
+    /// Encoded byte size, returning an error instead of panicking
+    /// if it exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::EncodeError::MessageTooLarge`] if the
+    /// encoded size exceeds the limit.
+    pub fn try_encoded_len(&self) -> ::core::result::Result<u32, ::buffa::EncodeError> {
+        ::buffa::checked_encode_size(self.compute_size(&mut ::buffa::SizeCache::new()))
+    }
+    /// Encode this view to a new `Vec<u8>`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the encoded size exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]) — see
+    /// [`try_encode_to_vec`](Self::try_encode_to_vec) for the
+    /// error-returning variant. In debug builds, also panics if the
+    /// two encode passes disagree on the byte count.
+    #[inline]
+    #[must_use]
+    pub fn encode_to_vec(&self) -> ::buffa::alloc::vec::Vec<u8> {
+        let mut __cache = ::buffa::SizeCache::new();
+        let __size = match ::buffa::checked_encode_size(
+            self.compute_size(&mut __cache),
+        ) {
+            ::core::result::Result::Ok(__size) => __size as usize,
+            ::core::result::Result::Err(_) => ::buffa::encode_size_overflow(),
+        };
+        let mut __buf = ::buffa::alloc::vec::Vec::with_capacity(__size);
+        self.write_to(&mut __cache, &mut __buf);
+        ::buffa::debug_assert_two_pass(__buf.len(), __size);
+        __buf
+    }
+    /// Encode to a new `Vec<u8>`, returning an error instead of
+    /// panicking if the encoded size exceeds the 2 GiB protobuf
+    /// limit ([`::buffa::MAX_MESSAGE_BYTES`]).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::EncodeError::MessageTooLarge`] if the
+    /// encoded size exceeds the limit.
+    ///
+    /// # Panics
+    ///
+    /// In debug builds, panics if the two encode passes disagree
+    /// on the byte count.
+    pub fn try_encode_to_vec(
+        &self,
+    ) -> ::core::result::Result<::buffa::alloc::vec::Vec<u8>, ::buffa::EncodeError> {
+        let mut __cache = ::buffa::SizeCache::new();
+        let __size = ::buffa::checked_encode_size(self.compute_size(&mut __cache))?
+            as usize;
+        let mut __buf = ::buffa::alloc::vec::Vec::with_capacity(__size);
+        self.write_to(&mut __cache, &mut __buf);
+        ::buffa::debug_assert_two_pass(__buf.len(), __size);
+        ::core::result::Result::Ok(__buf)
+    }
+    /// Encode this view to a new [`::buffa::bytes::Bytes`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if the encoded size exceeds the 2 GiB protobuf limit
+    /// ([`::buffa::MAX_MESSAGE_BYTES`]) — see
+    /// [`try_encode_to_bytes`](Self::try_encode_to_bytes) for the
+    /// error-returning variant. In debug builds, also panics if the
+    /// two encode passes disagree on the byte count.
+    #[inline]
+    #[must_use]
+    pub fn encode_to_bytes(&self) -> ::buffa::bytes::Bytes {
+        let mut __cache = ::buffa::SizeCache::new();
+        let __size = match ::buffa::checked_encode_size(
+            self.compute_size(&mut __cache),
+        ) {
+            ::core::result::Result::Ok(__size) => __size as usize,
+            ::core::result::Result::Err(_) => ::buffa::encode_size_overflow(),
+        };
+        let mut __buf = ::buffa::bytes::BytesMut::with_capacity(__size);
+        self.write_to(&mut __cache, &mut __buf);
+        ::buffa::debug_assert_two_pass(__buf.len(), __size);
+        __buf.freeze()
+    }
+    /// Encode to a new [`::buffa::bytes::Bytes`], returning an
+    /// error instead of panicking if the encoded size exceeds the
+    /// 2 GiB protobuf limit ([`::buffa::MAX_MESSAGE_BYTES`]).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::EncodeError::MessageTooLarge`] if the
+    /// encoded size exceeds the limit.
+    ///
+    /// # Panics
+    ///
+    /// In debug builds, panics if the two encode passes disagree
+    /// on the byte count.
+    pub fn try_encode_to_bytes(
+        &self,
+    ) -> ::core::result::Result<::buffa::bytes::Bytes, ::buffa::EncodeError> {
+        let mut __cache = ::buffa::SizeCache::new();
+        let __size = ::buffa::checked_encode_size(self.compute_size(&mut __cache))?
+            as usize;
+        let mut __buf = ::buffa::bytes::BytesMut::with_capacity(__size);
+        self.write_to(&mut __cache, &mut __buf);
+        ::buffa::debug_assert_two_pass(__buf.len(), __size);
+        ::core::result::Result::Ok(__buf.freeze())
+    }
+}
+impl<'a> ::buffa::MessageName for ObservedOrdersLazyView<'a> {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "ObservedOrders";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.ObservedOrders";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.ObservedOrders";
+}

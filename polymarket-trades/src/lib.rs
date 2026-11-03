@@ -1,11 +1,19 @@
 //! Polymarket trade tape: one `Trade` per `OrderFilled`, read from the outputs of the
-//! sibling exchange packages (no block decoding here).
+//! sibling exchange packages. Only `map_orders` reads blocks (settlement calldata).
 
-#[allow(dead_code, clippy::all)]
-pub mod pb;
+// The `#[substreams::handlers::map]` macro generates an `extern "C"` shim that rebuilds
+// lazy `&eth::BlockLazyView<'_>` handler inputs from a raw `*mut u8`. The macro drops
+// the annotated fn's attributes, so a fn-scoped allow cannot reach the generated
+// shim; `not_unsafe_ptr_arg_deref` must be allowed at crate scope. The unsafe deref
+// lives entirely in macro-generated code; our handlers are safe.
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 mod candles;
 mod db;
+mod observed;
 mod orders;
+#[allow(dead_code, clippy::all)]
+pub mod pb;
 mod stats;
 
 use std::str::FromStr;
@@ -497,6 +505,99 @@ mod fixture_tests {
         .expect("inputs build")
     }
 
+    fn observed_orders(block_number: u64) -> proto::ObservedOrders {
+        let path = format!(
+            "{}/../testdata/polygon_{block_number}.binpb.b64",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        let block = polymarket_substreams_common::load_block_b64(&path).expect("fixture loads");
+        with_lazy_block(&block, |blk| {
+            substreams::testing::map!(crate::observed::map_orders(blk))
+        })
+        .expect("fixture block encodes")
+        .expect("handler must not err")
+    }
+
+    /// Every decoded order is the order of one fill in the same transaction: same
+    /// order hash (so the EIP-712 hash is right), same OrderFilled log, owner,
+    /// token, side, and the settlement's fill amount equals the maker amount filled.
+    fn assert_orders_match_fills(block_number: u64) -> proto::ObservedOrders {
+        let inp = inputs(block_number);
+        let trades = substreams::testing::map!(map_trades(inp.exchange, inp.neg_risk))
+            .expect("handler must not err");
+        let orders = observed_orders(block_number);
+        assert_eq!(orders.orders.len(), trades.trades.len());
+        for o in &orders.orders {
+            let tx = o.tx.as_option().expect("tx");
+            let t = trades
+                .trades
+                .iter()
+                .find(|t| {
+                    let ttx = t.tx.as_option().expect("tx");
+                    ttx.tx_hash == tx.tx_hash && ttx.log_index == tx.log_index
+                })
+                .unwrap_or_else(|| panic!("no fill for order {}", o.order_hash));
+            assert_eq!(o.order_hash, format_address(&t.order_hash));
+            assert_eq!(
+                (&o.maker, &o.token_id, o.side),
+                (&t.maker, &t.token_id, t.side)
+            );
+            assert_eq!(o.exchange, t.exchange);
+            assert_eq!(o.fee, t.fee);
+            let maker_filled = if t.side == SIDE_BUY {
+                BigInt::from_str(&t.collateral).expect("int")
+                    - BigInt::from_str(&t.fee).expect("int")
+            } else {
+                BigInt::from_str(&t.shares).expect("int")
+            };
+            assert_eq!(o.fill_amount, maker_filled.to_string(), "{}", o.order_hash);
+            assert_eq!(o.is_taker, t.is_match);
+        }
+        orders
+    }
+
+    #[test]
+    fn map_orders_real_block_96600000() {
+        let out = assert_orders_match_fills(96600000);
+        assert_eq!(out.orders.len(), 50);
+        let first = &out.orders[0];
+        assert_eq!(
+            (
+                first.order_hash.as_str(),
+                first.limit_price.as_str(),
+                first.size_shares.as_str()
+            ),
+            FIRST_ORDER_96600000
+        );
+    }
+
+    #[test]
+    fn map_orders_real_block_96680009_includes_exchange_v3() {
+        let out = assert_orders_match_fills(96680009);
+        assert_eq!(out.orders.len(), 43);
+        assert_eq!(
+            out.orders
+                .iter()
+                .filter(|o| o.exchange == "exchange_v3")
+                .count(),
+            4
+        );
+    }
+
+    #[test]
+    fn map_orders_skips_a_block_without_settlements() {
+        let block = substreams_ethereum::pb::eth::v2::Block {
+            number: 1,
+            ..Default::default()
+        };
+        let out = with_lazy_block(&block, |blk| {
+            substreams::testing::map!(crate::observed::map_orders(blk))
+        })
+        .expect("block encodes")
+        .expect("handler must not err");
+        assert!(out.orders.is_empty());
+    }
+
     fn count(trades: &proto::Trades, exchange: &str) -> usize {
         trades
             .trades
@@ -628,7 +729,11 @@ mod fixture_tests {
         }
         let first = &candles.candles[0];
         assert_eq!(
-            (first.token_id.as_str(), first.open.as_str(), first.bucket_start),
+            (
+                first.token_id.as_str(),
+                first.open.as_str(),
+                first.bucket_start
+            ),
             FIRST_CANDLE_96600000
         );
     }
@@ -642,7 +747,11 @@ mod fixture_tests {
             .expect("handler must not err");
         let fills = substreams::testing::map!(crate::orders::map_order_fills(trades.clone()))
             .expect("handler must not err");
-        let mut hashes: Vec<&[u8]> = trades.trades.iter().map(|t| t.order_hash.as_slice()).collect();
+        let mut hashes: Vec<&[u8]> = trades
+            .trades
+            .iter()
+            .map(|t| t.order_hash.as_slice())
+            .collect();
         hashes.sort_unstable();
         hashes.dedup();
         assert_eq!(fills.orders.len(), hashes.len());
@@ -670,9 +779,8 @@ mod fixture_tests {
         use pb::polymarket::resolution::v1 as res;
         const BINARY: [u8; 20] = hex_literal::hex!("1000008dd9001b968442c1000017eae6e0da00ba");
         const NEG_RISK: [u8; 20] = hex_literal::hex!("200000900045e3b6259600682756002200028933");
-        const TOPIC0: [u8; 32] = hex_literal::hex!(
-            "e560c1a2847d4cf2e66de11fe592605556989449f38cc3ab96e2e287daa68caa"
-        );
+        const TOPIC0: [u8; 32] =
+            hex_literal::hex!("e560c1a2847d4cf2e66de11fe592605556989449f38cc3ab96e2e287daa68caa");
         let path = format!(
             "{}/../testdata/polygon_{block_number}.binpb.b64",
             env!("CARGO_MANIFEST_DIR")
@@ -697,7 +805,12 @@ mod fixture_tests {
                 out.condition_resolved.push(res::ModuleConditionResolved {
                     condition_id: format_address(&topics[1][..31]),
                     payouts,
-                    module: if log.log.address == BINARY { "binary" } else { "neg_risk" }.into(),
+                    module: if log.log.address == BINARY {
+                        "binary"
+                    } else {
+                        "neg_risk"
+                    }
+                    .into(),
                     tx: Some(res::TransactionContext {
                         tx_hash: format_address(log.tx_hash),
                         log_index: log.log.block_index as u64,
@@ -734,18 +847,31 @@ mod fixture_tests {
         let resolutions = module_resolutions(96681462);
         let no_res = Default::default();
 
-        let pg = postgres(&trades, &stats, &candles, &fills, &no_res);
+        let observed = observed_orders(96600000);
+        let pg = postgres(&trades, &stats, &candles, &fills, &no_res, &observed);
         assert_eq!(rows(&pg, TRADES), (50, Some(Operation::Create)));
         assert_eq!(rows(&pg, MARKET_STATS), (21, Some(Operation::Upsert)));
         assert_eq!(rows(&pg, CANDLES), (21, Some(Operation::Upsert)));
-        assert_eq!(rows(&pg, ORDER_FILLS), (ORDERS_96600000, Some(Operation::Upsert)));
+        assert_eq!(
+            rows(&pg, ORDER_FILLS),
+            (ORDERS_96600000, Some(Operation::Upsert))
+        );
         assert_eq!(rows(&pg, RESOLUTIONS).0, 0);
+        // One row per order: 50 settled orders, one of them twice.
+        assert_eq!(
+            rows(&pg, crate::db::ORDERS),
+            (ORDERS_96600000, Some(Operation::Upsert))
+        );
         let first = pg
             .table_changes
             .iter()
             .find(|c| c.table == TRADES)
             .expect("a trade row");
-        let price = first.fields.iter().find(|f| f.name == "price").expect("price");
+        let price = first
+            .fields
+            .iter()
+            .find(|f| f.name == "price")
+            .expect("price");
         assert_eq!(price.value, FIRST_96600000.2);
 
         let pg = postgres(
@@ -754,6 +880,7 @@ mod fixture_tests {
             &Default::default(),
             &Default::default(),
             &resolutions,
+            &Default::default(),
         );
         assert_eq!(rows(&pg, RESOLUTIONS), (41, Some(Operation::Create)));
         let r = pg
@@ -773,8 +900,9 @@ mod fixture_tests {
         assert!(field("resolved_id").starts_with("0x01c4dffb"));
 
         // ClickHouse: the same rows, all plain inserts.
-        let ch = clickhouse(&trades, &stats, &candles, &fills, &resolutions);
+        let ch = clickhouse(&trades, &stats, &candles, &fills, &resolutions, &observed);
         for (table, n) in [
+            (crate::db::ORDERS, 50),
             (TRADES, 50),
             (MARKET_STATS, 21),
             (CANDLES, 21),
@@ -795,6 +923,12 @@ mod fixture_tests {
     const VOLUME_FILLS_96600000: usize = 43;
     const CANDLES_96600000: usize = 21;
     const ORDERS_96600000: usize = 49;
+    /// (order_hash, limit_price, size_shares) of the first settled order in 96600000.
+    const FIRST_ORDER_96600000: (&str, &str, &str) = (
+        "0x2e6564cfdffd666611fae3d39b772fb78813cdf826a83f16862daef5e594d8da",
+        "0.630000",
+        "555000000",
+    );
     /// (token_id, open, bucket_start) of the first candle in block 96600000.
     const FIRST_CANDLE_96600000: (&str, &str, u64) = (
         "104682004226386236263369368652385253547958068860089723081382793939737139300525",

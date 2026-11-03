@@ -3170,3 +3170,915 @@ impl ::buffa::HasMessageView for super::super::OrderFills {
     type View<'a> = OrderFillsView<'a>;
     type ViewHandle = OrderFillsOwnedView;
 }
+/// One signed order from an exchange settlement call (`matchOrders`), decoded from
+/// calldata: the full order, which OrderFilled doesn't carry. Emitted once per order
+/// per settlement, so an order filled in several settlements appears in each. A
+/// sink keeps one row per order_hash and sums fill_amount to get what remains:
+/// remaining = maker_amount - sum(fill_amount), in maker-asset units (collateral for
+/// a BUY, shares for a SELL), which is how the exchange itself tracks it. Off-chain
+/// cancellations and orders never filled stay invisible, so this is an upper bound
+/// on the book.
+#[derive(Clone, Debug, Default)]
+pub struct ObservedOrderView<'a> {
+    /// EIP-712 hash, the OrderFilled order_hash. 0x-prefixed hex.
+    ///
+    /// Field 1: `order_hash`
+    pub order_hash: &'a str,
+    /// ctf_v2 | neg_risk_v2 | exchange_v3, as Trade.exchange.
+    ///
+    /// Field 2: `exchange`
+    pub exchange: &'a str,
+    /// Order owner (source of funds), and the key that signed it.
+    ///
+    /// Field 3: `maker`
+    pub maker: &'a str,
+    /// Field 4: `signer`
+    pub signer: &'a str,
+    /// Field 5: `token_id`
+    pub token_id: &'a str,
+    /// 0 = BUY, 1 = SELL.
+    ///
+    /// Field 6: `side`
+    pub side: u32,
+    /// Full order: the most the maker gives and the least they get (raw 6-decimal).
+    ///
+    /// Field 7: `maker_amount`
+    pub maker_amount: &'a str,
+    /// Field 8: `taker_amount`
+    pub taker_amount: &'a str,
+    /// Collateral per share, 6 decimals, rounded down: maker/taker for a BUY,
+    /// taker/maker for a SELL. Excludes fees, which the operator sets per fill.
+    ///
+    /// Field 9: `limit_price`
+    pub limit_price: &'a str,
+    /// Size in shares: taker_amount for a BUY, maker_amount for a SELL.
+    ///
+    /// Field 10: `size_shares`
+    pub size_shares: &'a str,
+    /// 0 EOA, 1 POLY_PROXY, 2 POLY_GNOSIS_SAFE, 3 POLY_1271.
+    ///
+    /// Field 11: `signature_type`
+    pub signature_type: u32,
+    /// Order creation time, unix milliseconds.
+    ///
+    /// Field 12: `created_at_ms`
+    pub created_at_ms: u64,
+    /// 0x-prefixed bytes32.
+    ///
+    /// Field 13: `metadata`
+    pub metadata: &'a str,
+    /// Field 14: `builder`
+    pub builder: &'a str,
+    /// The taker order of its match (the others are maker orders).
+    ///
+    /// Field 15: `is_taker`
+    pub is_taker: bool,
+    /// Maker-asset amount this settlement filled (OrderFilled.makerAmountFilled) and
+    /// the fee charged on it.
+    ///
+    /// Field 16: `fill_amount`
+    pub fill_amount: &'a str,
+    /// Field 17: `fee`
+    pub fee: &'a str,
+    /// log_index is that of the order's OrderFilled log in the same transaction.
+    ///
+    /// Field 18: `tx`
+    pub tx: ::buffa::MessageFieldView<
+        super::super::__buffa::view::TransactionContextView<'a>,
+    >,
+}
+impl<'a> ::buffa::MessageView<'a> for ObservedOrderView<'a> {
+    type Owned = super::super::ObservedOrder;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        let __elem = ::core::cell::Cell::new(::buffa::DEFAULT_ELEMENT_MEMORY_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit)
+                .with_element_memory(&__elem),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    #[inline]
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        _before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.order_hash = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.exchange = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.maker = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.signer = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.token_id = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.side = ::buffa::types::decode_uint32(&mut cur)?;
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.maker_amount = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.taker_amount = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.limit_price = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            10u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.size_shares = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            11u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.signature_type = ::buffa::types::decode_uint32(&mut cur)?;
+            }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.created_at_ms = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            13u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.metadata = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            14u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.builder = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            15u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.is_taker = ::buffa::types::decode_bool(&mut cur)?;
+            }
+            16u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.fill_amount = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            17u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.fee = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            18u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.tx.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.tx = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::TransactionContextView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::ObservedOrder, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::ObservedOrder, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::ObservedOrder {
+            order_hash: self.order_hash.to_string(),
+            exchange: self.exchange.to_string(),
+            maker: self.maker.to_string(),
+            signer: self.signer.to_string(),
+            token_id: self.token_id.to_string(),
+            side: self.side,
+            maker_amount: self.maker_amount.to_string(),
+            taker_amount: self.taker_amount.to_string(),
+            limit_price: self.limit_price.to_string(),
+            size_shares: self.size_shares.to_string(),
+            signature_type: self.signature_type,
+            created_at_ms: self.created_at_ms,
+            metadata: self.metadata.to_string(),
+            builder: self.builder.to_string(),
+            is_taker: self.is_taker,
+            fill_amount: self.fill_amount.to_string(),
+            fee: self.fee.to_string(),
+            tx: match self.tx.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::TransactionContext,
+                        ::buffa::Inline<super::super::TransactionContext>,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for ObservedOrderView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.order_hash.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.order_hash) as u64;
+        }
+        if !self.exchange.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.exchange) as u64;
+        }
+        if !self.maker.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.maker) as u64;
+        }
+        if !self.signer.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.signer) as u64;
+        }
+        if !self.token_id.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.token_id) as u64;
+        }
+        if self.side != 0u32 {
+            size += 1u64 + ::buffa::types::uint32_encoded_len(self.side) as u64;
+        }
+        if !self.maker_amount.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.maker_amount) as u64;
+        }
+        if !self.taker_amount.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.taker_amount) as u64;
+        }
+        if !self.limit_price.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.limit_price) as u64;
+        }
+        if !self.size_shares.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.size_shares) as u64;
+        }
+        if self.signature_type != 0u32 {
+            size
+                += 1u64 + ::buffa::types::uint32_encoded_len(self.signature_type) as u64;
+        }
+        if self.created_at_ms != 0u64 {
+            size += 1u64 + ::buffa::types::uint64_encoded_len(self.created_at_ms) as u64;
+        }
+        if !self.metadata.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.metadata) as u64;
+        }
+        if !self.builder.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.builder) as u64;
+        }
+        if self.is_taker {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
+        if !self.fill_amount.is_empty() {
+            size += 2u64 + ::buffa::types::string_encoded_len(&self.fill_amount) as u64;
+        }
+        if !self.fee.is_empty() {
+            size += 2u64 + ::buffa::types::string_encoded_len(&self.fee) as u64;
+        }
+        if self.tx.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.tx.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.order_hash.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.order_hash, buf);
+        }
+        if !self.exchange.is_empty() {
+            ::buffa::types::put_string_field(2u32, &self.exchange, buf);
+        }
+        if !self.maker.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.maker, buf);
+        }
+        if !self.signer.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.signer, buf);
+        }
+        if !self.token_id.is_empty() {
+            ::buffa::types::put_string_field(5u32, &self.token_id, buf);
+        }
+        if self.side != 0u32 {
+            ::buffa::types::put_uint32_field(6u32, self.side, buf);
+        }
+        if !self.maker_amount.is_empty() {
+            ::buffa::types::put_string_field(7u32, &self.maker_amount, buf);
+        }
+        if !self.taker_amount.is_empty() {
+            ::buffa::types::put_string_field(8u32, &self.taker_amount, buf);
+        }
+        if !self.limit_price.is_empty() {
+            ::buffa::types::put_string_field(9u32, &self.limit_price, buf);
+        }
+        if !self.size_shares.is_empty() {
+            ::buffa::types::put_string_field(10u32, &self.size_shares, buf);
+        }
+        if self.signature_type != 0u32 {
+            ::buffa::types::put_uint32_field(11u32, self.signature_type, buf);
+        }
+        if self.created_at_ms != 0u64 {
+            ::buffa::types::put_uint64_field(12u32, self.created_at_ms, buf);
+        }
+        if !self.metadata.is_empty() {
+            ::buffa::types::put_string_field(13u32, &self.metadata, buf);
+        }
+        if !self.builder.is_empty() {
+            ::buffa::types::put_string_field(14u32, &self.builder, buf);
+        }
+        if self.is_taker {
+            ::buffa::types::put_bool_field(15u32, self.is_taker, buf);
+        }
+        if !self.fill_amount.is_empty() {
+            ::buffa::types::put_string_field(16u32, &self.fill_amount, buf);
+        }
+        if !self.fee.is_empty() {
+            ::buffa::types::put_string_field(17u32, &self.fee, buf);
+        }
+        if self.tx.is_set() {
+            ::buffa::types::put_len_delimited_header(
+                18u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            self.tx.write_to(__cache, buf);
+        }
+    }
+}
+impl<'a> ::buffa::MessageName for ObservedOrderView<'a> {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "ObservedOrder";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.ObservedOrder";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.ObservedOrder";
+}
+::buffa::impl_default_view_instance!(ObservedOrderView);
+::buffa::impl_view_reborrow!(ObservedOrderView);
+/** Self-contained, `'static` owned view of a `ObservedOrder` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`ObservedOrderView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`ObservedOrderView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct ObservedOrderOwnedView(::buffa::OwnedView<ObservedOrderView<'static>>);
+impl ObservedOrderOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ObservedOrderOwnedView(::buffa::OwnedView::decode(bytes)?),
+        )
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ObservedOrderOwnedView(::buffa::OwnedView::decode_with_options(bytes, opts)?),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError::MessageTooLarge`] if the
+    /// message's encoded size exceeds the 2 GiB protobuf limit, or
+    /// another [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::ObservedOrder,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ObservedOrderOwnedView(::buffa::OwnedView::from_owned(msg)?),
+        )
+    }
+    /// Borrow the full [`ObservedOrderView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &ObservedOrderView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// Infallible: this type's constructors wire-decode their
+    /// buffer, and a view produced by wire decoding always
+    /// converts. Delegates to [`::buffa::OwnedView::to_owned_message`],
+    /// whose contract also governs handles converted from a raw
+    /// [`::buffa::OwnedView`].
+    #[must_use]
+    pub fn to_owned_message(&self) -> super::super::ObservedOrder {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// EIP-712 hash, the OrderFilled order_hash. 0x-prefixed hex.
+    ///
+    /// Field 1: `order_hash`
+    #[must_use]
+    pub fn order_hash(&self) -> &'_ str {
+        self.0.reborrow().order_hash
+    }
+    /// ctf_v2 | neg_risk_v2 | exchange_v3, as Trade.exchange.
+    ///
+    /// Field 2: `exchange`
+    #[must_use]
+    pub fn exchange(&self) -> &'_ str {
+        self.0.reborrow().exchange
+    }
+    /// Order owner (source of funds), and the key that signed it.
+    ///
+    /// Field 3: `maker`
+    #[must_use]
+    pub fn maker(&self) -> &'_ str {
+        self.0.reborrow().maker
+    }
+    /// Field 4: `signer`
+    #[must_use]
+    pub fn signer(&self) -> &'_ str {
+        self.0.reborrow().signer
+    }
+    /// Field 5: `token_id`
+    #[must_use]
+    pub fn token_id(&self) -> &'_ str {
+        self.0.reborrow().token_id
+    }
+    /// 0 = BUY, 1 = SELL.
+    ///
+    /// Field 6: `side`
+    #[must_use]
+    pub fn side(&self) -> u32 {
+        self.0.reborrow().side
+    }
+    /// Full order: the most the maker gives and the least they get (raw 6-decimal).
+    ///
+    /// Field 7: `maker_amount`
+    #[must_use]
+    pub fn maker_amount(&self) -> &'_ str {
+        self.0.reborrow().maker_amount
+    }
+    /// Field 8: `taker_amount`
+    #[must_use]
+    pub fn taker_amount(&self) -> &'_ str {
+        self.0.reborrow().taker_amount
+    }
+    /// Collateral per share, 6 decimals, rounded down: maker/taker for a BUY,
+    /// taker/maker for a SELL. Excludes fees, which the operator sets per fill.
+    ///
+    /// Field 9: `limit_price`
+    #[must_use]
+    pub fn limit_price(&self) -> &'_ str {
+        self.0.reborrow().limit_price
+    }
+    /// Size in shares: taker_amount for a BUY, maker_amount for a SELL.
+    ///
+    /// Field 10: `size_shares`
+    #[must_use]
+    pub fn size_shares(&self) -> &'_ str {
+        self.0.reborrow().size_shares
+    }
+    /// 0 EOA, 1 POLY_PROXY, 2 POLY_GNOSIS_SAFE, 3 POLY_1271.
+    ///
+    /// Field 11: `signature_type`
+    #[must_use]
+    pub fn signature_type(&self) -> u32 {
+        self.0.reborrow().signature_type
+    }
+    /// Order creation time, unix milliseconds.
+    ///
+    /// Field 12: `created_at_ms`
+    #[must_use]
+    pub fn created_at_ms(&self) -> u64 {
+        self.0.reborrow().created_at_ms
+    }
+    /// 0x-prefixed bytes32.
+    ///
+    /// Field 13: `metadata`
+    #[must_use]
+    pub fn metadata(&self) -> &'_ str {
+        self.0.reborrow().metadata
+    }
+    /// Field 14: `builder`
+    #[must_use]
+    pub fn builder(&self) -> &'_ str {
+        self.0.reborrow().builder
+    }
+    /// The taker order of its match (the others are maker orders).
+    ///
+    /// Field 15: `is_taker`
+    #[must_use]
+    pub fn is_taker(&self) -> bool {
+        self.0.reborrow().is_taker
+    }
+    /// Maker-asset amount this settlement filled (OrderFilled.makerAmountFilled) and
+    /// the fee charged on it.
+    ///
+    /// Field 16: `fill_amount`
+    #[must_use]
+    pub fn fill_amount(&self) -> &'_ str {
+        self.0.reborrow().fill_amount
+    }
+    /// Field 17: `fee`
+    #[must_use]
+    pub fn fee(&self) -> &'_ str {
+        self.0.reborrow().fee
+    }
+    /// log_index is that of the order's OrderFilled log in the same transaction.
+    ///
+    /// Field 18: `tx`
+    #[must_use]
+    pub fn tx(
+        &self,
+    ) -> &::buffa::MessageFieldView<
+        super::super::__buffa::view::TransactionContextView<'_>,
+    > {
+        &self.0.reborrow().tx
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<ObservedOrderView<'static>>>
+for ObservedOrderOwnedView {
+    fn from(inner: ::buffa::OwnedView<ObservedOrderView<'static>>) -> Self {
+        ObservedOrderOwnedView(inner)
+    }
+}
+impl ::core::convert::From<ObservedOrderOwnedView>
+for ::buffa::OwnedView<ObservedOrderView<'static>> {
+    fn from(wrapper: ObservedOrderOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<ObservedOrderView<'static>>>
+for ObservedOrderOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<ObservedOrderView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::ObservedOrder {
+    type View<'a> = ObservedOrderView<'a>;
+    type ViewHandle = ObservedOrderOwnedView;
+}
+#[derive(Clone, Debug, Default)]
+pub struct ObservedOrdersView<'a> {
+    /// In block order: by transaction, then taker first, then makers in call order.
+    ///
+    /// Field 1: `orders`
+    pub orders: ::buffa::RepeatedView<
+        'a,
+        super::super::__buffa::view::ObservedOrderView<'a>,
+    >,
+}
+impl<'a> ::buffa::MessageView<'a> for ObservedOrdersView<'a> {
+    type Owned = super::super::ObservedOrders;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        let __elem = ::core::cell::Cell::new(::buffa::DEFAULT_ELEMENT_MEMORY_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit)
+                .with_element_memory(&__elem),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    #[inline]
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        _before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                ctx.register_element_memory(
+                    ::core::mem::size_of::<
+                        super::super::__buffa::view::ObservedOrderView,
+                    >(),
+                )?;
+                view.orders
+                    .push(
+                        <super::super::__buffa::view::ObservedOrderView as ::buffa::MessageView>::decode_view_ctx(
+                            sub,
+                            __sub_ctx,
+                        )?,
+                    );
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::ObservedOrders, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::ObservedOrders, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::ObservedOrders {
+            orders: self
+                .orders
+                .iter()
+                .map(|v| v.to_owned_from_source(__buffa_src))
+                .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for ObservedOrdersView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        for v in &self.orders {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
+        ::buffa::saturate_size(size)
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        for v in &self.orders {
+            ::buffa::types::put_len_delimited_header(
+                1u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
+        }
+    }
+}
+impl<'a> ::buffa::MessageName for ObservedOrdersView<'a> {
+    const PACKAGE: &'static str = "polymarket.trades.v1";
+    const NAME: &'static str = "ObservedOrders";
+    const FULL_NAME: &'static str = "polymarket.trades.v1.ObservedOrders";
+    const TYPE_URL: &'static str = "type.googleapis.com/polymarket.trades.v1.ObservedOrders";
+}
+::buffa::impl_default_view_instance!(ObservedOrdersView);
+::buffa::impl_view_reborrow!(ObservedOrdersView);
+/** Self-contained, `'static` owned view of a `ObservedOrders` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`ObservedOrdersView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`ObservedOrdersView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct ObservedOrdersOwnedView(::buffa::OwnedView<ObservedOrdersView<'static>>);
+impl ObservedOrdersOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ObservedOrdersOwnedView(::buffa::OwnedView::decode(bytes)?),
+        )
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ObservedOrdersOwnedView(
+                ::buffa::OwnedView::decode_with_options(bytes, opts)?,
+            ),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError::MessageTooLarge`] if the
+    /// message's encoded size exceeds the 2 GiB protobuf limit, or
+    /// another [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::ObservedOrders,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ObservedOrdersOwnedView(::buffa::OwnedView::from_owned(msg)?),
+        )
+    }
+    /// Borrow the full [`ObservedOrdersView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &ObservedOrdersView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// Infallible: this type's constructors wire-decode their
+    /// buffer, and a view produced by wire decoding always
+    /// converts. Delegates to [`::buffa::OwnedView::to_owned_message`],
+    /// whose contract also governs handles converted from a raw
+    /// [`::buffa::OwnedView`].
+    #[must_use]
+    pub fn to_owned_message(&self) -> super::super::ObservedOrders {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// In block order: by transaction, then taker first, then makers in call order.
+    ///
+    /// Field 1: `orders`
+    #[must_use]
+    pub fn orders(
+        &self,
+    ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::ObservedOrderView<'_>> {
+        &self.0.reborrow().orders
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<ObservedOrdersView<'static>>>
+for ObservedOrdersOwnedView {
+    fn from(inner: ::buffa::OwnedView<ObservedOrdersView<'static>>) -> Self {
+        ObservedOrdersOwnedView(inner)
+    }
+}
+impl ::core::convert::From<ObservedOrdersOwnedView>
+for ::buffa::OwnedView<ObservedOrdersView<'static>> {
+    fn from(wrapper: ObservedOrdersOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<ObservedOrdersView<'static>>>
+for ObservedOrdersOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<ObservedOrdersView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::ObservedOrders {
+    type View<'a> = ObservedOrdersView<'a>;
+    type ViewHandle = ObservedOrdersOwnedView;
+}

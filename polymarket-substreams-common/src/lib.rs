@@ -3,6 +3,7 @@
 // `dead_code` is allowed; the per-file `#![allow(clippy::all)]` covers clippy.
 #[allow(dead_code, clippy::all)]
 pub mod abi;
+pub mod orders;
 
 use std::collections::HashSet;
 

@@ -80,6 +80,47 @@ CREATE TABLE IF NOT EXISTS order_fills (
 CREATE INDEX IF NOT EXISTS order_fills_owner ON order_fills (owner);
 CREATE INDEX IF NOT EXISTS order_fills_token ON order_fills (token_id);
 
+-- The full signed orders behind the fills (map_orders, from matchOrders calldata),
+-- one row per order. filled sums the maker-asset amount of every settlement
+-- (collateral for a BUY, shares for a SELL), the same unit as maker_amount.
+CREATE TABLE IF NOT EXISTS orders (
+    order_hash      TEXT PRIMARY KEY,
+    exchange        TEXT,
+    maker           TEXT,
+    signer          TEXT,
+    token_id        TEXT,
+    side            SMALLINT,
+    maker_amount    NUMERIC,
+    taker_amount    NUMERIC,
+    limit_price     TEXT,
+    size_shares     NUMERIC,
+    signature_type  SMALLINT,
+    created_at_ms   BIGINT,
+    metadata        TEXT,
+    builder         TEXT,
+    filled          NUMERIC NOT NULL DEFAULT 0,
+    fees            NUMERIC NOT NULL DEFAULT 0,
+    settlements     BIGINT  NOT NULL DEFAULT 0,
+    first_block     BIGINT,
+    last_block      BIGINT,
+    last_timestamp  BIGINT
+);
+CREATE INDEX IF NOT EXISTS orders_token ON orders (token_id);
+CREATE INDEX IF NOT EXISTS orders_maker ON orders (maker);
+
+-- What each observed order has left, as the exchange tracks it (maker_amount
+-- minus filled), and the same in shares. An upper bound on the book: orders
+-- cancelled off-chain or never filled are not here.
+CREATE OR REPLACE VIEW order_book AS
+SELECT o.*,
+       GREATEST(o.maker_amount - o.filled, 0) AS remaining,
+       CASE WHEN o.side = 0
+            THEN TRUNC(GREATEST(o.maker_amount - o.filled, 0) * o.taker_amount / NULLIF(o.maker_amount, 0))
+            ELSE GREATEST(o.maker_amount - o.filled, 0)
+       END AS remaining_shares,
+       o.filled >= o.maker_amount AS fully_filled
+FROM orders o;
+
 -- Settled outcomes: UMA CTF adapter QuestionResolved / QuestionEmergencyResolved
 -- (resolved_id = question id) and Protocol V2 module ConditionResolved
 -- (resolved_id = condition id).

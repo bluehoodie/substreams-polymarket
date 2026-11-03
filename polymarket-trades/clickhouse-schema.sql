@@ -179,6 +179,56 @@ SELECT order_hash,
 FROM order_fills
 GROUP BY order_hash;
 
+-- The full signed orders behind the fills (map_orders), one row per settlement of
+-- an order, and the order book view with what each order has left.
+CREATE TABLE IF NOT EXISTS orders (
+    order_hash       String,
+    block_number     UInt64,
+    log_index        UInt64,
+    exchange         LowCardinality(String),
+    maker            String,
+    signer           String,
+    token_id         String,
+    side             UInt8,
+    maker_amount     UInt256,
+    taker_amount     UInt256,
+    limit_price      String,
+    size_shares      UInt256,
+    signature_type   UInt8,
+    created_at_ms    UInt64,
+    metadata         String,
+    builder          String,
+    is_taker         Bool,
+    fill_amount      UInt256,
+    fee              UInt256,
+    tx_hash          String,
+    block_timestamp  UInt64
+) ENGINE = ReplacingMergeTree
+PARTITION BY toYYYYMM(toDateTime(block_timestamp))
+ORDER BY (token_id, block_timestamp, order_hash, block_number, log_index);
+
+CREATE VIEW IF NOT EXISTS order_book AS
+SELECT order_hash,
+       any(exchange) AS exchange,
+       any(maker) AS maker,
+       any(signer) AS signer,
+       any(token_id) AS token_id,
+       any(side) AS side,
+       any(maker_amount) AS maker_amount,
+       any(taker_amount) AS taker_amount,
+       any(limit_price) AS limit_price,
+       any(size_shares) AS size_shares,
+       any(created_at_ms) AS created_at_ms,
+       sum(fill_amount) AS filled,
+       sum(fee) AS fees,
+       count() AS settlements,
+       min(block_number) AS first_block,
+       max(block_number) AS last_block,
+       if(filled >= maker_amount, toUInt256(0), maker_amount - filled) AS remaining,
+       if(side = 0, intDiv(remaining * taker_amount, maker_amount), remaining) AS remaining_shares
+FROM orders FINAL
+GROUP BY order_hash;
+
 -- Settled outcomes: UMA CTF adapter (resolved_id = question id) and Protocol V2
 -- module ConditionResolved (resolved_id = condition id).
 CREATE TABLE IF NOT EXISTS resolutions (

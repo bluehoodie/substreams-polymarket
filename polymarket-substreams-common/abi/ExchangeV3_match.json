@@ -1,0 +1,296 @@
+[
+  {
+    "type": "function",
+    "name": "matchOrders",
+    "inputs": [
+      {
+        "name": "takerOrder",
+        "type": "tuple",
+        "internalType": "struct Order",
+        "components": [
+          {
+            "name": "salt",
+            "type": "uint256"
+          },
+          {
+            "name": "maker",
+            "type": "address"
+          },
+          {
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "name": "tokenId",
+            "type": "uint256"
+          },
+          {
+            "name": "makerAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "takerAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "side",
+            "type": "uint8"
+          },
+          {
+            "name": "signatureType",
+            "type": "uint8"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "name": "metadata",
+            "type": "bytes32"
+          },
+          {
+            "name": "builder",
+            "type": "bytes32"
+          },
+          {
+            "name": "signature",
+            "type": "bytes"
+          }
+        ]
+      },
+      {
+        "name": "makerOrders",
+        "type": "tuple[]",
+        "internalType": "struct Order[]",
+        "components": [
+          {
+            "name": "salt",
+            "type": "uint256"
+          },
+          {
+            "name": "maker",
+            "type": "address"
+          },
+          {
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "name": "tokenId",
+            "type": "uint256"
+          },
+          {
+            "name": "makerAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "takerAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "side",
+            "type": "uint8"
+          },
+          {
+            "name": "signatureType",
+            "type": "uint8"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "name": "metadata",
+            "type": "bytes32"
+          },
+          {
+            "name": "builder",
+            "type": "bytes32"
+          },
+          {
+            "name": "signature",
+            "type": "bytes"
+          }
+        ]
+      },
+      {
+        "name": "makerFillAmounts",
+        "type": "uint256[]"
+      },
+      {
+        "name": "makerFeeAmounts",
+        "type": "uint256[]"
+      },
+      {
+        "name": "takerAmounts",
+        "type": "tuple",
+        "internalType": "struct TakerAmounts",
+        "components": [
+          {
+            "name": "takerFillAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "takerReceiveAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "takerFeeAmount",
+            "type": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "matchOrdersAndPrepareCombinatorial",
+    "inputs": [
+      {
+        "name": "takerOrder",
+        "type": "tuple",
+        "internalType": "struct Order",
+        "components": [
+          {
+            "name": "salt",
+            "type": "uint256"
+          },
+          {
+            "name": "maker",
+            "type": "address"
+          },
+          {
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "name": "tokenId",
+            "type": "uint256"
+          },
+          {
+            "name": "makerAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "takerAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "side",
+            "type": "uint8"
+          },
+          {
+            "name": "signatureType",
+            "type": "uint8"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "name": "metadata",
+            "type": "bytes32"
+          },
+          {
+            "name": "builder",
+            "type": "bytes32"
+          },
+          {
+            "name": "signature",
+            "type": "bytes"
+          }
+        ]
+      },
+      {
+        "name": "makerOrders",
+        "type": "tuple[]",
+        "internalType": "struct Order[]",
+        "components": [
+          {
+            "name": "salt",
+            "type": "uint256"
+          },
+          {
+            "name": "maker",
+            "type": "address"
+          },
+          {
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "name": "tokenId",
+            "type": "uint256"
+          },
+          {
+            "name": "makerAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "takerAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "side",
+            "type": "uint8"
+          },
+          {
+            "name": "signatureType",
+            "type": "uint8"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "name": "metadata",
+            "type": "bytes32"
+          },
+          {
+            "name": "builder",
+            "type": "bytes32"
+          },
+          {
+            "name": "signature",
+            "type": "bytes"
+          }
+        ]
+      },
+      {
+        "name": "makerFillAmounts",
+        "type": "uint256[]"
+      },
+      {
+        "name": "makerFeeAmounts",
+        "type": "uint256[]"
+      },
+      {
+        "name": "takerAmounts",
+        "type": "tuple",
+        "internalType": "struct TakerAmounts",
+        "components": [
+          {
+            "name": "takerFillAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "takerReceiveAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "takerFeeAmount",
+            "type": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "combinatorialLegs",
+        "type": "uint256[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  }
+]

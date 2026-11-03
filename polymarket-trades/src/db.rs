@@ -6,6 +6,7 @@
 //! so `db_out_clickhouse` inserts every fragment as its own row and the table
 //! engines merge them.
 
+use std::collections::HashMap;
 use std::str::FromStr;
 
 use substreams::errors::Error;
@@ -21,6 +22,7 @@ pub(crate) const MARKET_STATS: &str = "market_stats";
 pub(crate) const CANDLES: &str = "candles_1m";
 pub(crate) const ORDER_FILLS: &str = "order_fills";
 pub(crate) const RESOLUTIONS: &str = "resolutions";
+pub(crate) const ORDERS: &str = "orders";
 
 #[derive(Clone, Copy, PartialEq)]
 enum Dialect {
@@ -35,6 +37,7 @@ pub fn db_out(
     candles: proto::Candles,
     order_fills: proto::OrderFills,
     resolutions: resolution::ResolutionEvents,
+    orders: proto::ObservedOrders,
 ) -> Result<DatabaseChanges, Error> {
     substreams::skip_empty_output();
     Ok(build(
@@ -44,6 +47,7 @@ pub fn db_out(
         &candles,
         &order_fills,
         &resolutions,
+        &orders,
     ))
 }
 
@@ -54,6 +58,7 @@ pub fn db_out_clickhouse(
     candles: proto::Candles,
     order_fills: proto::OrderFills,
     resolutions: resolution::ResolutionEvents,
+    orders: proto::ObservedOrders,
 ) -> Result<DatabaseChanges, Error> {
     substreams::skip_empty_output();
     Ok(build(
@@ -63,6 +68,7 @@ pub fn db_out_clickhouse(
         &candles,
         &order_fills,
         &resolutions,
+        &orders,
     ))
 }
 
@@ -83,6 +89,7 @@ fn build(
     candles: &proto::Candles,
     order_fills: &proto::OrderFills,
     resolutions: &resolution::ResolutionEvents,
+    orders: &proto::ObservedOrders,
 ) -> DatabaseChanges {
     let mut tables = Tables::new();
     // Block timestamp of this block, for tables whose input carries none.
@@ -236,7 +243,104 @@ fn build(
     }
 
     push_resolutions(&mut tables, resolutions, block_timestamp);
+    push_orders(&mut tables, dialect, orders);
     tables.to_database_changes()
+}
+
+/// The full signed orders behind the fills. PostgreSQL keeps one row per order and
+/// sums each settlement's `fill_amount` into `filled`, so `maker_amount - filled`
+/// is what remains. ClickHouse gets one row per settlement of an order.
+fn push_orders(tables: &mut Tables, dialect: Dialect, orders: &proto::ObservedOrders) {
+    match dialect {
+        Dialect::Postgres => {
+            // An order can settle twice in one block. Upserting the same key twice
+            // in one block would overwrite the first delta, so sum per order first.
+            let mut per_order: Vec<(
+                &proto::ObservedOrder,
+                BigInt,
+                BigInt,
+                i64,
+                &proto::TransactionContext,
+            )> = Vec::new();
+            let mut index: HashMap<&str, usize> = HashMap::new();
+            for o in &orders.orders {
+                let Some(tx) = o.tx.as_option() else {
+                    continue;
+                };
+                let (fill, fee) = (int(&o.fill_amount), int(&o.fee));
+                match index.get(o.order_hash.as_str()) {
+                    Some(&i) => {
+                        let e = &mut per_order[i];
+                        e.1 = e.1.clone() + fill;
+                        e.2 = e.2.clone() + fee;
+                        e.3 += 1;
+                        e.4 = tx;
+                    }
+                    None => {
+                        index.insert(&o.order_hash, per_order.len());
+                        per_order.push((o, fill, fee, 1, tx));
+                    }
+                }
+            }
+            for (o, filled, fees, settlements, last_tx) in per_order {
+                tables
+                    .upsert_row(ORDERS, &o.order_hash)
+                    .set_if_null("exchange", &o.exchange)
+                    .set_if_null("maker", &o.maker)
+                    .set_if_null("signer", &o.signer)
+                    .set_if_null("token_id", &o.token_id)
+                    .set_if_null("side", o.side)
+                    .set_if_null("maker_amount", int(&o.maker_amount))
+                    .set_if_null("taker_amount", int(&o.taker_amount))
+                    .set_if_null("limit_price", &o.limit_price)
+                    .set_if_null("size_shares", int(&o.size_shares))
+                    .set_if_null("signature_type", o.signature_type)
+                    .set_if_null("created_at_ms", o.created_at_ms)
+                    .set_if_null("metadata", &o.metadata)
+                    .set_if_null("builder", &o.builder)
+                    .add("filled", filled)
+                    .add("fees", fees)
+                    .add("settlements", settlements)
+                    .set_if_null("first_block", last_tx.block_number)
+                    .set("last_block", last_tx.block_number)
+                    .set("last_timestamp", last_tx.timestamp);
+            }
+        }
+        Dialect::ClickHouse => {
+            for o in &orders.orders {
+                let Some(tx) = o.tx.as_option() else {
+                    continue;
+                };
+                tables
+                    .create_row(
+                        ORDERS,
+                        [
+                            ("order_hash", o.order_hash.clone()),
+                            ("block_number", tx.block_number.to_string()),
+                            ("log_index", tx.log_index.to_string()),
+                        ],
+                    )
+                    .set("exchange", &o.exchange)
+                    .set("maker", &o.maker)
+                    .set("signer", &o.signer)
+                    .set("token_id", &o.token_id)
+                    .set("side", o.side)
+                    .set("maker_amount", int(&o.maker_amount))
+                    .set("taker_amount", int(&o.taker_amount))
+                    .set("limit_price", &o.limit_price)
+                    .set("size_shares", int(&o.size_shares))
+                    .set("signature_type", o.signature_type)
+                    .set("created_at_ms", o.created_at_ms)
+                    .set("metadata", &o.metadata)
+                    .set("builder", &o.builder)
+                    .set("is_taker", o.is_taker)
+                    .set("fill_amount", int(&o.fill_amount))
+                    .set("fee", int(&o.fee))
+                    .set("tx_hash", &tx.tx_hash)
+                    .set("block_timestamp", tx.timestamp);
+            }
+        }
+    }
 }
 
 /// One `resolutions` row per settled outcome: UMA adapter `QuestionResolved` and
@@ -315,6 +419,7 @@ pub(crate) mod tests {
         candles: &proto::Candles,
         order_fills: &proto::OrderFills,
         resolutions: &resolution::ResolutionEvents,
+        orders: &proto::ObservedOrders,
     ) -> DatabaseChanges {
         build(
             Dialect::Postgres,
@@ -323,6 +428,7 @@ pub(crate) mod tests {
             candles,
             order_fills,
             resolutions,
+            orders,
         )
     }
 
@@ -332,6 +438,7 @@ pub(crate) mod tests {
         candles: &proto::Candles,
         order_fills: &proto::OrderFills,
         resolutions: &resolution::ResolutionEvents,
+        orders: &proto::ObservedOrders,
     ) -> DatabaseChanges {
         build(
             Dialect::ClickHouse,
@@ -340,6 +447,7 @@ pub(crate) mod tests {
             candles,
             order_fills,
             resolutions,
+            orders,
         )
     }
 
@@ -351,9 +459,7 @@ pub(crate) mod tests {
             .filter(|c| c.table == table)
             .collect();
         let op = rows.first().and_then(|c| c.operation.as_known());
-        assert!(rows
-            .iter()
-            .all(|c| c.operation.as_known() == op));
+        assert!(rows.iter().all(|c| c.operation.as_known() == op));
         (rows.len(), op)
     }
 
@@ -387,10 +493,85 @@ pub(crate) mod tests {
             &candles,
             &orders,
             &Default::default(),
+            &proto::ObservedOrders {
+                orders: vec![proto::ObservedOrder {
+                    order_hash: "0x02".into(),
+                    maker_amount: "".into(),
+                    fill_amount: "?".into(),
+                    tx: Some(proto::TransactionContext::default()).into(),
+                    ..Default::default()
+                }],
+            },
         );
         assert_eq!(rows(&d, TRADES).0, 1);
+        assert_eq!(rows(&d, ORDERS).0, 1);
         assert_eq!(rows(&d, ORDER_FILLS).0, 1);
         // A candle with an unparseable price is skipped.
         assert_eq!(rows(&d, CANDLES).0, 0);
+    }
+
+    #[test]
+    fn order_settled_twice_in_a_block_is_one_upsert_with_both_fills() {
+        let settle = |fill: &str, log_index: u64| proto::ObservedOrder {
+            order_hash: "0xaa".into(),
+            maker_amount: "100".into(),
+            fill_amount: fill.into(),
+            fee: "1".into(),
+            tx: Some(proto::TransactionContext {
+                log_index,
+                block_number: 7,
+                ..Default::default()
+            })
+            .into(),
+            ..Default::default()
+        };
+        let orders = proto::ObservedOrders {
+            orders: vec![settle("30", 1), settle("50", 9)],
+        };
+        let none = Default::default();
+        let pg = postgres(
+            &none,
+            &none_stats(),
+            &none_candles(),
+            &none_fills(),
+            &Default::default(),
+            &orders,
+        );
+        assert_eq!(rows(&pg, ORDERS), (1, Some(Operation::Upsert)));
+        let row = pg
+            .table_changes
+            .iter()
+            .find(|c| c.table == ORDERS)
+            .expect("row");
+        let field = |n: &str| {
+            row.fields
+                .iter()
+                .find(|f| f.name == n)
+                .map(|f| f.value.clone())
+        };
+        assert_eq!(field("filled").as_deref(), Some("80"));
+        assert_eq!(field("fees").as_deref(), Some("2"));
+        assert_eq!(field("settlements").as_deref(), Some("2"));
+        assert_eq!(field("maker_amount").as_deref(), Some("100"));
+
+        let ch = clickhouse(
+            &none,
+            &none_stats(),
+            &none_candles(),
+            &none_fills(),
+            &Default::default(),
+            &orders,
+        );
+        assert_eq!(rows(&ch, ORDERS), (2, Some(Operation::Create)));
+    }
+
+    fn none_stats() -> proto::MarketStats {
+        Default::default()
+    }
+    fn none_candles() -> proto::Candles {
+        Default::default()
+    }
+    fn none_fills() -> proto::OrderFills {
+        Default::default()
     }
 }

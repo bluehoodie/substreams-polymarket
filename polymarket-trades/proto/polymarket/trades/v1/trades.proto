@@ -138,3 +138,52 @@ message OrderFills {
   // Ordered by order_hash.
   repeated OrderFill orders = 1;
 }
+
+// One signed order from an exchange settlement call (`matchOrders`), decoded from
+// calldata: the full order, which OrderFilled doesn't carry. Emitted once per order
+// per settlement, so an order filled in several settlements appears in each. A
+// sink keeps one row per order_hash and sums fill_amount to get what remains:
+// remaining = maker_amount - sum(fill_amount), in maker-asset units (collateral for
+// a BUY, shares for a SELL), which is how the exchange itself tracks it. Off-chain
+// cancellations and orders never filled stay invisible, so this is an upper bound
+// on the book.
+message ObservedOrder {
+  // EIP-712 hash, the OrderFilled order_hash. 0x-prefixed hex.
+  string order_hash = 1;
+  // ctf_v2 | neg_risk_v2 | exchange_v3, as Trade.exchange.
+  string exchange = 2;
+  // Order owner (source of funds), and the key that signed it.
+  string maker = 3;
+  string signer = 4;
+  string token_id = 5;
+  // 0 = BUY, 1 = SELL.
+  uint32 side = 6;
+  // Full order: the most the maker gives and the least they get (raw 6-decimal).
+  string maker_amount = 7;
+  string taker_amount = 8;
+  // Collateral per share, 6 decimals, rounded down: maker/taker for a BUY,
+  // taker/maker for a SELL. Excludes fees, which the operator sets per fill.
+  string limit_price = 9;
+  // Size in shares: taker_amount for a BUY, maker_amount for a SELL.
+  string size_shares = 10;
+  // 0 EOA, 1 POLY_PROXY, 2 POLY_GNOSIS_SAFE, 3 POLY_1271.
+  uint32 signature_type = 11;
+  // Order creation time, unix milliseconds.
+  uint64 created_at_ms = 12;
+  // 0x-prefixed bytes32.
+  string metadata = 13;
+  string builder = 14;
+  // The taker order of its match (the others are maker orders).
+  bool is_taker = 15;
+  // Maker-asset amount this settlement filled (OrderFilled.makerAmountFilled) and
+  // the fee charged on it.
+  string fill_amount = 16;
+  string fee = 17;
+  // log_index is that of the order's OrderFilled log in the same transaction.
+  TransactionContext tx = 18;
+}
+
+message ObservedOrders {
+  // In block order: by transaction, then taker first, then makers in call order.
+  repeated ObservedOrder orders = 1;
+}

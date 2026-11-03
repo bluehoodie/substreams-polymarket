@@ -1,6 +1,8 @@
 pub mod conditional_tokens;
 pub mod ctf_collateral_adapter;
 pub mod ctf_exchange;
+pub mod ctf_exchange_v2_match;
+pub mod exchange_v3_match;
 pub mod deposit_wallet_factory;
 pub mod neg_risk_adapter;
 pub mod neg_risk_ctf;

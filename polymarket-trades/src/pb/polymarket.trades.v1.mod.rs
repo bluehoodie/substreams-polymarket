@@ -80,3 +80,15 @@ pub use self::__buffa::view::OrderFillsView;
 pub use self::__buffa::view::OrderFillsOwnedView;
 #[doc(inline)]
 pub use self::__buffa::lazy_view::OrderFillsLazyView;
+#[doc(inline)]
+pub use self::__buffa::view::ObservedOrderView;
+#[doc(inline)]
+pub use self::__buffa::view::ObservedOrderOwnedView;
+#[doc(inline)]
+pub use self::__buffa::lazy_view::ObservedOrderLazyView;
+#[doc(inline)]
+pub use self::__buffa::view::ObservedOrdersView;
+#[doc(inline)]
+pub use self::__buffa::view::ObservedOrdersOwnedView;
+#[doc(inline)]
+pub use self::__buffa::lazy_view::ObservedOrdersLazyView;
