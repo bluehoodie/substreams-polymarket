@@ -1,3 +1,10 @@
+// The `#[substreams::handlers::map]` macro generates an `extern "C"` shim that rebuilds
+// lazy `&eth::BlockLazyView<'_>` handler inputs from a raw `*mut u8`. The macro drops
+// the annotated fn's attributes, so a fn-scoped allow cannot reach the generated
+// shim; `not_unsafe_ptr_arg_deref` must be allowed at crate scope. The unsafe deref
+// lives entirely in macro-generated code; our handlers are safe.
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
@@ -6,24 +13,21 @@ use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::neg_risk_ctf::v1 as proto;
 use polymarket_substreams_common::{
-    bigint_to_string, bigint_to_u32, build_tx_context, format_address,
+    bigint_to_string, bigint_to_u32, block_logs, format_address, tx_context, BlockLog, BlockLogs,
     NEG_RISK_CTF as NEG_RISK_CTF_CONTRACT_ADDRESS,
 };
 
 #[substreams::handlers::map]
-pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error> {
+pub fn map_trading_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::TradingEvents, Error> {
     substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::TradingEvents::default();
 
-    for log in blk.logs() {
-        if !is_neg_risk_ctf_contract(log.log) {
-            continue;
-        }
-
-        if OrderFilled::match_log(log.log) {
-            if let Ok(event) = OrderFilled::decode(log.log) {
+    let blk = block_logs(blk, is_neg_risk_ctf_contract)?;
+    for log in &blk.logs {
+        if OrderFilled::match_log(&log.log) {
+            if let Ok(event) = OrderFilled::decode(&log.log) {
                 events.order_filled.push(proto::OrderFilled {
                     order_hash: event.order_hash.to_vec(),
                     maker: format_address(&event.maker),
@@ -35,11 +39,11 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
                     fee: bigint_to_string(&event.fee),
                     builder: event.builder.to_vec(),
                     metadata: event.metadata.to_vec(),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if OrdersMatched::match_log(log.log) {
-            if let Ok(event) = OrdersMatched::decode(log.log) {
+        } else if OrdersMatched::match_log(&log.log) {
+            if let Ok(event) = OrdersMatched::decode(&log.log) {
                 events.orders_matched.push(proto::OrdersMatched {
                     taker_order_hash: event.taker_order_hash.to_vec(),
                     taker_order_maker: format_address(&event.taker_order_maker),
@@ -47,7 +51,7 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
                     token_id: bigint_to_string(&event.token_id),
                     maker_amount_filled: bigint_to_string(&event.maker_amount_filled),
                     taker_amount_filled: bigint_to_string(&event.taker_amount_filled),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -57,37 +61,34 @@ pub fn map_trading_events(blk: eth::Block) -> Result<proto::TradingEvents, Error
 }
 
 #[substreams::handlers::map]
-pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
+pub fn map_fee_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::FeeEvents, Error> {
     substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::FeeEvents::default();
 
-    for log in blk.logs() {
-        if !is_neg_risk_ctf_contract(log.log) {
-            continue;
-        }
-
-        if FeeCharged::match_log(log.log) {
-            if let Ok(event) = FeeCharged::decode(log.log) {
+    let blk = block_logs(blk, is_neg_risk_ctf_contract)?;
+    for log in &blk.logs {
+        if FeeCharged::match_log(&log.log) {
+            if let Ok(event) = FeeCharged::decode(&log.log) {
                 events.fee_charged.push(proto::FeeCharged {
                     recipient: format_address(&event.recipient),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if FeeReceiverUpdated::match_log(log.log) {
-            if let Ok(event) = FeeReceiverUpdated::decode(log.log) {
+        } else if FeeReceiverUpdated::match_log(&log.log) {
+            if let Ok(event) = FeeReceiverUpdated::decode(&log.log) {
                 events.fee_receiver_updated.push(proto::FeeReceiverUpdated {
                     fee_receiver: format_address(&event.fee_receiver),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if MaxFeeRateUpdated::match_log(log.log) {
-            if let Ok(event) = MaxFeeRateUpdated::decode(log.log) {
+        } else if MaxFeeRateUpdated::match_log(&log.log) {
+            if let Ok(event) = MaxFeeRateUpdated::decode(&log.log) {
                 events.max_fee_rate_updated.push(proto::MaxFeeRateUpdated {
                     max_fee_rate: bigint_to_string(&event.max_fee_rate),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -97,47 +98,44 @@ pub fn map_fee_events(blk: eth::Block) -> Result<proto::FeeEvents, Error> {
 }
 
 #[substreams::handlers::map]
-pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
+pub fn map_admin_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AdminEvents, Error> {
     substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::AdminEvents::default();
 
-    for log in blk.logs() {
-        if !is_neg_risk_ctf_contract(log.log) {
-            continue;
-        }
-
-        if NewAdmin::match_log(log.log) {
-            if let Ok(event) = NewAdmin::decode(log.log) {
+    let blk = block_logs(blk, is_neg_risk_ctf_contract)?;
+    for log in &blk.logs {
+        if NewAdmin::match_log(&log.log) {
+            if let Ok(event) = NewAdmin::decode(&log.log) {
                 events.new_admin.push(proto::NewAdmin {
                     new_admin_address: format_address(&event.new_admin_address),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if NewOperator::match_log(log.log) {
-            if let Ok(event) = NewOperator::decode(log.log) {
+        } else if NewOperator::match_log(&log.log) {
+            if let Ok(event) = NewOperator::decode(&log.log) {
                 events.new_operator.push(proto::NewOperator {
                     new_operator_address: format_address(&event.new_operator_address),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if RemovedAdmin::match_log(log.log) {
-            if let Ok(event) = RemovedAdmin::decode(log.log) {
+        } else if RemovedAdmin::match_log(&log.log) {
+            if let Ok(event) = RemovedAdmin::decode(&log.log) {
                 events.removed_admin.push(proto::RemovedAdmin {
                     removed_admin: format_address(&event.removed_admin),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if RemovedOperator::match_log(log.log) {
-            if let Ok(event) = RemovedOperator::decode(log.log) {
+        } else if RemovedOperator::match_log(&log.log) {
+            if let Ok(event) = RemovedOperator::decode(&log.log) {
                 events.removed_operator.push(proto::RemovedOperator {
                     removed_operator: format_address(&event.removed_operator),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -147,39 +145,36 @@ pub fn map_admin_events(blk: eth::Block) -> Result<proto::AdminEvents, Error> {
 }
 
 #[substreams::handlers::map]
-pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
+pub fn map_pause_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::PauseEvents, Error> {
     substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::PauseEvents::default();
 
-    for log in blk.logs() {
-        if !is_neg_risk_ctf_contract(log.log) {
-            continue;
-        }
-
-        if UserPaused::match_log(log.log) {
-            if let Ok(event) = UserPaused::decode(log.log) {
+    let blk = block_logs(blk, is_neg_risk_ctf_contract)?;
+    for log in &blk.logs {
+        if UserPaused::match_log(&log.log) {
+            if let Ok(event) = UserPaused::decode(&log.log) {
                 events.user_paused.push(proto::UserPaused {
                     user: format_address(&event.user),
                     effective_pause_block: bigint_to_string(&event.effective_pause_block),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if UserUnpaused::match_log(log.log) {
-            if let Ok(event) = UserUnpaused::decode(log.log) {
+        } else if UserUnpaused::match_log(&log.log) {
+            if let Ok(event) = UserUnpaused::decode(&log.log) {
                 events.user_unpaused.push(proto::UserUnpaused {
                     user: format_address(&event.user),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if UserPauseBlockIntervalUpdated::match_log(log.log) {
-            if let Ok(event) = UserPauseBlockIntervalUpdated::decode(log.log) {
+        } else if UserPauseBlockIntervalUpdated::match_log(&log.log) {
+            if let Ok(event) = UserPauseBlockIntervalUpdated::decode(&log.log) {
                 events.user_pause_block_interval_updated.push(
                     proto::UserPauseBlockIntervalUpdated {
                         old_interval: bigint_to_string(&event.old_interval),
                         new_interval: bigint_to_string(&event.new_interval),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     },
                 );
             }
@@ -190,31 +185,30 @@ pub fn map_pause_events(blk: eth::Block) -> Result<proto::PauseEvents, Error> {
 }
 
 #[substreams::handlers::map]
-pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents, Error> {
+pub fn map_approval_events(
+    blk: &eth::BlockLazyView<'_>,
+) -> Result<proto::OrderApprovalEvents, Error> {
     substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
     let mut events = proto::OrderApprovalEvents::default();
 
-    for log in blk.logs() {
-        if !is_neg_risk_ctf_contract(log.log) {
-            continue;
-        }
-
-        if OrderPreapproved::match_log(log.log) {
-            if let Ok(event) = OrderPreapproved::decode(log.log) {
+    let blk = block_logs(blk, is_neg_risk_ctf_contract)?;
+    for log in &blk.logs {
+        if OrderPreapproved::match_log(&log.log) {
+            if let Ok(event) = OrderPreapproved::decode(&log.log) {
                 events.order_preapproved.push(proto::OrderPreapproved {
                     order_hash: event.order_hash.to_vec(),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if OrderPreapprovalInvalidated::match_log(log.log) {
-            if let Ok(event) = OrderPreapprovalInvalidated::decode(log.log) {
+        } else if OrderPreapprovalInvalidated::match_log(&log.log) {
+            if let Ok(event) = OrderPreapprovalInvalidated::decode(&log.log) {
                 events
                     .order_preapproval_invalidated
                     .push(proto::OrderPreapprovalInvalidated {
                         order_hash: event.order_hash.to_vec(),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
         }
@@ -224,7 +218,7 @@ pub fn map_approval_events(blk: eth::Block) -> Result<proto::OrderApprovalEvents
 }
 
 #[substreams::handlers::map]
-pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
+pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, Error> {
     substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf::events::*;
 
@@ -234,13 +228,10 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
     let mut pause_events = proto::PauseEvents::default();
     let mut approval_events = proto::OrderApprovalEvents::default();
 
-    for log in blk.logs() {
-        if !is_neg_risk_ctf_contract(log.log) {
-            continue;
-        }
-
-        if OrderFilled::match_log(log.log) {
-            if let Ok(event) = OrderFilled::decode(log.log) {
+    let blk = block_logs(blk, is_neg_risk_ctf_contract)?;
+    for log in &blk.logs {
+        if OrderFilled::match_log(&log.log) {
+            if let Ok(event) = OrderFilled::decode(&log.log) {
                 trading_events.order_filled.push(proto::OrderFilled {
                     order_hash: event.order_hash.to_vec(),
                     maker: format_address(&event.maker),
@@ -252,11 +243,11 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     fee: bigint_to_string(&event.fee),
                     builder: event.builder.to_vec(),
                     metadata: event.metadata.to_vec(),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if OrdersMatched::match_log(log.log) {
-            if let Ok(event) = OrdersMatched::decode(log.log) {
+        } else if OrdersMatched::match_log(&log.log) {
+            if let Ok(event) = OrdersMatched::decode(&log.log) {
                 trading_events.orders_matched.push(proto::OrdersMatched {
                     taker_order_hash: event.taker_order_hash.to_vec(),
                     taker_order_maker: format_address(&event.taker_order_maker),
@@ -264,107 +255,107 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                     token_id: bigint_to_string(&event.token_id),
                     maker_amount_filled: bigint_to_string(&event.maker_amount_filled),
                     taker_amount_filled: bigint_to_string(&event.taker_amount_filled),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if FeeCharged::match_log(log.log) {
-            if let Ok(event) = FeeCharged::decode(log.log) {
+        } else if FeeCharged::match_log(&log.log) {
+            if let Ok(event) = FeeCharged::decode(&log.log) {
                 fee_events.fee_charged.push(proto::FeeCharged {
                     recipient: format_address(&event.recipient),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if FeeReceiverUpdated::match_log(log.log) {
-            if let Ok(event) = FeeReceiverUpdated::decode(log.log) {
+        } else if FeeReceiverUpdated::match_log(&log.log) {
+            if let Ok(event) = FeeReceiverUpdated::decode(&log.log) {
                 fee_events
                     .fee_receiver_updated
                     .push(proto::FeeReceiverUpdated {
                         fee_receiver: format_address(&event.fee_receiver),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
-        } else if MaxFeeRateUpdated::match_log(log.log) {
-            if let Ok(event) = MaxFeeRateUpdated::decode(log.log) {
+        } else if MaxFeeRateUpdated::match_log(&log.log) {
+            if let Ok(event) = MaxFeeRateUpdated::decode(&log.log) {
                 fee_events
                     .max_fee_rate_updated
                     .push(proto::MaxFeeRateUpdated {
                         max_fee_rate: bigint_to_string(&event.max_fee_rate),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
-        } else if NewAdmin::match_log(log.log) {
-            if let Ok(event) = NewAdmin::decode(log.log) {
+        } else if NewAdmin::match_log(&log.log) {
+            if let Ok(event) = NewAdmin::decode(&log.log) {
                 admin_events.new_admin.push(proto::NewAdmin {
                     new_admin_address: format_address(&event.new_admin_address),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if NewOperator::match_log(log.log) {
-            if let Ok(event) = NewOperator::decode(log.log) {
+        } else if NewOperator::match_log(&log.log) {
+            if let Ok(event) = NewOperator::decode(&log.log) {
                 admin_events.new_operator.push(proto::NewOperator {
                     new_operator_address: format_address(&event.new_operator_address),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if RemovedAdmin::match_log(log.log) {
-            if let Ok(event) = RemovedAdmin::decode(log.log) {
+        } else if RemovedAdmin::match_log(&log.log) {
+            if let Ok(event) = RemovedAdmin::decode(&log.log) {
                 admin_events.removed_admin.push(proto::RemovedAdmin {
                     removed_admin: format_address(&event.removed_admin),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if RemovedOperator::match_log(log.log) {
-            if let Ok(event) = RemovedOperator::decode(log.log) {
+        } else if RemovedOperator::match_log(&log.log) {
+            if let Ok(event) = RemovedOperator::decode(&log.log) {
                 admin_events.removed_operator.push(proto::RemovedOperator {
                     removed_operator: format_address(&event.removed_operator),
                     admin: format_address(&event.admin),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if UserPaused::match_log(log.log) {
-            if let Ok(event) = UserPaused::decode(log.log) {
+        } else if UserPaused::match_log(&log.log) {
+            if let Ok(event) = UserPaused::decode(&log.log) {
                 pause_events.user_paused.push(proto::UserPaused {
                     user: format_address(&event.user),
                     effective_pause_block: bigint_to_string(&event.effective_pause_block),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if UserUnpaused::match_log(log.log) {
-            if let Ok(event) = UserUnpaused::decode(log.log) {
+        } else if UserUnpaused::match_log(&log.log) {
+            if let Ok(event) = UserUnpaused::decode(&log.log) {
                 pause_events.user_unpaused.push(proto::UserUnpaused {
                     user: format_address(&event.user),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if UserPauseBlockIntervalUpdated::match_log(log.log) {
-            if let Ok(event) = UserPauseBlockIntervalUpdated::decode(log.log) {
+        } else if UserPauseBlockIntervalUpdated::match_log(&log.log) {
+            if let Ok(event) = UserPauseBlockIntervalUpdated::decode(&log.log) {
                 pause_events.user_pause_block_interval_updated.push(
                     proto::UserPauseBlockIntervalUpdated {
                         old_interval: bigint_to_string(&event.old_interval),
                         new_interval: bigint_to_string(&event.new_interval),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     },
                 );
             }
-        } else if OrderPreapproved::match_log(log.log) {
-            if let Ok(event) = OrderPreapproved::decode(log.log) {
+        } else if OrderPreapproved::match_log(&log.log) {
+            if let Ok(event) = OrderPreapproved::decode(&log.log) {
                 approval_events
                     .order_preapproved
                     .push(proto::OrderPreapproved {
                         order_hash: event.order_hash.to_vec(),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
             }
-        } else if OrderPreapprovalInvalidated::match_log(log.log) {
-            if let Ok(event) = OrderPreapprovalInvalidated::decode(log.log) {
+        } else if OrderPreapprovalInvalidated::match_log(&log.log) {
+            if let Ok(event) = OrderPreapprovalInvalidated::decode(&log.log) {
                 approval_events.order_preapproval_invalidated.push(
                     proto::OrderPreapprovalInvalidated {
                         order_hash: event.order_hash.to_vec(),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     },
                 );
             }
@@ -415,16 +406,13 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
 }
 
 #[inline]
-fn is_neg_risk_ctf_contract(log: &eth::Log) -> bool {
-    log.address == NEG_RISK_CTF_CONTRACT_ADDRESS
+fn is_neg_risk_ctf_contract(address: &[u8]) -> bool {
+    address == NEG_RISK_CTF_CONTRACT_ADDRESS
 }
 
 #[inline]
-fn build_transaction_context(
-    blk: &eth::Block,
-    log: &substreams_ethereum::block_view::LogView,
-) -> proto::TransactionContext {
-    let ctx = build_tx_context(blk, log);
+fn build_transaction_context(blk: &BlockLogs, log: &BlockLog) -> proto::TransactionContext {
+    let ctx = tx_context(log.tx_hash, &log.log, blk.number, blk.timestamp);
     proto::TransactionContext {
         tx_hash: ctx.tx_hash,
         log_index: ctx.log_index,
@@ -444,7 +432,7 @@ mod tests {
             address: hex_literal::hex!("e2222d279d744050d28e00520010520000310F59").to_vec(),
             ..Default::default()
         };
-        assert!(is_neg_risk_ctf_contract(&log));
+        assert!(is_neg_risk_ctf_contract(&log.address));
     }
 
     #[test]
@@ -453,7 +441,7 @@ mod tests {
             address: hex_literal::hex!("0000000000000000000000000000000000000000").to_vec(),
             ..Default::default()
         };
-        assert!(!is_neg_risk_ctf_contract(&log));
+        assert!(!is_neg_risk_ctf_contract(&log.address));
     }
 
     #[test]
@@ -699,8 +687,12 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_classifies_fee_charged() {
-        let out =
-            __impl_map_all_events(block_with_log(fee_charged_log())).expect("handler must not err");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &block_with_log(fee_charged_log()),
+            __impl_map_all_events,
+        )
+        .expect("fixture block encodes")
+        .expect("handler must not err");
         let fees = out
             .fee_events
             .as_option()
@@ -717,7 +709,12 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_empty_block_ok() {
-        let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &eth::Block::default(),
+            __impl_map_all_events,
+        )
+        .expect("fixture block encodes")
+        .expect("empty block must not panic");
         assert!(!out.trading_events.is_set());
         assert!(!out.fee_events.is_set());
         assert!(!out.admin_events.is_set());

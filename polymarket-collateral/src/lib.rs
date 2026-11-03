@@ -1,3 +1,10 @@
+// The `#[substreams::handlers::map]` macro generates an `extern "C"` shim that rebuilds
+// lazy `&eth::BlockLazyView<'_>` handler inputs from a raw `*mut u8`. The macro drops
+// the annotated fn's attributes, so a fn-scoped allow cannot reach the generated
+// shim; `not_unsafe_ptr_arg_deref` must be allowed at crate scope. The unsafe deref
+// lives entirely in macro-generated code; our handlers are safe.
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 #[allow(dead_code, clippy::all)]
 pub mod pb;
 
@@ -7,51 +14,48 @@ use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::collateral::v1 as proto;
 use polymarket_substreams_common::{
-    bigint_to_string, build_tx_context, format_address,
+    bigint_to_string, block_logs, format_address, tx_context, BlockLog, BlockLogs,
     CTF_COLLATERAL_ADAPTER as CTF_COLLATERAL_ADAPTER_ADDRESS,
     NEG_RISK_CTF_COLLATERAL_ADAPTER as NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS,
     PUSD as PUSD_CONTRACT_ADDRESS,
 };
 
 #[substreams::handlers::map]
-pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
+pub fn map_pusd_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::PusdEvents, Error> {
     substreams::skip_empty_output();
     use polymarket_substreams_common::abi::p_usd::events::*;
 
     let mut events = proto::PusdEvents::default();
 
-    for log in blk.logs() {
-        if !is_pusd_contract(log.log) {
-            continue;
-        }
-
-        if Transfer::match_log(log.log) {
-            if let Ok(event) = Transfer::decode(log.log) {
+    let blk = block_logs(blk, is_pusd_contract)?;
+    for log in &blk.logs {
+        if Transfer::match_log(&log.log) {
+            if let Ok(event) = Transfer::decode(&log.log) {
                 events.transfer.push(proto::Transfer {
                     from: format_address(&event.from),
                     to: format_address(&event.to),
                     amount: bigint_to_string(&event.value),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if Wrapped::match_log(log.log) {
-            if let Ok(event) = Wrapped::decode(log.log) {
+        } else if Wrapped::match_log(&log.log) {
+            if let Ok(event) = Wrapped::decode(&log.log) {
                 events.wrapped.push(proto::Wrapped {
                     caller: format_address(&event.caller),
                     asset: format_address(&event.asset),
                     to: format_address(&event.to),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if Unwrapped::match_log(log.log) {
-            if let Ok(event) = Unwrapped::decode(log.log) {
+        } else if Unwrapped::match_log(&log.log) {
+            if let Ok(event) = Unwrapped::decode(&log.log) {
                 events.unwrapped.push(proto::Unwrapped {
                     caller: format_address(&event.caller),
                     asset: format_address(&event.asset),
                     to: format_address(&event.to),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -61,43 +65,42 @@ pub fn map_pusd_events(blk: eth::Block) -> Result<proto::PusdEvents, Error> {
 }
 
 #[substreams::handlers::map]
-pub fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents, Error> {
+pub fn map_ctf_adapter_events(
+    blk: &eth::BlockLazyView<'_>,
+) -> Result<proto::CtfAdapterEvents, Error> {
     substreams::skip_empty_output();
     use polymarket_substreams_common::abi::ctf_collateral_adapter::events::*;
 
     let mut events = proto::CtfAdapterEvents::default();
 
-    for log in blk.logs() {
-        if !is_ctf_adapter_contract(log.log) {
-            continue;
-        }
-
-        if PositionSplit::match_log(log.log) {
-            if let Ok(event) = PositionSplit::decode(log.log) {
+    let blk = block_logs(blk, is_ctf_adapter_contract)?;
+    for log in &blk.logs {
+        if PositionSplit::match_log(&log.log) {
+            if let Ok(event) = PositionSplit::decode(&log.log) {
                 events.position_split.push(proto::PositionSplit {
                     initiator: format_address(&event.initiator),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionsMerged::match_log(log.log) {
-            if let Ok(event) = PositionsMerged::decode(log.log) {
+        } else if PositionsMerged::match_log(&log.log) {
+            if let Ok(event) = PositionsMerged::decode(&log.log) {
                 events.positions_merged.push(proto::PositionsMerged {
                     initiator: format_address(&event.initiator),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionsRedeemed::match_log(log.log) {
-            if let Ok(event) = PositionsRedeemed::decode(log.log) {
+        } else if PositionsRedeemed::match_log(&log.log) {
+            if let Ok(event) = PositionsRedeemed::decode(&log.log) {
                 events.positions_redeemed.push(proto::PositionsRedeemed {
                     initiator: format_address(&event.initiator),
                     condition_id: event.condition_id.to_vec(),
                     amounts: event.amounts.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -108,55 +111,52 @@ pub fn map_ctf_adapter_events(blk: eth::Block) -> Result<proto::CtfAdapterEvents
 
 #[substreams::handlers::map]
 pub fn map_neg_risk_ctf_adapter_events(
-    blk: eth::Block,
+    blk: &eth::BlockLazyView<'_>,
 ) -> Result<proto::NegRiskCtfAdapterEvents, Error> {
     substreams::skip_empty_output();
     use polymarket_substreams_common::abi::neg_risk_ctf_collateral_adapter::events::*;
 
     let mut events = proto::NegRiskCtfAdapterEvents::default();
 
-    for log in blk.logs() {
-        if !is_neg_risk_ctf_adapter_contract(log.log) {
-            continue;
-        }
-
-        if PositionSplit::match_log(log.log) {
-            if let Ok(event) = PositionSplit::decode(log.log) {
+    let blk = block_logs(blk, is_neg_risk_ctf_adapter_contract)?;
+    for log in &blk.logs {
+        if PositionSplit::match_log(&log.log) {
+            if let Ok(event) = PositionSplit::decode(&log.log) {
                 events.position_split.push(proto::PositionSplit {
                     initiator: format_address(&event.initiator),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionsMerged::match_log(log.log) {
-            if let Ok(event) = PositionsMerged::decode(log.log) {
+        } else if PositionsMerged::match_log(&log.log) {
+            if let Ok(event) = PositionsMerged::decode(&log.log) {
                 events.positions_merged.push(proto::PositionsMerged {
                     initiator: format_address(&event.initiator),
                     condition_id: event.condition_id.to_vec(),
                     amount: bigint_to_string(&event.amount),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionsRedeemed::match_log(log.log) {
-            if let Ok(event) = PositionsRedeemed::decode(log.log) {
+        } else if PositionsRedeemed::match_log(&log.log) {
+            if let Ok(event) = PositionsRedeemed::decode(&log.log) {
                 events.positions_redeemed.push(proto::PositionsRedeemed {
                     initiator: format_address(&event.initiator),
                     condition_id: event.condition_id.to_vec(),
                     amounts: event.amounts.iter().map(bigint_to_string).collect(),
                     payout: bigint_to_string(&event.payout),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
-        } else if PositionsConverted::match_log(log.log) {
-            if let Ok(event) = PositionsConverted::decode(log.log) {
+        } else if PositionsConverted::match_log(&log.log) {
+            if let Ok(event) = PositionsConverted::decode(&log.log) {
                 events.positions_converted.push(proto::PositionsConverted {
                     initiator: format_address(&event.initiator),
                     market_id: event.market_id.to_vec(),
                     index_set: bigint_to_string(&event.index_set),
                     amount: bigint_to_string(&event.amount),
                     amount_out: bigint_to_string(&event.amount_out),
-                    tx: build_transaction_context(&blk, &log).into(),
+                    tx: build_transaction_context(&blk, log).into(),
                 });
             }
         }
@@ -166,7 +166,7 @@ pub fn map_neg_risk_ctf_adapter_events(
 }
 
 #[substreams::handlers::map]
-pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
+pub fn map_all_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AllEvents, Error> {
     substreams::skip_empty_output();
     use polymarket_substreams_common::abi::ctf_collateral_adapter::events as ctf_events;
     use polymarket_substreams_common::abi::neg_risk_ctf_collateral_adapter::events as neg_risk_events;
@@ -179,101 +179,104 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
     // Contract-first dispatch: match the log address once, then branch per event.
     // Intentional for this multi-contract package — avoids redundant per-event
     // address checks when a log belongs to none of the matched contracts.
-    for log in blk.logs() {
-        let addr = &log.log.address;
+    let blk = block_logs(blk, |a| {
+        is_pusd_contract(a) || is_ctf_adapter_contract(a) || is_neg_risk_ctf_adapter_contract(a)
+    })?;
+    for log in &blk.logs {
+        let addr = log.log.address;
 
-        if addr == &PUSD_CONTRACT_ADDRESS[..] {
-            if pusd_events::Transfer::match_log(log.log) {
-                if let Ok(event) = pusd_events::Transfer::decode(log.log) {
+        if addr == PUSD_CONTRACT_ADDRESS {
+            if pusd_events::Transfer::match_log(&log.log) {
+                if let Ok(event) = pusd_events::Transfer::decode(&log.log) {
                     pusd.transfer.push(proto::Transfer {
                         from: format_address(&event.from),
                         to: format_address(&event.to),
                         amount: bigint_to_string(&event.value),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
                 }
-            } else if pusd_events::Wrapped::match_log(log.log) {
-                if let Ok(event) = pusd_events::Wrapped::decode(log.log) {
+            } else if pusd_events::Wrapped::match_log(&log.log) {
+                if let Ok(event) = pusd_events::Wrapped::decode(&log.log) {
                     pusd.wrapped.push(proto::Wrapped {
                         caller: format_address(&event.caller),
                         asset: format_address(&event.asset),
                         to: format_address(&event.to),
                         amount: bigint_to_string(&event.amount),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
                 }
-            } else if pusd_events::Unwrapped::match_log(log.log) {
-                if let Ok(event) = pusd_events::Unwrapped::decode(log.log) {
+            } else if pusd_events::Unwrapped::match_log(&log.log) {
+                if let Ok(event) = pusd_events::Unwrapped::decode(&log.log) {
                     pusd.unwrapped.push(proto::Unwrapped {
                         caller: format_address(&event.caller),
                         asset: format_address(&event.asset),
                         to: format_address(&event.to),
                         amount: bigint_to_string(&event.amount),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
                 }
             }
-        } else if addr == &CTF_COLLATERAL_ADAPTER_ADDRESS[..] {
-            if ctf_events::PositionSplit::match_log(log.log) {
-                if let Ok(event) = ctf_events::PositionSplit::decode(log.log) {
+        } else if addr == CTF_COLLATERAL_ADAPTER_ADDRESS {
+            if ctf_events::PositionSplit::match_log(&log.log) {
+                if let Ok(event) = ctf_events::PositionSplit::decode(&log.log) {
                     ctf.position_split.push(proto::PositionSplit {
                         initiator: format_address(&event.initiator),
                         condition_id: event.condition_id.to_vec(),
                         amount: bigint_to_string(&event.amount),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
                 }
-            } else if ctf_events::PositionsMerged::match_log(log.log) {
-                if let Ok(event) = ctf_events::PositionsMerged::decode(log.log) {
+            } else if ctf_events::PositionsMerged::match_log(&log.log) {
+                if let Ok(event) = ctf_events::PositionsMerged::decode(&log.log) {
                     ctf.positions_merged.push(proto::PositionsMerged {
                         initiator: format_address(&event.initiator),
                         condition_id: event.condition_id.to_vec(),
                         amount: bigint_to_string(&event.amount),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
                 }
-            } else if ctf_events::PositionsRedeemed::match_log(log.log) {
-                if let Ok(event) = ctf_events::PositionsRedeemed::decode(log.log) {
+            } else if ctf_events::PositionsRedeemed::match_log(&log.log) {
+                if let Ok(event) = ctf_events::PositionsRedeemed::decode(&log.log) {
                     ctf.positions_redeemed.push(proto::PositionsRedeemed {
                         initiator: format_address(&event.initiator),
                         condition_id: event.condition_id.to_vec(),
                         amounts: event.amounts.iter().map(bigint_to_string).collect(),
                         payout: bigint_to_string(&event.payout),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
                 }
             }
-        } else if addr == &NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS[..] {
-            if neg_risk_events::PositionSplit::match_log(log.log) {
-                if let Ok(event) = neg_risk_events::PositionSplit::decode(log.log) {
+        } else if addr == NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS {
+            if neg_risk_events::PositionSplit::match_log(&log.log) {
+                if let Ok(event) = neg_risk_events::PositionSplit::decode(&log.log) {
                     neg_risk.position_split.push(proto::PositionSplit {
                         initiator: format_address(&event.initiator),
                         condition_id: event.condition_id.to_vec(),
                         amount: bigint_to_string(&event.amount),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
                 }
-            } else if neg_risk_events::PositionsMerged::match_log(log.log) {
-                if let Ok(event) = neg_risk_events::PositionsMerged::decode(log.log) {
+            } else if neg_risk_events::PositionsMerged::match_log(&log.log) {
+                if let Ok(event) = neg_risk_events::PositionsMerged::decode(&log.log) {
                     neg_risk.positions_merged.push(proto::PositionsMerged {
                         initiator: format_address(&event.initiator),
                         condition_id: event.condition_id.to_vec(),
                         amount: bigint_to_string(&event.amount),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
                 }
-            } else if neg_risk_events::PositionsRedeemed::match_log(log.log) {
-                if let Ok(event) = neg_risk_events::PositionsRedeemed::decode(log.log) {
+            } else if neg_risk_events::PositionsRedeemed::match_log(&log.log) {
+                if let Ok(event) = neg_risk_events::PositionsRedeemed::decode(&log.log) {
                     neg_risk.positions_redeemed.push(proto::PositionsRedeemed {
                         initiator: format_address(&event.initiator),
                         condition_id: event.condition_id.to_vec(),
                         amounts: event.amounts.iter().map(bigint_to_string).collect(),
                         payout: bigint_to_string(&event.payout),
-                        tx: build_transaction_context(&blk, &log).into(),
+                        tx: build_transaction_context(&blk, log).into(),
                     });
                 }
-            } else if neg_risk_events::PositionsConverted::match_log(log.log) {
-                if let Ok(event) = neg_risk_events::PositionsConverted::decode(log.log) {
+            } else if neg_risk_events::PositionsConverted::match_log(&log.log) {
+                if let Ok(event) = neg_risk_events::PositionsConverted::decode(&log.log) {
                     neg_risk
                         .positions_converted
                         .push(proto::PositionsConverted {
@@ -282,7 +285,7 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
                             index_set: bigint_to_string(&event.index_set),
                             amount: bigint_to_string(&event.amount),
                             amount_out: bigint_to_string(&event.amount_out),
-                            tx: build_transaction_context(&blk, &log).into(),
+                            tx: build_transaction_context(&blk, log).into(),
                         });
                 }
             }
@@ -319,26 +322,23 @@ pub fn map_all_events(blk: eth::Block) -> Result<proto::AllEvents, Error> {
 }
 
 #[inline]
-fn is_pusd_contract(log: &eth::Log) -> bool {
-    log.address == PUSD_CONTRACT_ADDRESS
+fn is_pusd_contract(address: &[u8]) -> bool {
+    address == PUSD_CONTRACT_ADDRESS
 }
 
 #[inline]
-fn is_ctf_adapter_contract(log: &eth::Log) -> bool {
-    log.address == CTF_COLLATERAL_ADAPTER_ADDRESS
+fn is_ctf_adapter_contract(address: &[u8]) -> bool {
+    address == CTF_COLLATERAL_ADAPTER_ADDRESS
 }
 
 #[inline]
-fn is_neg_risk_ctf_adapter_contract(log: &eth::Log) -> bool {
-    log.address == NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS
+fn is_neg_risk_ctf_adapter_contract(address: &[u8]) -> bool {
+    address == NEG_RISK_CTF_COLLATERAL_ADAPTER_ADDRESS
 }
 
 #[inline]
-fn build_transaction_context(
-    blk: &eth::Block,
-    log: &substreams_ethereum::block_view::LogView,
-) -> proto::TransactionContext {
-    let ctx = build_tx_context(blk, log);
+fn build_transaction_context(blk: &BlockLogs, log: &BlockLog) -> proto::TransactionContext {
+    let ctx = tx_context(log.tx_hash, &log.log, blk.number, blk.timestamp);
     proto::TransactionContext {
         tx_hash: ctx.tx_hash,
         log_index: ctx.log_index,
@@ -373,7 +373,7 @@ mod tests {
             address: hex_literal::hex!("C011a7E12a19f7B1f670d46F03B03f3342E82DFB").to_vec(),
             ..Default::default()
         };
-        assert!(is_pusd_contract(&log));
+        assert!(is_pusd_contract(&log.address));
     }
 
     #[test]
@@ -382,7 +382,7 @@ mod tests {
             address: hex_literal::hex!("0000000000000000000000000000000000000000").to_vec(),
             ..Default::default()
         };
-        assert!(!is_pusd_contract(&log));
+        assert!(!is_pusd_contract(&log.address));
     }
 
     #[test]
@@ -391,7 +391,7 @@ mod tests {
             address: hex_literal::hex!("AdA100Db00Ca00073811820692005400218FcE1f").to_vec(),
             ..Default::default()
         };
-        assert!(is_ctf_adapter_contract(&log));
+        assert!(is_ctf_adapter_contract(&log.address));
     }
 
     #[test]
@@ -400,7 +400,7 @@ mod tests {
             address: hex_literal::hex!("0000000000000000000000000000000000000000").to_vec(),
             ..Default::default()
         };
-        assert!(!is_ctf_adapter_contract(&log));
+        assert!(!is_ctf_adapter_contract(&log.address));
     }
 
     #[test]
@@ -409,7 +409,7 @@ mod tests {
             address: hex_literal::hex!("adA2005600Dec949baf300f4C6120000bDB6eAab").to_vec(),
             ..Default::default()
         };
-        assert!(is_neg_risk_ctf_adapter_contract(&log));
+        assert!(is_neg_risk_ctf_adapter_contract(&log.address));
     }
 
     #[test]
@@ -418,7 +418,7 @@ mod tests {
             address: hex_literal::hex!("0000000000000000000000000000000000000000").to_vec(),
             ..Default::default()
         };
-        assert!(!is_neg_risk_ctf_adapter_contract(&log));
+        assert!(!is_neg_risk_ctf_adapter_contract(&log.address));
     }
 
     #[test]
@@ -488,8 +488,12 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_classifies_pusd_transfer() {
-        let out = __impl_map_all_events(block_with_log(pusd_transfer_log()))
-            .expect("handler must not err");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &block_with_log(pusd_transfer_log()),
+            __impl_map_all_events,
+        )
+        .expect("fixture block encodes")
+        .expect("handler must not err");
         let pusd = out
             .pusd_events
             .as_option()
@@ -506,7 +510,12 @@ mod handler_tests {
 
     #[test]
     fn map_all_events_empty_block_ok() {
-        let out = __impl_map_all_events(eth::Block::default()).expect("empty block must not panic");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &eth::Block::default(),
+            __impl_map_all_events,
+        )
+        .expect("fixture block encodes")
+        .expect("empty block must not panic");
         assert!(!out.pusd_events.is_set());
         assert!(!out.ctf_adapter_events.is_set());
         assert!(!out.neg_risk_ctf_adapter_events.is_set());

@@ -6,9 +6,11 @@ pub mod abi;
 
 use std::collections::HashSet;
 
+use substreams::errors::Error;
 use substreams::scalar::BigInt;
-use substreams_ethereum::block_view::LogView;
 use substreams_ethereum::pb::eth::v2 as eth;
+use substreams_ethereum::pb::eth::v2::__buffa::lazy_view::LogLazyView;
+use substreams_ethereum::LogLike;
 
 #[inline]
 pub fn bigint_to_string(bigint: &BigInt) -> String {
@@ -51,13 +53,107 @@ pub struct TxContext {
 }
 
 #[inline]
-pub fn build_tx_context(blk: &eth::Block, log: &LogView) -> TxContext {
+pub fn tx_context(
+    tx_hash: &[u8],
+    log: &LogLazyView,
+    block_number: u64,
+    timestamp: u64,
+) -> TxContext {
     TxContext {
-        tx_hash: format_address(&log.receipt.transaction.hash),
-        log_index: log.log.block_index as u64,
-        block_number: blk.number,
-        timestamp: blk.timestamp_seconds(),
+        tx_hash: format_address(tx_hash),
+        log_index: log.block_index as u64,
+        block_number,
+        timestamp,
     }
+}
+
+/// The block header's timestamp in seconds, read from a lazy block view.
+///
+/// Errors (rather than panicking like the owned `Block::timestamp_seconds`) when
+/// the header fails to decode or is absent.
+pub fn block_timestamp_seconds(blk: &eth::BlockLazyView) -> Result<u64, Error> {
+    let header = blk
+        .header
+        .get()?
+        .ok_or_else(|| Error::msg(format!("block {} has no header", blk.number)))?;
+    let ts = header
+        .timestamp
+        .as_option()
+        .ok_or_else(|| Error::msg(format!("block {} header has no timestamp", blk.number)))?;
+    Ok(ts.seconds as u64)
+}
+
+/// Runs `f` over a lazy view of an owned block, for tests and benches whose
+/// fixtures are owned `eth::Block`s: encodes the block and decodes it lazily,
+/// as the runtime does for a `&eth::BlockLazyView<'_>` handler.
+pub fn with_lazy_block<R>(
+    blk: &eth::Block,
+    f: impl FnOnce(&eth::BlockLazyView<'_>) -> R,
+) -> Result<R, buffa::DecodeError> {
+    use buffa::view::LazyMessageView;
+    use buffa::Message;
+    let bytes = blk.encode_to_vec();
+    let view = eth::BlockLazyView::decode_lazy(&bytes)?;
+    Ok(f(&view))
+}
+
+/// A log of a successful transaction, paired with that transaction's hash.
+pub struct BlockLog<'a> {
+    pub tx_hash: &'a [u8],
+    pub log: LogLazyView<'a>,
+}
+
+/// The logs a handler kept from one block, with the block fields its
+/// transaction contexts need.
+pub struct BlockLogs<'a> {
+    pub number: u64,
+    /// Header timestamp in seconds; read only when at least one log was kept
+    /// (0 otherwise), so a block with nothing to emit never touches the header.
+    pub timestamp: u64,
+    pub logs: Vec<BlockLog<'a>>,
+}
+
+/// Walks the logs in the receipts of the block's successful transactions, in
+/// block order, and keeps those whose emitting contract address satisfies
+/// `keep`, each paired with its transaction hash.
+///
+/// This mirrors the owned `Block::logs()` (whose `LogView` carries the
+/// transaction) but returns decode errors instead of panicking, and rejects on
+/// `address` before anything is decoded or stored. A successful transaction
+/// without a receipt contributes no logs.
+pub fn block_logs<'a>(
+    blk: &eth::BlockLazyView<'a>,
+    keep: impl Fn(&[u8]) -> bool,
+) -> Result<BlockLogs<'a>, Error> {
+    let mut logs = Vec::new();
+    for tx in blk.transaction_traces.iter() {
+        let tx = tx?;
+        if tx.status != eth::TransactionTraceStatus::Succeeded {
+            continue;
+        }
+        let Some(receipt) = tx.receipt.get()? else {
+            continue;
+        };
+        for log in receipt.logs.iter() {
+            let log = log?;
+            if keep(log.address) {
+                logs.push(BlockLog {
+                    tx_hash: tx.hash,
+                    log,
+                });
+            }
+        }
+    }
+    let timestamp = if logs.is_empty() {
+        0
+    } else {
+        block_timestamp_seconds(blk)?
+    };
+    Ok(BlockLogs {
+        number: blk.number,
+        timestamp,
+        logs,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -112,7 +208,7 @@ pub const USER_ACTIVITY_CONTRACTS: [[u8; 20]; 8] = [
 /// on the emitting contract `address`. Returns raw 20-byte addresses (possibly
 /// with duplicates within one log, e.g. self-transfers). Returns an empty vec
 /// for logs from non-Polymarket contracts or events we do not attribute.
-pub fn user_addresses_for_log(address: &[u8], log: &eth::Log) -> Vec<Vec<u8>> {
+pub fn user_addresses_for_log<L: LogLike>(address: &[u8], log: &L) -> Vec<Vec<u8>> {
     let mut out: Vec<Vec<u8>> = Vec::new();
 
     if address == CTF_EXCHANGE {
@@ -258,16 +354,19 @@ pub fn user_addresses_for_log(address: &[u8], log: &eth::Log) -> Vec<Vec<u8>> {
 /// for a block. Single pass over `blk.logs()`. Returns deduplicated raw 20-byte
 /// addresses in deterministic (sorted) order — `HashSet` iteration order is
 /// unspecified, so sorting keeps the derived block index reproducible.
-pub fn collect_user_addresses(blk: &eth::Block) -> Vec<Vec<u8>> {
+pub fn collect_user_addresses(blk: &eth::BlockLazyView) -> Result<Vec<Vec<u8>>, Error> {
     let mut set: HashSet<Vec<u8>> = HashSet::new();
-    for log in blk.logs() {
-        for addr in user_addresses_for_log(&log.log.address, log.log) {
+    let kept = block_logs(blk, |address| {
+        USER_ACTIVITY_CONTRACTS.iter().any(|c| address == c)
+    })?;
+    for BlockLog { log, .. } in &kept.logs {
+        for addr in user_addresses_for_log(log.address, log) {
             set.insert(addr);
         }
     }
     let mut addrs: Vec<Vec<u8>> = set.into_iter().collect();
     addrs.sort();
-    addrs
+    Ok(addrs)
 }
 
 #[cfg(test)]
@@ -420,6 +519,9 @@ mod user_activity_tests {
     #[test]
     fn test_collect_user_addresses_empty_block() {
         let blk = eth::Block::default();
-        assert!(collect_user_addresses(&blk).is_empty());
+        let got = with_lazy_block(&blk, collect_user_addresses)
+            .expect("valid block")
+            .expect("no decode error");
+        assert!(got.is_empty());
     }
 }

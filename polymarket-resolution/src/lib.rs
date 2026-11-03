@@ -1,3 +1,10 @@
+// The `#[substreams::handlers::map]` macro generates an `extern "C"` shim that rebuilds
+// lazy `&eth::BlockLazyView<'_>` handler inputs from a raw `*mut u8`. The macro drops
+// the annotated fn's attributes, so a fn-scoped allow cannot reach the generated
+// shim; `not_unsafe_ptr_arg_deref` must be allowed at crate scope. The unsafe deref
+// lives entirely in macro-generated code; our handlers are safe.
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 pub mod abi;
 #[allow(dead_code, clippy::all)]
 pub mod pb;
@@ -7,7 +14,7 @@ use substreams_ethereum::pb::eth::v2 as eth;
 
 use pb::polymarket::resolution::v1 as proto;
 use polymarket_substreams_common::{
-    bigint_to_string, bigint_to_u64, build_tx_context, format_address,
+    bigint_to_string, bigint_to_u64, block_logs, format_address, tx_context, BlockLog, BlockLogs,
 };
 
 const UMA_ORACLE_V2_ADDRESS: [u8; 20] =
@@ -34,11 +41,12 @@ fn adapter_source(addr: &[u8]) -> &'static str {
     }
 }
 
-fn to_proto_tx(
-    blk: &eth::Block,
-    log: &substreams_ethereum::block_view::LogView,
-) -> proto::TransactionContext {
-    let ctx = build_tx_context(blk, log);
+fn is_resolution_address(addr: &[u8]) -> bool {
+    addr == UMA_ORACLE_V2_ADDRESS || addr == UMA_ORACLE_V3_ADDRESS || is_adapter_address(addr)
+}
+
+fn to_proto_tx(blk: &BlockLogs, log: &BlockLog) -> proto::TransactionContext {
+    let ctx = tx_context(log.tx_hash, &log.log, blk.number, blk.timestamp);
     proto::TransactionContext {
         tx_hash: ctx.tx_hash,
         log_index: ctx.log_index,
@@ -65,18 +73,19 @@ struct DecodedBlock {
 /// via an if/else-if chain (matching the `map_all_events` convention in the other
 /// packages). The transaction context is built once per event and shared between
 /// the event struct and its dispute alert via `tx.clone()`.
-fn decode_block(blk: &eth::Block) -> DecodedBlock {
+fn decode_block(blk: &eth::BlockLazyView) -> Result<DecodedBlock, Error> {
     use abi::optimistic_oracle_v2::events as v2;
     use abi::optimistic_oracle_v3::events as v3;
     use abi::uma_ctf_adapter::events::*;
 
     let mut d = DecodedBlock::default();
 
-    for log in blk.logs() {
+    let blk = &block_logs(blk, is_resolution_address)?;
+    for log in &blk.logs {
         if log.log.address == UMA_ORACLE_V2_ADDRESS {
-            if v2::ProposePrice::match_log(log.log) {
-                if let Ok(e) = v2::ProposePrice::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            if v2::ProposePrice::match_log(&log.log) {
+                if let Ok(e) = v2::ProposePrice::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.oracle.proposals.push(proto::ResolutionProposal {
                         oracle_version: "v2".into(),
                         proposer: format_address(&e.proposer),
@@ -91,9 +100,9 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         tx: tx.into(),
                     });
                 }
-            } else if v2::DisputePrice::match_log(log.log) {
-                if let Ok(e) = v2::DisputePrice::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if v2::DisputePrice::match_log(&log.log) {
+                if let Ok(e) = v2::DisputePrice::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.oracle.disputes.push(proto::ResolutionDispute {
                         oracle_version: "v2".into(),
                         disputer: format_address(&e.disputer),
@@ -114,9 +123,9 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         tx: tx.into(),
                     });
                 }
-            } else if v2::Settle::match_log(log.log) {
-                if let Ok(e) = v2::Settle::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if v2::Settle::match_log(&log.log) {
+                if let Ok(e) = v2::Settle::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.oracle.settlements.push(proto::ResolutionSettlement {
                         oracle_version: "v2".into(),
                         price: bigint_to_string(&e.price),
@@ -132,9 +141,9 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                 }
             }
         } else if log.log.address == UMA_ORACLE_V3_ADDRESS {
-            if v3::AssertionMade::match_log(log.log) {
-                if let Ok(e) = v3::AssertionMade::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            if v3::AssertionMade::match_log(&log.log) {
+                if let Ok(e) = v3::AssertionMade::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.oracle.proposals.push(proto::ResolutionProposal {
                         oracle_version: "v3".into(),
                         proposer: format_address(&e.asserter),
@@ -149,9 +158,9 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         tx: tx.into(),
                     });
                 }
-            } else if v3::AssertionDisputed::match_log(log.log) {
-                if let Ok(e) = v3::AssertionDisputed::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if v3::AssertionDisputed::match_log(&log.log) {
+                if let Ok(e) = v3::AssertionDisputed::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.oracle.disputes.push(proto::ResolutionDispute {
                         oracle_version: "v3".into(),
                         disputer: format_address(&e.disputer),
@@ -172,9 +181,9 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         tx: tx.into(),
                     });
                 }
-            } else if v3::AssertionSettled::match_log(log.log) {
-                if let Ok(e) = v3::AssertionSettled::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if v3::AssertionSettled::match_log(&log.log) {
+                if let Ok(e) = v3::AssertionSettled::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.oracle.settlements.push(proto::ResolutionSettlement {
                         oracle_version: "v3".into(),
                         price: if e.settlement_resolution { "1" } else { "0" }.into(),
@@ -189,12 +198,12 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                     });
                 }
             }
-        } else if is_adapter_address(&log.log.address) {
-            let source = adapter_source(&log.log.address);
+        } else if is_adapter_address(log.log.address) {
+            let source = adapter_source(log.log.address);
 
-            if QuestionInitialized::match_log(log.log) {
-                if let Ok(e) = QuestionInitialized::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            if QuestionInitialized::match_log(&log.log) {
+                if let Ok(e) = QuestionInitialized::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.adapter
                         .question_initialized
                         .push(proto::QuestionInitialized {
@@ -208,9 +217,9 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                             tx: tx.into(),
                         });
                 }
-            } else if QuestionResolved::match_log(log.log) {
-                if let Ok(e) = QuestionResolved::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if QuestionResolved::match_log(&log.log) {
+                if let Ok(e) = QuestionResolved::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.adapter.question_resolved.push(proto::QuestionResolved {
                         question_id: e.question_id.to_vec(),
                         settled_price: bigint_to_string(&e.settled_price),
@@ -218,9 +227,9 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         tx: tx.into(),
                     });
                 }
-            } else if QuestionEmergencyResolved::match_log(log.log) {
-                if let Ok(e) = QuestionEmergencyResolved::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if QuestionEmergencyResolved::match_log(&log.log) {
+                if let Ok(e) = QuestionEmergencyResolved::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     let payouts: Vec<String> = e.payouts.iter().map(bigint_to_string).collect();
                     d.adapter
                         .question_emergency_resolved
@@ -239,9 +248,9 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         tx: tx.into(),
                     });
                 }
-            } else if QuestionFlagged::match_log(log.log) {
-                if let Ok(e) = QuestionFlagged::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if QuestionFlagged::match_log(&log.log) {
+                if let Ok(e) = QuestionFlagged::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.adapter.question_flagged.push(proto::QuestionFlagged {
                         question_id: e.question_id.to_vec(),
                         tx: tx.clone().into(),
@@ -256,17 +265,17 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         tx: tx.into(),
                     });
                 }
-            } else if QuestionUnflagged::match_log(log.log) {
-                if let Ok(e) = QuestionUnflagged::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if QuestionUnflagged::match_log(&log.log) {
+                if let Ok(e) = QuestionUnflagged::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.adapter.question_unflagged.push(proto::QuestionUnflagged {
                         question_id: e.question_id.to_vec(),
                         tx: tx.into(),
                     });
                 }
-            } else if QuestionPaused::match_log(log.log) {
-                if let Ok(e) = QuestionPaused::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if QuestionPaused::match_log(&log.log) {
+                if let Ok(e) = QuestionPaused::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.adapter.question_paused.push(proto::QuestionPaused {
                         question_id: e.question_id.to_vec(),
                         tx: tx.clone().into(),
@@ -281,17 +290,17 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         tx: tx.into(),
                     });
                 }
-            } else if QuestionUnpaused::match_log(log.log) {
-                if let Ok(e) = QuestionUnpaused::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if QuestionUnpaused::match_log(&log.log) {
+                if let Ok(e) = QuestionUnpaused::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.adapter.question_unpaused.push(proto::QuestionUnpaused {
                         question_id: e.question_id.to_vec(),
                         tx: tx.into(),
                     });
                 }
-            } else if QuestionReset::match_log(log.log) {
-                if let Ok(e) = QuestionReset::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if QuestionReset::match_log(&log.log) {
+                if let Ok(e) = QuestionReset::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.adapter.question_reset.push(proto::QuestionReset {
                         question_id: e.question_id.to_vec(),
                         tx: tx.clone().into(),
@@ -306,9 +315,9 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         tx: tx.into(),
                     });
                 }
-            } else if AncillaryDataUpdated::match_log(log.log) {
-                if let Ok(e) = AncillaryDataUpdated::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if AncillaryDataUpdated::match_log(&log.log) {
+                if let Ok(e) = AncillaryDataUpdated::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.adapter
                         .ancillary_data_updated
                         .push(proto::AncillaryDataUpdated {
@@ -318,9 +327,9 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                             tx: tx.into(),
                         });
                 }
-            } else if NewAdmin::match_log(log.log) {
-                if let Ok(e) = NewAdmin::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if NewAdmin::match_log(&log.log) {
+                if let Ok(e) = NewAdmin::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.adapter.admin_changes.push(proto::AdapterAdmin {
                         admin: format_address(&e.admin),
                         target_admin: format_address(&e.new_admin_address),
@@ -328,9 +337,9 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
                         tx: tx.into(),
                     });
                 }
-            } else if RemovedAdmin::match_log(log.log) {
-                if let Ok(e) = RemovedAdmin::decode(log.log) {
-                    let tx = to_proto_tx(blk, &log);
+            } else if RemovedAdmin::match_log(&log.log) {
+                if let Ok(e) = RemovedAdmin::decode(&log.log) {
+                    let tx = to_proto_tx(blk, log);
                     d.adapter.admin_changes.push(proto::AdapterAdmin {
                         admin: format_address(&e.admin),
                         target_admin: format_address(&e.removed_admin),
@@ -342,7 +351,7 @@ fn decode_block(blk: &eth::Block) -> DecodedBlock {
         }
     }
 
-    d
+    Ok(d)
 }
 
 fn has_oracle_events(o: &proto::OracleEvents) -> bool {
@@ -363,21 +372,21 @@ fn has_adapter_events(a: &proto::AdapterEvents) -> bool {
 }
 
 #[substreams::handlers::map]
-pub fn map_oracle_events(blk: eth::Block) -> Result<proto::OracleEvents, Error> {
+pub fn map_oracle_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::OracleEvents, Error> {
     substreams::skip_empty_output();
-    Ok(decode_block(&blk).oracle)
+    Ok(decode_block(blk)?.oracle)
 }
 
 #[substreams::handlers::map]
-pub fn map_adapter_events(blk: eth::Block) -> Result<proto::AdapterEvents, Error> {
+pub fn map_adapter_events(blk: &eth::BlockLazyView<'_>) -> Result<proto::AdapterEvents, Error> {
     substreams::skip_empty_output();
-    Ok(decode_block(&blk).adapter)
+    Ok(decode_block(blk)?.adapter)
 }
 
 #[substreams::handlers::map]
-pub fn map_dispute_alerts(blk: eth::Block) -> Result<proto::DisputeAlerts, Error> {
+pub fn map_dispute_alerts(blk: &eth::BlockLazyView<'_>) -> Result<proto::DisputeAlerts, Error> {
     substreams::skip_empty_output();
-    let d = decode_block(&blk);
+    let d = decode_block(blk)?;
     let mut all_alerts = d.oracle_alerts;
     all_alerts.extend(d.adapter_alerts);
 
@@ -385,9 +394,11 @@ pub fn map_dispute_alerts(blk: eth::Block) -> Result<proto::DisputeAlerts, Error
 }
 
 #[substreams::handlers::map]
-pub fn map_resolution_events(blk: eth::Block) -> Result<proto::ResolutionEvents, Error> {
+pub fn map_resolution_events(
+    blk: &eth::BlockLazyView<'_>,
+) -> Result<proto::ResolutionEvents, Error> {
     substreams::skip_empty_output();
-    let d = decode_block(&blk);
+    let d = decode_block(blk)?;
     let mut all_alerts = d.oracle_alerts;
     all_alerts.extend(d.adapter_alerts);
 
@@ -536,8 +547,12 @@ mod handler_tests {
 
     #[test]
     fn map_resolution_events_classifies_question_flagged() {
-        let out = __impl_map_resolution_events(block_with_log(question_flagged_log()))
-            .expect("handler must not err");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &block_with_log(question_flagged_log()),
+            __impl_map_resolution_events,
+        )
+        .expect("fixture block encodes")
+        .expect("handler must not err");
         // A QuestionFlagged from a CTF adapter lands in adapter events, not oracle.
         assert!(!out.oracle.is_set());
         let adapter = out
@@ -561,8 +576,12 @@ mod handler_tests {
 
     #[test]
     fn map_resolution_events_empty_block_ok() {
-        let out = __impl_map_resolution_events(eth::Block::default())
-            .expect("empty block must not panic");
+        let out = polymarket_substreams_common::with_lazy_block(
+            &eth::Block::default(),
+            __impl_map_resolution_events,
+        )
+        .expect("fixture block encodes")
+        .expect("empty block must not panic");
         assert!(!out.oracle.is_set());
         assert!(!out.adapter.is_set());
         assert!(!out.dispute_alerts.is_set());

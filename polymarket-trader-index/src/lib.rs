@@ -1,6 +1,6 @@
 // The `#[substreams::handlers::map]` macro generates an `extern "C"` shim that rebuilds
-// `params: String` handler inputs from a raw `*mut u8` via `String::from_raw_parts`. The
-// macro drops the annotated fn's attributes, so a fn-scoped allow cannot reach the
+// `params: String` handler inputs from a raw `*mut u8` via `String::from_raw_parts`, and
+// lazy `&eth::BlockLazyView<'_>` inputs from a raw byte pointer. The macro drops the annotated fn's attributes, so a fn-scoped allow cannot reach the
 // generated shim — `not_unsafe_ptr_arg_deref` must be allowed at crate scope. The unsafe
 // deref lives entirely in macro-generated code; our handlers are safe.
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -40,10 +40,10 @@ fn extract_user_addresses(params: &str) -> Vec<Vec<u8>> {
 /// conversions, pUSD transfers, ERC1155 transfers, and wallet deployments.
 /// The per-contract decode lives in `polymarket-substreams-common`.
 #[substreams::handlers::map]
-pub fn map_user_keys(blk: eth::Block) -> Result<Keys, Error> {
+pub fn map_user_keys(blk: &eth::BlockLazyView<'_>) -> Result<Keys, Error> {
     substreams::skip_empty_output();
     Ok(Keys {
-        keys: collect_user_addresses(&blk)
+        keys: collect_user_addresses(blk)?
             .iter()
             .map(|a| user_key(a))
             .collect(),
@@ -70,7 +70,7 @@ pub fn index_users(keys: Keys) -> Result<Keys, Error> {
 /// NOTE: the index must be warm (computed once in `--production-mode`) before the
 /// filter returns matches; a cold first run builds the index and returns nothing.
 #[substreams::handlers::map]
-pub fn map_user_activity(params: String, blk: eth::Block) -> Result<Keys, Error> {
+pub fn map_user_activity(params: String, blk: &eth::BlockLazyView<'_>) -> Result<Keys, Error> {
     substreams::skip_empty_output();
     let watched: Vec<String> = extract_user_addresses(&params)
         .iter()
@@ -79,7 +79,7 @@ pub fn map_user_activity(params: String, blk: eth::Block) -> Result<Keys, Error>
     if watched.is_empty() {
         return Ok(Keys::default());
     }
-    let keys: Vec<String> = collect_user_addresses(&blk)
+    let keys: Vec<String> = collect_user_addresses(blk)?
         .iter()
         .map(|a| user_key(a))
         .filter(|k| watched.contains(k))
