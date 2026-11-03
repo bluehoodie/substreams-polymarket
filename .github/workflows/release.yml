@@ -9,9 +9,36 @@ permissions:
   contents: write
 
 jobs:
+  # Workspace tests are too expensive to run on every push/PR (see ci.yml), so they run
+  # here, once per release, and gate the build/publish jobs below.
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # rustup (preinstalled) reads rust-toolchain.toml and installs the pinned toolchain.
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Test
+        run: cargo test --workspace
+
   build:
     name: Build ${{ matrix.package }}
     runs-on: ubuntu-latest
+    needs: test
     strategy:
       matrix:
         package:
