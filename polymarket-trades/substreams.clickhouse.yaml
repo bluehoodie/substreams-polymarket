@@ -15,7 +15,7 @@ imports:
 
 sink:
   module: trades:db_out_clickhouse
-  type: sf.substreams.sink.sql.service.v1.Service
+  type: sf.substreams.sink.sql.v1.Service
   config:
     schema: "./clickhouse-schema.sql"
     engine: clickhouse
