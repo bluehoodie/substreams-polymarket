@@ -163,7 +163,7 @@ modules:
 
 sink:
   module: db_out
-  type: sf.substreams.sink.sql.v1.Service
+  type: sf.substreams.sink.sql.service.v1.Service
   config:
     schema: "./schema.sql"
     engine: postgres
