@@ -59,8 +59,10 @@ the upstream [substreams-skills](https://github.com/streamingfast/substreams-ski
 ### Tests
 - Handler tests call `substreams::testing::map!(map_x(blk))` through `with_lazy_block`,
   never `__impl_map_x` directly.
-- Each package has a real Polygon block fixture under `src/testdata/` and a test that
-  asserts its known events; `tests/assertions.yaml` drives `substreams run --test-file`.
+- Each package has a `fixture_tests` test over a real Polygon block in the shared
+  `testdata/` and a matching `tests/assertions.yaml`, checked on-chain by
+  `scripts/run_test_files.sh` (which evaluates the assertions itself because
+  `substreams run --test-file` doesn't fail runs as of v1.26; re-check that on upgrades).
 - `cargo test --workspace` runs in `release.yml` on `v*` tags only (CI policy; don't
   propose moving it to push/PR).
 
