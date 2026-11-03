@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: polymarket-trades
-  version: v1.1.0
+  version: v1.2.0
   url: https://github.com/bluehoodie/substreams-polymarket
   description: Polymarket trade tape — every order fill from CTF Exchange V2, Neg Risk CTF Exchange V2 and ExchangeV3, with fee-aware price
   image: ./polymarket.png
